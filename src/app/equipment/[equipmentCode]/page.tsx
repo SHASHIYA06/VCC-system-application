@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { supabase, hasValidSupabaseConfig } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
+import EquipmentConnectorDiagram from '@/components/diagrams/EquipmentConnectorDiagram';
 
 export default async function EquipmentDetailsPage({ params }: { params: { equipmentCode: string } }) {
   const id = params.equipmentCode;
@@ -16,8 +17,8 @@ export default async function EquipmentDetailsPage({ params }: { params: { equip
   };
   
   let connectors: any[] = [
-    { id: '1', connector_code: 'CN1', type: 'Plug', description: 'Power Input' },
-    { id: '2', connector_code: 'CN2', type: 'Receptacle', description: 'Control Signals' }
+    { id: '1', connector_code: 'CN1', type: 'Plug', description: 'Power Input', pinCount: 24 },
+    { id: '2', connector_code: 'CN2', type: 'Receptacle', description: 'Control Signals', pinCount: 16 }
   ];
 
   if (hasValidSupabaseConfig) {
@@ -47,11 +48,17 @@ export default async function EquipmentDetailsPage({ params }: { params: { equip
         .select('id, connector_code, type, description')
         .eq('equipment_id', id);
         
-      connectors = cnData || [];
+      connectors = cnData?.map((cn: any) => ({ ...cn, pinCount: 0 })) || [];
     } catch (e) {
       console.error('Failed to fetch equipment details', e);
     }
   }
+
+  // Format data for diagram
+  const diagramConnectors = connectors.map(c => ({
+    code: c.connector_code,
+    pinCount: c.pinCount || 0
+  }));
 
   return (
     <div>
@@ -69,10 +76,10 @@ export default async function EquipmentDetailsPage({ params }: { params: { equip
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-6">
         {/* Details Panel */}
         <div className="lg:col-span-1">
-          <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden h-full">
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-4 sm:px-6">
               <h3 className="text-base font-semibold leading-6 text-slate-900">Equipment Details</h3>
             </div>
@@ -101,43 +108,56 @@ export default async function EquipmentDetailsPage({ params }: { params: { equip
           </div>
         </div>
 
-        {/* Connectors Panel */}
+        {/* Visual Diagram Panel */}
         <div className="lg:col-span-2">
           <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-4 sm:px-6">
-              <h3 className="text-base font-semibold leading-6 text-slate-900">Associated Connectors</h3>
+              <h3 className="text-base font-semibold leading-6 text-slate-900">Visual Layout</h3>
             </div>
-            <ul role="list" className="divide-y divide-slate-200">
-              {connectors.length > 0 ? connectors.map((cn) => (
-                <li key={cn.id} className="flex items-center justify-between gap-x-6 py-4 px-4 sm:px-6 hover:bg-slate-50">
-                  <div className="min-w-0">
-                    <div className="flex items-start gap-x-3">
-                      <p className="text-sm font-semibold leading-6 text-slate-900">{cn.connector_code}</p>
-                      <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">
-                        {cn.type}
-                      </span>
-                    </div>
-                    {cn.description && (
-                      <div className="mt-1 flex items-center gap-x-2 text-xs leading-5 text-slate-500">
-                        <p className="truncate">{cn.description}</p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-none items-center gap-x-4">
-                    <Link
-                      href={`/connectors/${cn.id}`}
-                      className="hidden rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:block"
-                    >
-                      View Pins
-                    </Link>
-                  </div>
-                </li>
-              )) : (
-                <li className="py-4 px-6 text-sm text-slate-500">No connectors found for this equipment.</li>
-              )}
-            </ul>
+            <div className="px-4 py-5 sm:p-6">
+              <EquipmentConnectorDiagram 
+                equipmentCode={equipment.equipment_code} 
+                connectors={diagramConnectors} 
+              />
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Connectors Panel */}
+      <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-4 sm:px-6">
+          <h3 className="text-base font-semibold leading-6 text-slate-900">Associated Connectors</h3>
+        </div>
+        <ul role="list" className="divide-y divide-slate-200">
+          {connectors.length > 0 ? connectors.map((cn) => (
+            <li key={cn.id} className="flex items-center justify-between gap-x-6 py-4 px-4 sm:px-6 hover:bg-slate-50">
+              <div className="min-w-0">
+                <div className="flex items-start gap-x-3">
+                  <p className="text-sm font-semibold leading-6 text-slate-900">{cn.connector_code}</p>
+                  <span className="inline-flex items-center rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">
+                    {cn.type}
+                  </span>
+                </div>
+                {cn.description && (
+                  <div className="mt-1 flex items-center gap-x-2 text-xs leading-5 text-slate-500">
+                    <p className="truncate">{cn.description}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-none items-center gap-x-4">
+                <Link
+                  href={`/connectors/${cn.id}`}
+                  className="hidden rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:block"
+                >
+                  View Pins
+                </Link>
+              </div>
+            </li>
+          )) : (
+            <li className="py-4 px-6 text-sm text-slate-500">No connectors found for this equipment.</li>
+          )}
+        </ul>
       </div>
     </div>
   );

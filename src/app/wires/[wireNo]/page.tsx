@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { supabase, hasValidSupabaseConfig } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
+import WireTraceDiagram from '@/components/diagrams/WireTraceDiagram';
 
 export default async function WireDetailsPage({ params }: { params: { wireNo: string } }) {
   const id = params.wireNo;
@@ -15,14 +16,11 @@ export default async function WireDetailsPage({ params }: { params: { wireNo: st
     cross_section_mm2: 1.5,
   };
   
-  // Mock endpoints for the wire tracing graph
-  let traceNodes = [
-    { type: 'equipment', code: 'DMC-BCU', name: 'Brake Control Unit' },
-    { type: 'connector', code: 'CN1', name: 'Pin 14' },
-    { type: 'wire', code: wire.wire_no, name: wire.signal_name },
-    { type: 'connector', code: 'CN2', name: 'Pin 8' },
-    { type: 'equipment', code: 'TC-BECU', name: 'Brake ECU' }
-  ];
+  // Mock data for the diagram
+  const sourceEquipment = 'DMC-BCU';
+  const sourcePin = 'CN1-14';
+  const targetEquipment = 'TC-BECU';
+  const targetPin = 'CN2-8';
 
   if (hasValidSupabaseConfig) {
     try {
@@ -37,8 +35,6 @@ export default async function WireDetailsPage({ params }: { params: { wireNo: st
       }
       
       wire = wData;
-      // Tracing query would be more complex, selecting from pin_links and trainline_crossings
-      // For now, we simulate the tracing.
     } catch (e) {
       console.error('Failed to fetch wire details', e);
     }
@@ -66,7 +62,7 @@ export default async function WireDetailsPage({ params }: { params: { wireNo: st
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden h-full">
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-4 sm:px-6">
               <h3 className="text-base font-semibold leading-6 text-slate-900">Properties</h3>
             </div>
@@ -88,33 +84,17 @@ export default async function WireDetailsPage({ params }: { params: { wireNo: st
         <div className="lg:col-span-2">
           <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="border-b border-slate-200 bg-slate-50 px-4 py-4 sm:px-6">
-              <h3 className="text-base font-semibold leading-6 text-slate-900">Wire Trace Path</h3>
+              <h3 className="text-base font-semibold leading-6 text-slate-900">Wire Trace Diagram</h3>
             </div>
             <div className="px-4 py-5 sm:p-6">
-              <nav aria-label="Progress">
-                <ol role="list" className="overflow-hidden">
-                  {traceNodes.map((node, nodeIdx) => (
-                    <li key={node.code} className={`relative ${nodeIdx !== traceNodes.length - 1 ? 'pb-10' : ''}`}>
-                      {nodeIdx !== traceNodes.length - 1 ? (
-                        <div className="absolute left-4 top-4 -ml-px mt-0.5 h-full w-0.5 bg-blue-600" aria-hidden="true" />
-                      ) : null}
-                      <div className="group relative flex items-start">
-                        <span className="flex h-9 items-center">
-                          <span className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 group-hover:bg-blue-800">
-                            {node.type === 'equipment' && <span className="text-white text-xs">EQ</span>}
-                            {node.type === 'connector' && <span className="text-white text-xs">CN</span>}
-                            {node.type === 'wire' && <span className="text-white text-xs">W</span>}
-                          </span>
-                        </span>
-                        <span className="ml-4 flex min-w-0 flex-col">
-                          <span className="text-sm font-medium text-slate-900">{node.code}</span>
-                          <span className="text-sm text-slate-500">{node.name}</span>
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </nav>
+              <WireTraceDiagram
+                wireNo={wire.wire_no}
+                sourceEquipment={sourceEquipment}
+                sourcePin={sourcePin}
+                targetEquipment={targetEquipment}
+                targetPin={targetPin}
+                color={wire.color === 'Red' ? '#ef4444' : '#3b82f6'}
+              />
             </div>
           </div>
         </div>
