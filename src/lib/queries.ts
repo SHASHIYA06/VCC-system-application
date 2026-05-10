@@ -4,7 +4,7 @@ import { asc, eq } from 'drizzle-orm';
 import { System, Drawing, Equipment, Connector, Pin, Wire } from '@/types';
 
 /** Helper to map System rows */
-const mapSystem = (row: typeof schema.systems._): System => ({
+const mapSystem = (row: typeof schema.systems.$inferSelect): System => ({
   id: row.id,
   code: row.code,
   name: row.name,
@@ -14,7 +14,7 @@ const mapSystem = (row: typeof schema.systems._): System => ({
 });
 
 /** Helper to map Drawing rows */
-const mapDrawing = (row: typeof schema.drawings._): Drawing => ({
+const mapDrawing = (row: typeof schema.drawings.$inferSelect): Drawing => ({
   id: row.id,
   drawing_no: row.drawing_no,
   title: row.title,
@@ -24,7 +24,7 @@ const mapDrawing = (row: typeof schema.drawings._): Drawing => ({
 });
 
 /** Helper to map Equipment rows */
-const mapEquipment = (row: typeof schema.equipment._): Equipment => ({
+const mapEquipment = (row: typeof schema.equipment.$inferSelect): Equipment => ({
   id: row.id,
   equipment_code: row.equipment_code,
   name: row.name,
@@ -35,7 +35,7 @@ const mapEquipment = (row: typeof schema.equipment._): Equipment => ({
 });
 
 /** Helper to map Connector rows */
-const mapConnector = (row: typeof schema.connectors._): Connector => ({
+const mapConnector = (row: typeof schema.connectors.$inferSelect): Connector => ({
   id: row.id,
   connector_code: row.connector_code,
   equipment_code: row.equipment_code,
@@ -44,7 +44,7 @@ const mapConnector = (row: typeof schema.connectors._): Connector => ({
 });
 
 /** Helper to map Pin rows */
-const mapPin = (row: typeof schema.pins._): Pin => ({
+const mapPin = (row: typeof schema.pins.$inferSelect): Pin => ({
   id: row.id,
   pin_number: row.pin_number,
   connector_code: row.connector_code,
@@ -55,7 +55,7 @@ const mapPin = (row: typeof schema.pins._): Pin => ({
 });
 
 /** Helper to map Wire rows */
-const mapWire = (row: typeof schema.wires._): Wire => ({
+const mapWire = (row: typeof schema.wires.$inferSelect): Wire => ({
   id: row.id,
   wire_no: row.wire_no,
   signal_name: row.signal_name ?? '',
