@@ -6,8 +6,8 @@ import AppShell from "@/components/layout/AppShell";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "KMRCL VCC Explorer",
-  description: "Intelligent Wiring Explorer for KMRCL RS3R",
+  title: "KMRCL VCC Intelligence Explorer",
+  description: "Production-grade Vehicle Control Circuits Explorer for KMRCL RS3R Metro",
 };
 
 export default function RootLayout({
@@ -16,10 +16,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full bg-slate-50">
+    <html lang="en" className="h-full">
       <body className={`${inter.className} h-full flex overflow-hidden`}>
         <AppShell>
-          {children}
+          <div className="flex-1 overflow-auto">
+            {children}
+          </div>
         </AppShell>
       </body>
     </html>
