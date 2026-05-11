@@ -18,7 +18,7 @@ export default async function ConnectorsRegister() {
         .order('connector_code');
       
       if (data && !error) {
-        connectors = data.map((cn: any) => ({
+        connectors = data.map((cn: { id: string; connector_code: string; type?: string; equipment?: { equipment_code?: string } }) => ({
           ...cn,
           equipment_code: cn.equipment?.equipment_code || 'N/A',
         }));
@@ -70,7 +70,7 @@ export default async function ConnectorsRegister() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
-                  {connectors.map((cn: any) => (
+                  {connectors.map((cn: { id: string; connector_code: string; equipment_code: string }) => (
                     <tr key={cn.id}>
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-slate-900 sm:pl-6">
                         {cn.connector_code}

@@ -1,5 +1,5 @@
 import { supabase, hasValidSupabaseConfig } from './supabase';
-import { System, Drawing, Equipment, Connector, Pin, Wire } from '@/types';
+import { System, Drawing } from '@/types';
 
 // Mock Data
 const MOCK_SYSTEMS: System[] = [
@@ -33,5 +33,8 @@ export async function getDrawings(): Promise<Drawing[]> {
   ];
   const { data, error } = await supabase.from('drawings').select('id, drawing_no, title, current_revision, status, systems(code)').order('drawing_no');
   if (error) return [];
-  return data.map((d: any) => ({ ...d, system_code: d.systems?.code }));
+  return data.map((d: { id: string; drawing_no: string; title: string; current_revision?: string; status?: string; systems?: { code?: string } }) => ({ 
+    ...d, 
+    system_code: d.systems?.code 
+  }));
 }

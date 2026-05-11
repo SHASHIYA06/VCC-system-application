@@ -1,6 +1,6 @@
 import { supabase, hasValidSupabaseConfig } from './supabase';
 
-export async function uploadData(table: string, data: any[]) {
+export async function uploadData(table: string, data: Record<string, unknown>[]) {
   if (!hasValidSupabaseConfig) {
     console.warn('Supabase not configured, mocking upload for', table);
     return { success: true, count: data.length };

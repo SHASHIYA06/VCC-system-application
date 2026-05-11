@@ -19,7 +19,7 @@ export default async function EquipmentRegister() {
         .order('equipment_code');
       
       if (data && !error) {
-        equipment = data.map((eq: any) => ({
+        equipment = data.map((eq: { id: string; equipment_code: string; name: string; location?: string; systems?: { code?: string }; car_types?: { code?: string } }) => ({
           ...eq,
           system_code: eq.systems?.code || 'GEN',
           car_type: eq.car_types?.code || 'ALL'

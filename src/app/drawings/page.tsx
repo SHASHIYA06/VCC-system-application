@@ -21,7 +21,7 @@ export default async function DrawingsRegister() {
         .order('drawing_no');
       
       if (data && !error) {
-        drawings = data.map((d: any) => ({
+        drawings = data.map((d: { id: string; drawing_no: string; title: string; current_revision?: string; status?: string; systems?: { code?: string } }) => ({
           ...d,
           system_code: d.systems?.code || 'GEN'
         }));

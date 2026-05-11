@@ -15,7 +15,7 @@ export default async function EquipmentDetailsPage({ params }: { params: { equip
     car_type: 'TC'
   };
   
-  let connectors: any[] = [
+  let connectors: { id: string; connector_code: string; type?: string; description?: string }[] = [
     { id: '1', connector_code: 'CN1', type: 'Plug', description: 'Power Input' },
     { id: '2', connector_code: 'CN2', type: 'Receptacle', description: 'Control Signals' }
   ];
