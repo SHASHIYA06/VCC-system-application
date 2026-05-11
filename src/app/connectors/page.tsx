@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { supabase, hasValidSupabaseConfig } from '@/lib/supabase';
 
 const mockConnectors = [
-  { id: '1', connector_code: 'CN1', equipment: { equipment_code: 'DMC-BCU' }, type: 'Plug' },
-  { id: '2', connector_code: 'CN2', equipment: { equipment_code: 'TC-BECU' }, type: 'Receptacle' },
-  { id: '3', connector_code: 'CN3', equipment: { equipment_code: 'DMC-VVVF' }, type: 'Terminal Block' },
+  { id: '1', connector_code: 'CN1', equipment_code: 'DMC-BCU', type: 'Plug' },
+  { id: '2', connector_code: 'CN2', equipment_code: 'TC-BECU', type: 'Receptacle' },
+  { id: '3', connector_code: 'CN3', equipment_code: 'DMC-VVVF', type: 'Terminal Block' },
 ];
 
 export default async function ConnectorsRegister() {
@@ -18,16 +18,16 @@ export default async function ConnectorsRegister() {
         .order('connector_code');
       
       if (data && !error) {
-        connectors = data.map((cn: { id: string; connector_code: string; type?: string; equipment?: { equipment_code?: string } }) => ({
-          ...cn,
+        connectors = data.map((cn: any) => ({
+          id: cn.id,
+          connector_code: cn.connector_code,
+          type: cn.type || 'N/A',
           equipment_code: cn.equipment?.equipment_code || 'N/A',
         }));
       }
     } catch (e) {
       console.error('Failed to fetch connectors from Supabase', e);
     }
-  } else {
-    connectors = connectors.map(c => ({...c, equipment_code: c.equipment.equipment_code}));
   }
 
   return (
@@ -70,7 +70,7 @@ export default async function ConnectorsRegister() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
-                  {connectors.map((cn: { id: string; connector_code: string; equipment_code: string }) => (
+                  {connectors.map((cn) => (
                     <tr key={cn.id}>
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-slate-900 sm:pl-6">
                         {cn.connector_code}

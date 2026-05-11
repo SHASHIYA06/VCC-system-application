@@ -33,8 +33,8 @@ export async function getDrawings(): Promise<Drawing[]> {
   ];
   const { data, error } = await supabase.from('drawings').select('id, drawing_no, title, current_revision, status, systems(code)').order('drawing_no');
   if (error) return [];
-  return data.map((d: { id: string; drawing_no: string; title: string; current_revision?: string; status?: string; systems?: { code?: string } }) => ({ 
+  return data.map((d: any) => ({ 
     ...d, 
-    system_code: d.systems?.code 
+    system_code: (Array.isArray(d.systems) && d.systems.length > 0) ? d.systems[0].code : (d.systems as any)?.code || 'GEN'
   }));
 }

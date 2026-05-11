@@ -3,12 +3,12 @@ import { supabase, hasValidSupabaseConfig } from '@/lib/supabase';
 
 const mockPins = [
   { id: '1', pin_number: '1', connector: { connector_code: 'CN1', equipment: { equipment_code: 'DMC-BCU' } }, signal_name: '24V_DC', wire: { wire_no: 'P2001' } },
-  { id: '2', pin_number: '2', connector: { connector_code: 'CN1', equipment: { equipment_code: 'DMC-BCU' } }, signal_name: 'GND', wire: null },
+  { id: '2', pin_number: '2', connector: { connector_code: 'CN1', equipment: { equipment_code: 'DMC-BCU' } }, signal_name: 'GND', wire: undefined },
   { id: '3', pin_number: '14', connector: { connector_code: 'CN2', equipment: { equipment_code: 'TC-BECU' } }, signal_name: 'BRAKE_CMD', wire: { wire_no: 'W1001' } },
 ];
 
 export default async function PinsRegister() {
-  let pins: { id: string; pin_number: string; signal_name?: string; connector?: { connector_code: string; equipment?: { equipment_code?: string } }; wire?: { wire_no?: string } }[] = mockPins;
+  let pins: any[] = mockPins;
 
   if (hasValidSupabaseConfig) {
     try {
@@ -23,7 +23,7 @@ export default async function PinsRegister() {
         `);
       
       if (data && !error) {
-        pins = data.map((d: { id: string; pin_number: string; signal_name?: string; connectors?: { connector_code: string; equipment?: { equipment_code?: string } }; wires?: { wire_no?: string } }) => ({
+        pins = data.map((d: any) => ({
           ...d,
           connector: d.connectors,
           wire: d.wires
@@ -80,7 +80,7 @@ export default async function PinsRegister() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
-                  {pins.map((p: { id: string; pin_number: string; signal_name?: string; connector?: { connector_code: string; equipment?: { equipment_code?: string } }; wire?: { wire_no?: string } }) => (
+                  {pins.map((p: any) => (
                     <tr key={p.id}>
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-slate-900 sm:pl-6">
                         {p.connector?.equipment?.equipment_code || 'Unknown'}
