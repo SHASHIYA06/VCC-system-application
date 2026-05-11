@@ -13,7 +13,7 @@ export default async function ConnectorDetailsPage({ params }: { params: { conne
     equipment_code: 'EQ-123'
   };
   
-  let pins: any[] = [
+  let pins: { id: string; pin_number: string; signal_name?: string; description?: string }[] = [
     { id: '1', pin_number: '1', signal_name: '24V_DC', description: 'Power' },
     { id: '2', pin_number: '2', signal_name: 'GND', description: 'Ground' },
     { id: '3', pin_number: '3', signal_name: 'DOOR_OPEN', description: 'Door Open Command' }

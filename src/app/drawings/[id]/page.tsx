@@ -38,8 +38,8 @@ export default async function DrawingDetail({ params }: { params: { id: string }
       
       if (data && !error) {
         // Flatten the pins for display
-        const allPins = data.connectors?.flatMap((c: any) => 
-          c.pins?.map((p: any) => ({
+        const allPins = data.connectors?.flatMap((c: { connector_code: string; equipment?: { equipment_code?: string }; pins?: { id: string; pin_number: string; signal_name?: string; description?: string }[] }) => 
+          c.pins?.map((p: { id: string; pin_number: string; signal_name?: string; description?: string }) => ({
             ...p,
             connector_code: c.connector_code,
             equipment_code: c.equipment?.equipment_code || 'N/A'
