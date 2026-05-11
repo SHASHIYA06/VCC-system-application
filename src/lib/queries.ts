@@ -2,8 +2,8 @@ import { query } from './db';
 import { System, Drawing, Equipment, Connector, Wire, Pin, Trainline, TcmsPoint } from '@/types';
 
 const MOCK_SYSTEMS: System[] = [
-  { id: '1', code: 'TRL', name: 'Trainlines', description: 'Train Lines Control & Signal', status: 'active', icon: 'Train' },
-  { id: '2', code: 'BRAKE', name: 'Brake System', description: 'Brake Loop and BCU', status: 'active', icon: 'ShieldCheck' },
+  { id: '1', code: 'TRL', name: 'Trainlines', category: 'Core', description: 'Train Lines Control & Signal', icon_name: 'Train', sort_order: 1 },
+  { id: '2', code: 'BRAKE', name: 'Brake System', category: 'Core', description: 'Brake Loop and BCU', icon_name: 'ShieldCheck', sort_order: 2 },
 ];
 
 export async function getSystems(): Promise<System[]> {
@@ -29,7 +29,7 @@ export async function getDrawings(): Promise<Drawing[]> {
     const rows = await query<Drawing>('SELECT * FROM drawings ORDER BY drawing_no');
     return rows;
   } catch {
-    return [{ id: '1', drawing_no: '942-58103', title: 'Train Lines Control', system_code: 'TRL', status: 'active', current_revision: 'A' }];
+    return [{ id: '1', drawing_no: '942-58103', title: 'Train Lines Control', car_code: 'DMC', system_code: 'TRL', drawing_type: 'SCHEMATIC' as const, sheet_count: 1, current_alt: '', current_revision: 'A', drawing_date: '', drwn_by: '', chkd_by: '', revd_by: '', appd_by: '', status: 'active' as const, notes: '' }];
   }
 }
 
