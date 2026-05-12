@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model DrawingDocument {
+  id          String   @id @default(cuid())
+  drawingNo   String?
+  title       String?
+  revision    String?
+  sheetInfo   String?
+  sourceFile  String?
+  carType     String?
+  subsystem   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pages   DrawingPage[]
+  devices DeviceInstance[]
+
+  @@index([drawingNo])
+  @@index([sourceFile])
+  @@index([carType, subsystem])
+}
+
+model DrawingPage {
+  id            String   @id @default(cuid())
+  documentId    String
+  pageNo        Int?
+  ocrText       String?
+  extractedJson Json?
+  createdAt     DateTime @default(now())
+
+  document DrawingDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, pageNo])
+  @@index([pageNo])
+}
+
+model System {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String?
+  description String?
+
+  devices DeviceInstance[]
+}
+
+model DeviceType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  category    String?
+  description String?
+
+  instances DeviceInstance[]
+}
+
+model DeviceInstance {
+  id          String   @id @default(cuid())
+  systemId    String?
+  typeId      String?
+  documentId  String?
+  tag         String?
+  name        String
+  location    String?
+  carType     String?
+  remarks     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  system   System?           @relation(fields: [systemId], references: [id])
+  type     DeviceType?      @relation(fields: [typeId], references: [id])
+  document DrawingDocument?  @relation(fields: [documentId], references: [id])
+
+  connectors Connector[]
+  endpoints  WireEndpoint[]
+
+  @@index([tag])
+  @@index([name])
+  @@index([carType])
+}
+
+model Connector {
+  id            String   @id @default(cuid())
+  deviceId      String?
+  connectorCode String
+  connectorType String?
+  gender        String?
+  side          String?
+  remarks       String?
+  normCode      String
+  createdAt     DateTime @default(now())
+
+  device    DeviceInstance? @relation(fields: [deviceId], references: [id])
+  pins      ConnectorPin[]
+  endpoints WireEndpoint[]
+
+  @@unique([deviceId, normCode])
+  @@index([connectorCode])
+  @@index([normCode])
+}
+
+model ConnectorPin {
+  id             String   @id @default(cuid())
+  connectorId    String
+  pinNo          String
+  signalName     String?
+  wireNo         String?
+  wireType       String?
+  wireColor      String?
+  endpointLabel  String?
+  endpointPin    String?
+  endpointDir    String?
+  remarks        String?
+  normPinNo      String
+  connectionKey  String?
+  createdAt      DateTime @default(now())
+
+  connector Connector     @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+  endpoints WireEndpoint[]
+
+  @@unique([connectorId, normPinNo])
+  @@index([wireNo])
+  @@index([connectionKey])
+}
+
+model Wire {
+  id            String   @id @default(cuid())
+  wireNo        String   @unique
+  wireType      String?
+  wireColor     String?
+  cableSpec     String?
+  shielded      Boolean?
+  voltageClass  String?
+  remarks       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  endpoints WireEndpoint[]
+}
+
+model WireEndpoint {
+  id            String   @id @default(cuid())
+  wireId        String
+  deviceId      String?
+  connectorId   String?
+  pinId         String?
+  endpointRole  String?
+  endpointLabel String?
+  endpointPin   String?
+  sourceFile    String?
+  sourcePage    Int?
+  createdAt     DateTime @default(now())
+
+  wire       Wire           @relation(fields: [wireId], references: [id], onDelete: Cascade)
+  device     DeviceInstance? @relation(fields: [deviceId], references: [id])
+  connector  Connector?      @relation(fields: [connectorId], references: [id])
+  pin        ConnectorPin?   @relation(fields: [pinId], references: [id])
+
+  @@index([wireId])
+  @@index([endpointLabel])
+  @@index([sourceFile, sourcePage])
+}
+
+model DrawingExtractionRaw {
+  id                BigInt    @id @default(autoincrement())
+  sourceFile        String?
+  sourcePage        Int?
+  drawingNo         String?
+  title             String?
+  equipment         String?
+  connectorCode     String?
+  pinNo             String?
+  wireNo            String?
+  wireType          String?
+  wireColor         String?
+  endpointDirection String?
+  endpointName      String?
+  endpointPin       String?
+  remark            String?
+  rawJson           Json?
+  promotedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([sourceFile, sourcePage])
+  @@index([connectorCode, pinNo])
+  @@index([wireNo])
+}
+
+model WireConnectionSeed {
+  id                 BigInt    @id @default(autoincrement())
+  rawRowId           BigInt?
+  sourceFile         String?
+  sourcePage         Int?
+  drawingNo          String?
+  sheetNo            String?
+  equipment          String?
+  connectorCode      String
+  pinNo              String
+  wireNo             String?
+  wireType           String?
+  endpointDirection  String?
+  endpointName       String?
+  endpointPin        String?
+  remark             String?
+  normConnectorCode  String
+  normPinNo          String
+  normWireNo         String?
+  connectionKey      String    @unique
+  promotedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([promotedAt])
+  @@index([normConnectorCode, normPinNo])
+}
+
+model WireConnection {
+  id                 BigInt    @id @default(autoincrement())
+  connectionKey      String    @unique
+  connectorCode      String
+  pinNo              String
+  wireNo             String?
+  wireType           String?
+  endpointDirection  String?
+  endpointName       String?
+  endpointPin        String?
+  equipment          String?
+  primarySourceFile  String?
+  firstSourcePage    Int?
+  firstSeenAt        DateTime  @default(now())
+  lastSeenAt         DateTime  @default(now())
+  sourceCount        Int       @default(1)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([connectorCode, pinNo])
+  @@index([wireNo])
+}
+
+model ValidationIssue {
+  id          BigInt   @id @default(autoincrement())
+  severity    String
+  issueType   String
+  sourceTable String?
+  sourceId    String?
+  message     String
+  details     Json?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([severity, resolved])
+}
