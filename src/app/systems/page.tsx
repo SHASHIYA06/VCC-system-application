@@ -50,16 +50,18 @@ const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string
 };
 
 export default async function SystemsPage() {
-  let systems: System[] = [];
+  let systems: System[] = ALL_SYSTEMS;
 
   try {
-    systems = await query<System>('SELECT * FROM systems ORDER BY sort_order');
+    const dbSystems = await query<{ id: string; code: string; name: string; description: string }>('SELECT id, code, name, description FROM systems ORDER BY name');
+    if (dbSystems.length > 0) {
+      systems = ALL_SYSTEMS.map(s => {
+        const db = dbSystems.find(d => d.code === s.code || d.name === s.name);
+        return db ? { ...s, id: db.id } : s;
+      });
+    }
   } catch (e) {
     console.error('Failed to fetch systems from DB', e);
-  }
-
-  if (systems.length === 0) {
-    systems = ALL_SYSTEMS;
   }
 
   const grouped = systems.reduce((acc, sys) => {
