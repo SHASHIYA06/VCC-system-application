@@ -99,7 +99,7 @@ model Connector {
   pins      ConnectorPin[]
   endpoints WireEndpoint[]
 
-  @@unique([deviceId, normCode])
+  @@unique([deviceId, connectorCode])
   @@index([connectorCode])
   @@index([normCode])
 }
@@ -123,7 +123,7 @@ model ConnectorPin {
   connector Connector     @relation(fields: [connectorId], references: [id], onDelete: Cascade)
   endpoints WireEndpoint[]
 
-  @@unique([connectorId, normPinNo])
+  @@unique([connectorId, pinNo])
   @@index([wireNo])
   @@index([connectionKey])
 }

@@ -1,6 +1,6 @@
 {
   "name": "vcc-explorer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,39 +12,48 @@
     "db:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:drizzle:generate": "echo 'drizzle removed - use prisma'",
-    "db:drizzle:push": "echo 'drizzle removed - use prisma'",
+    "db:seed": "tsx src/lib/seed.ts",
     "db:sql:seed": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/006_wire_connection_seed.sql",
     "db:sql:promote": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/007_promote_from_raw.sql",
     "db:sql:full": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/008_full_backend_upgrade.sql",
     "db:sql:backfill": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/009_backfill_reference_data.sql",
     "db:sql:normalize": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/010_promote_to_normalized_entities.sql",
     "db:sql:validate": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/011_validation_rules.sql",
-    "db:sql:catalog": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/012_seed_system_catalog.sql"
+    "db:sql:catalog": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/012_seed_system_catalog.sql",
+    "rag:index": "tsx src/lib/rag/indexDocuments.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
     "@prisma/client": "^6.9.0",
     "@supabase/supabase-js": "^2.105.4",
+    
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
+    "langchain": "^0.3.19",
     "lucide-react": "^1.14.0",
+    "mongodb": "^6.14.0",
     "next": "16.2.6",
+    "openai": "^4.77.3",
+    "pg": "^8.13.1",
     "postgres": "^3.4.9",
     "prisma": "^6.9.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tailwind-merge": "^3.5.0",
+    "uuid": "^11.0.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.11.10",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }
