@@ -2,332 +2,490 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, ChevronRight, ChevronDown, Search, Wrench, Zap, Shield, DoorOpen, Wind, Cpu } from 'lucide-react';
+import { 
+  AlertTriangle, Search, ChevronRight, Wrench, 
+  Zap, Shield, DoorOpen, Wind, Battery, Cpu, Info
+} from 'lucide-react';
+
+interface FaultCode {
+  code: string;
+  description: string;
+  severity: 'critical' | 'warning' | 'info';
+  system: string;
+  trainlines: string[];
+  symptoms: string[];
+  causes: string[];
+  solutions: string[];
+  drawings: string[];
+}
 
 const TROUBLESHOOTING_GUIDES = [
   {
-    id: 'door-no-open',
-    title: 'Doors Will Not Open',
-    category: 'Door',
-    severity: 'high',
-    icon: DoorOpen,
-    symptoms: ['Left/right doors fail to respond to open command', 'Single door does not open', 'All doors stuck closed'],
-    checkPoints: [
-      { step: 1, title: 'Verify Zero Speed Signal', description: 'Check that train is stationary. Trainline 6112 (zero speed) must be active for door opening. Use multimeter at V1-CN2 pin 3 or TCMS_RIO1-U15-L3.', wire: '6112', expected: '0V when stopped, 110V when moving', normal: '0V at standstill' },
-      { step: 2, title: 'Check TCMS Door Commands', description: 'Monitor TCMS_RIO1 outputs J7 (left open) and J8 (right open). These should pulse 110V when open button pressed.', wire: '6009', expected: '110V pulse on command', normal: '0V at rest' },
-      { step: 3, title: 'Verify Cross-Jumpers 43-44', description: 'CRITICAL: 6009 and 6046 are crossed at jumper positions 43-44. Check continuity between jumpers 43-44 matches drawing. Wrong jumper = left/right swap or no operation.', wire: '6009', expected: 'Continuity to jumper 43', normal: 'See drawing 942-58137' },
-      { step: 4, title: 'Check DCU1 Inputs', description: 'Verify DCU1-CN1 pins 3 (left) and 4 (right) receive 110V on open command. If no voltage, trace from TCMS_RIO1 through cross-jumpers.', wire: '6009', expected: '110V on open command', normal: '0V at rest' },
-      { step: 5, title: 'Verify Door Proving Loops', description: 'Check door closed indication at TCMS_RIO1-H2/H3. If doors show already closed, proving loops may be stuck.', wire: '6073', expected: '0V when open, 110V when closed', normal: 'Varies by door state' },
-    ],
-    relatedDrawings: ['942-58137', '942-58138', '942-58139', '942-58140', '942-58141'],
-    relatedWires: ['6009', '6046', '6014', '6051', '6073', '6076', '6112'],
-    relatedEquipment: ['TCMS_RIO1', 'DCU1'],
-  },
-  {
-    id: 'traction-no-power',
-    title: 'Train Will Not Move (No Propulsion)',
-    category: 'Traction',
-    severity: 'critical',
+    id: 'propulsion',
+    title: 'Traction & Propulsion Faults',
     icon: Zap,
-    symptoms: ['Train completely dead on propulsion', 'No response to FWD/REV command', 'VVVF shows no activity'],
-    checkPoints: [
-      { step: 1, title: 'Verify HSCB Status', description: 'Check if High Speed Circuit Breaker is closed. Monitor trainline 1209 (HSCB trip) at TCMS_RIO1-H4.', wire: '1209', expected: '110V = closed, 0V = trip', normal: '110V when closed' },
-      { step: 2, title: 'Check Powering Commands at TCMS', description: 'Verify TCMS_RIO1 outputs for 3005/3006 (powering) at CN1. Both should be present when master controller advanced.', wire: '3005', expected: '110V when powering', normal: '0V at idle' },
-      { step: 3, title: 'CRITICAL: Check X1 Pins 19/20 Cross-Connection', description: 'Trainlines 3005 and 3006 are CROSSED at X1 pins 19/20. Use multimeter to verify: continuity from 3005 source to X1-pin20, and 3006 source to X1-pin19. Swap here causes train creep.', wire: '3005', expected: '3005→X1-20, 3006→X1-19', normal: 'SEE DRAWING 942-58119' },
-      { step: 4, title: 'Verify VVVF Inputs', description: 'Check V1-CN1 pins 12-15 for FWD/REV/PWR1/PWR2 commands. If powering commands missing at VVVF but present at TCMS, cross-connection at X1 is likely broken.', wire: '3003', expected: '110V on respective command', normal: '0V at rest' },
-      { step: 5, title: 'Check VVVF Fault', description: 'Monitor trainline 1207 (VVVF fault) at V1-CN2-5. If high, VVVF has internal fault.', wire: '1207', expected: '0V = no fault, 110V = fault active', normal: '0V' },
+    color: 'text-orange-400',
+    issues: [
+      {
+        code: 'VVVF_FAULT',
+        description: 'VVVF Inverter Fault',
+        severity: 'critical' as const,
+        system: 'TRAC',
+        trainlines: ['1207'],
+        symptoms: [
+          'Train fails to accelerate',
+          'VVVF fault indicator lit',
+          'HSCB may trip',
+        ],
+        causes: [
+          'Overcurrent condition in VVVF',
+          'Motor overload or short circuit',
+          'Cooling system failure',
+          'Internal VVVF protection trip',
+        ],
+        solutions: [
+          'Check trainline 1207 for fault signal',
+          'Verify VVVF CN2 connections',
+          'Check motor insulation',
+          'Monitor cooling system status',
+          'Reset VVVF using trainline 1032',
+        ],
+        drawings: ['942-58120', '942-58121'],
+      },
+      {
+        code: 'HSCB_TRIP',
+        description: 'High Speed Circuit Breaker Trip',
+        severity: 'critical' as const,
+        system: 'HV',
+        trainlines: ['1209'],
+        symptoms: [
+          'Traction power lost',
+          'HSCB indicator shows trip',
+          'Train coasts to stop',
+        ],
+        causes: [
+          'Overcurrent on traction circuit',
+          'Ground fault detection',
+          'VVVF fault causing trip',
+          'Protective relay operation',
+        ],
+        solutions: [
+          'Check trainline 1209 status',
+          'Verify HSCB CN1 connections',
+          'Check for ground faults',
+          'Check VVVF fault status',
+          'Reset HSCB after fault clearance',
+        ],
+        drawings: ['942-38103', '942-58106'],
+      },
     ],
-    relatedDrawings: ['942-58119', '942-58120', '942-38409'],
-    relatedWires: ['3003', '3004', '3005', '3006', '1207', '1209', '6112'],
-    relatedEquipment: ['V1', 'TCMS_RIO1', 'HSCB1', 'LTEB1'],
   },
   {
-    id: 'brake-not-release',
-    title: 'Brakes Will Not Release',
-    category: 'Brake',
-    severity: 'high',
+    id: 'brake',
+    title: 'Brake System Faults',
     icon: Shield,
-    symptoms: ['Train brakes applied and will not release', 'Parking brake stuck applied', 'Full service brake active'],
-    checkPoints: [
-      { step: 1, title: 'Check Powering Signal', description: 'Brakes release when trainline 3010 (brake command) goes low and powering is active. Verify at BCU1-CN1.', wire: '3010', expected: '0V for brake release', normal: '110V when brake applied' },
-      { step: 2, title: 'Verify BCU/BECU Status', description: 'Check BCU1/BCU2 status indicators. BECU on TC car must see proper brake loop continuity.', wire: '4024', expected: 'Loop continuity through all cars', normal: 'End-to-end continuity' },
-      { step: 3, title: 'Check Parking Brake Status', description: 'Monitor 4122 (PB applied) and 4153 (PB released) at TCMS_RIO1-K4/K5. Parking brake must be released for service.', wire: '4122', expected: '0V when applied, 110V when released', normal: 'See parking brake state' },
-      { step: 4, title: 'Verify PBMV Operation', description: 'Check PBMV1-CN1-2/3 for parking brake valve. 110V on pin 2 = apply, pin 3 = release.', wire: '4122', expected: '110V on release command', normal: '0V when applied' },
-      { step: 5, title: 'Check EM Brake Loops', description: 'EM brake loops 4062/4103 must have continuity. Any break applies emergency brake. Use low current continuity test to avoid triggering EBMV.', wire: '4062', expected: 'Continuity through all cars', normal: 'End-to-end <1 ohm' },
+    color: 'text-red-400',
+    issues: [
+      {
+        code: 'EM_BRAKE_FAULT',
+        description: 'Emergency Brake Application Fault',
+        severity: 'critical' as const,
+        system: 'BRAKE',
+        trainlines: ['4062', '4103'],
+        symptoms: [
+          'Emergency brake stuck on',
+          'Brake cannot be released',
+          'Train cannot move',
+        ],
+        causes: [
+          'Break in emergency brake loop (4062)',
+          'EBMV or EBSS failure',
+          'Wiring fault in redundant path (4103)',
+        ],
+        solutions: [
+          'Check trainline 4062 continuity',
+          'Check trainline 4103 redundant path',
+          'Verify BCU/EBCU connections',
+          'Check all car-to-car jumpers',
+        ],
+        drawings: ['942-58125', '942-58128'],
+      },
+      {
+        code: 'PARKING_BRAKE',
+        description: 'Parking Brake Fault',
+        severity: 'warning' as const,
+        system: 'BRAKE',
+        trainlines: ['4122', '4153'],
+        symptoms: [
+          'Parking brake not applying',
+          'Parking brake not releasing',
+          'Brake indicator flashing',
+        ],
+        causes: [
+          'PBMV (Parking Brake Magnetic Valve) fault',
+          'Air pressure insufficient',
+          'Wiring issue to PBMV1',
+        ],
+        solutions: [
+          'Check trainline 4122 (applied)',
+          'Check trainline 4153 (released)',
+          'Verify PBMV1 connections',
+          'Check air pressure',
+        ],
+        drawings: ['942-58126'],
+      },
     ],
-    relatedDrawings: ['942-58124', '942-58125', '942-58126', '942-58128', '942-58129'],
-    relatedWires: ['3010', '4024', '4028', '4062', '4103', '4122', '4153'],
-    relatedEquipment: ['BCU1', 'BCU2', 'BCU3', 'BECU1', 'PBMV1'],
   },
   {
-    id: 'vac-no-cool',
-    title: 'VAC/HVAC Not Working',
-    category: 'VAC',
-    severity: 'medium',
+    id: 'door',
+    title: 'Door System Faults',
+    icon: DoorOpen,
+    color: 'text-amber-400',
+    issues: [
+      {
+        code: 'DOOR_FAULT',
+        description: 'Door System Fault',
+        severity: 'warning' as const,
+        system: 'DOOR',
+        trainlines: ['6073', '6076', '6112'],
+        symptoms: [
+          'Door not opening/closing',
+          'Door proving failure',
+          'Door safety loop open',
+        ],
+        causes: [
+          'Door proving circuit open (6073, 6076)',
+          'Zero speed signal issue (6112)',
+          'DCU internal fault',
+          'Door motor failure',
+        ],
+        solutions: [
+          'Check door proving status (6073, 6076)',
+          'Verify zero speed signal (6112)',
+          'Check DCU1 connections',
+          'Verify door edge sensors',
+          'Check door motor operation',
+        ],
+        drawings: ['942-58137', '942-58138', '942-58139', '942-58140'],
+      },
+      {
+        code: 'DOOR_CROSS_FAULT',
+        description: 'Door Cross Connection Fault',
+        severity: 'warning' as const,
+        system: 'DOOR',
+        trainlines: ['6009', '6014', '6046', '6051'],
+        symptoms: [
+          'Left and right doors operating together',
+          'Crossed wire condition',
+        ],
+        causes: [
+          'Crossed connections at jumpers 43-44',
+          'Crossed connections at jumpers 46-47',
+          'Wire mix-up in trainline routing',
+        ],
+        solutions: [
+          'Check jumper 43-44 for 6009/6046 cross',
+          'Check jumper 46-47 for 6014/6051 cross',
+          'Verify TCMS_RIO1 CN17 connections',
+          'Trace wire routing through X1',
+        ],
+        drawings: ['942-58138', '942-58139'],
+      },
+    ],
+  },
+  {
+    id: 'vac',
+    title: 'VAC/HVAC Faults',
     icon: Wind,
-    symptoms: ['No cooling or heating in saloon', 'Cab AC not functioning', 'VAC fault indicated'],
-    checkPoints: [
-      { step: 1, title: 'Check VAC Status Signal', description: 'Monitor trainline 7050 (VAC1 status) at TCMS_RIO1-F4. 110V = unit running, 0V = fault/off.', wire: '7050', expected: '110V when running', normal: 'Varies' },
-      { step: 2, title: 'Check TCMS Command', description: 'VAC units receive commands via trainlines. Verify correct command wires to VAC1-CN1.', wire: '7050', expected: 'See VAC schematic', normal: '110V on demand' },
-      { step: 3, title: 'Check Smoke Detection', description: 'Trainline 7070 triggers VAC shutdown on smoke detection. Verify smoke sensor status.', wire: '7070', expected: '0V = no smoke', normal: '0V normal' },
-      { step: 4, title: 'Check 415V AC Supply', description: 'VAC units require 415V AC from APS. Check X3 jumper for 3-phase supply continuity.', wire: '5030', expected: '415V AC between phases', normal: '415V nominal' },
-      { step: 5, title: 'Check Cab VAC Fault', description: 'Cab VAC fault shown on trainline 7001 at TCMS_RIO2-F2.', wire: '7001', expected: '0V = no fault', normal: '0V normal' },
+    color: 'text-cyan-400',
+    issues: [
+      {
+        code: 'CAB_VAC_FAULT',
+        description: 'Cab VAC Fault',
+        severity: 'warning' as const,
+        system: 'VAC',
+        trainlines: ['7001'],
+        symptoms: [
+          'Cab air conditioning not working',
+          'Cab VAC fault indicator',
+          'Temperature not controlled',
+        ],
+        causes: [
+          'CAB_VAC1 unit fault',
+          'Power supply issue to VAC',
+          'Communication fault with TCMS',
+        ],
+        solutions: [
+          'Check trainline 7001 for fault signal',
+          'Verify CAB_VAC1 CN1 connections',
+          'Check power supply to cab VAC',
+          'Reset using TCMS interface',
+        ],
+        drawings: ['942-58143'],
+      },
+      {
+        code: 'SALOON_VAC_FAULT',
+        description: 'Saloon VAC Fault',
+        severity: 'warning' as const,
+        system: 'VAC',
+        trainlines: ['7050', '7060', '7070'],
+        symptoms: [
+          'Saloon not cooling',
+          'VAC status shows fault',
+          'Smoke detection alarm',
+        ],
+        causes: [
+          'VAC1 or VAC2 unit fault',
+          'Power supply issue (415V from APS)',
+          'Smoke detection triggered',
+          'Dampers not operating',
+        ],
+        solutions: [
+          'Check trainline 7050 (VAC1 status)',
+          'Check trainline 7060 (VAC2 status)',
+          'Check trainline 7070 (smoke detection)',
+          'Verify APS 415V supply via X3',
+          'Check damper operation (7071)',
+        ],
+        drawings: ['942-58144', '942-58145'],
+      },
     ],
-    relatedDrawings: ['942-58143', '942-58144', '942-58145'],
-    relatedWires: ['7050', '7060', '7070', '7001', '5030', '5031'],
-    relatedEquipment: ['VAC1', 'VAC2', 'CAB_VAC1', 'APS1'],
   },
   {
-    id: 'tcms-no-comm',
-    title: 'TCMS Communication Loss',
-    category: 'TCMS',
-    severity: 'critical',
+    id: 'aps',
+    title: 'Auxiliary Power Faults',
+    icon: Battery,
+    color: 'text-green-400',
+    issues: [
+      {
+        code: 'AUX_FAULT',
+        description: 'Auxiliary System Fault',
+        severity: 'warning' as const,
+        system: 'APS',
+        trainlines: ['1215'],
+        symptoms: [
+          'Auxiliary power not available',
+          'SIV contact not closing',
+          'Battery not charging',
+        ],
+        causes: [
+          'APS1 internal fault',
+          'SIV (Static Inverter) failure',
+          'Battery charger fault',
+        ],
+        solutions: [
+          'Check trainline 1215 for fault signal',
+          'Verify SIV contact status (5030, 5031)',
+          'Check battery voltage (5064)',
+          'Verify APS1 connections',
+        ],
+        drawings: ['942-58130', '942-58131', '942-58132'],
+      },
+      {
+        code: 'BATTERY_FAULT',
+        description: 'Battery Under Voltage',
+        severity: 'warning' as const,
+        system: 'APS',
+        trainlines: ['5064'],
+        symptoms: [
+          'Low battery voltage warning',
+          'Battery discharge indicator',
+          'Emergency lighting may activate',
+        ],
+        causes: [
+          'Battery discharged',
+          'Battery failing',
+          'APS not charging battery',
+          'Excessive load on battery',
+        ],
+        solutions: [
+          'Check trainline 5064 battery voltage',
+          'Verify BATT1 connections',
+          'Check APS charging function',
+          'Connect shore supply for charging',
+        ],
+        drawings: ['942-58132'],
+      },
+    ],
+  },
+  {
+    id: 'tcms',
+    title: 'TCMS Faults',
     icon: Cpu,
-    symptoms: ['TCMS shows equipment offline', 'Cannot send commands to subsystem', 'Status updates missing'],
-    checkPoints: [
-      { step: 1, title: 'Check RIO Power Supply', description: 'Verify TCMS_RIO1/2 has 110V DC power. Check power input at RIO connector.', wire: '1040', expected: '110V DC present', normal: '110V DC nominal' },
-      { step: 2, title: 'Verify Trainline Inputs', description: 'Check that essential trainlines are reaching RIO. Use oscilloscope for signal integrity.', wire: '3003', expected: 'Clean 110V pulses', normal: 'Stable signal' },
-      { step: 3, title: 'Check Ethernet Connection', description: 'TCMS RIO communicates via ethernet to TMS CPU. Verify link lights and cable continuity.', wire: 'N/A', expected: 'Link lights active', normal: 'Green link light' },
-      { step: 4, title: 'Verify Digital Output Status', description: 'Use TCMS diagnostic to check DO output states. No voltage = output failure or command not received.', wire: '6009', expected: '110V on command', normal: '0V idle' },
-      { step: 5, title: 'Check Cross-Jumper Integrity', description: 'X1/X2 jumpers carry trainline signals between cars. Continuity failure on X1 means no cross-car trainlines.', wire: '4024', expected: 'Continuity through all cars', normal: 'Loop continuity' },
+    color: 'text-purple-400',
+    issues: [
+      {
+        code: 'TCMS_FAULT',
+        description: 'TCMS Communication Fault',
+        severity: 'warning' as const,
+        system: 'TMS',
+        trainlines: [],
+        symptoms: [
+          'TCMS not responding',
+          'Loss of monitoring data',
+          'Multiple system faults shown',
+        ],
+        causes: [
+          'TCMS_RIO failure',
+          'Ethernet network issue',
+          'Power supply to RIO',
+        ],
+        solutions: [
+          'Check TCMS_RIO1 (U15) status',
+          'Check TCMS_RIO2 (U25) status',
+          'Verify Ethernet switch connections',
+          'Check power supply to RIO units',
+        ],
+        drawings: ['942-58146'],
+      },
     ],
-    relatedDrawings: ['942-58146'],
-    relatedWires: ['1032', '1040', '3003', '4024'],
-    relatedEquipment: ['TCMS_RIO1', 'TCMS_RIO2'],
-  },
-  {
-    id: 'battery-low',
-    title: 'Battery Under-Voltage',
-    category: 'APS',
-    severity: 'high',
-    icon: AlertTriangle,
-    symptoms: ['Battery under-voltage warning', 'TCMS alarm active', 'Low voltage on 110V bus'],
-    checkPoints: [
-      { step: 1, title: 'Check Battery Voltage', description: 'Measure battery voltage at BATT1 terminals. Below 91V triggers under-voltage. Below 77V causes emergency shutdown.', wire: '5064', expected: '>91V for normal, >77V minimum', normal: '110V nominal' },
-      { step: 2, title: 'Verify APS Charging', description: 'Check SIV contactors 5030/5031 status. APS should maintain battery when main power available.', wire: '5030', expected: 'SIV contactor closed when APS running', normal: 'Closed during operation' },
-      { step: 3, title: 'Check Battery Connection', description: 'Verify BATT1-CN1 connections and battery fuse. High resistance causes under-voltage.', wire: '5064', expected: 'Direct connection', normal: 'Low resistance' },
-      { step: 4, title: 'Check APS Fault', description: 'Trainline 1215 indicates APS fault. If active, APS cannot charge battery.', wire: '1215', expected: '0V = no fault', normal: '0V' },
-      { step: 5, title: 'Verify Shore Supply', description: 'Shore supply (5000) provides external charging. If train parked long-term, shore supply may be needed.', wire: '5000', expected: 'Shore supply command available', normal: 'Optional when parked' },
-    ],
-    relatedDrawings: ['942-58130', '942-58131', '942-58132'],
-    relatedWires: ['5064', '5030', '5031', '1215', '5000', '1040'],
-    relatedEquipment: ['BATT1', 'APS1', 'SSB1'],
   },
 ];
 
-const SEVERITY_COLORS: Record<string, { color: string; bg: string; label: string }> = {
-  critical: { color: 'text-red-400', bg: 'bg-red-500/20', label: 'Critical' },
-  high: { color: 'text-amber-400', bg: 'bg-amber-500/20', label: 'High' },
-  medium: { color: 'text-yellow-400', bg: 'bg-yellow-500/20', label: 'Medium' },
+const SEVERITY_STYLES = {
+  critical: 'bg-red-500/20 text-red-400 border-red-500/30',
+  warning: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  info: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
 };
 
 export default function TroubleshootingPage() {
-  const [search, setSearch] = useState('');
-  const [selectedGuide, setSelectedGuide] = useState<string | null>(null);
-  const [expandedStep, setExpandedStep] = useState<number | null>(null);
+  const [selectedGuide, setSelectedGuide] = useState<string | null>('propulsion');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const filtered = TROUBLESHOOTING_GUIDES.filter(g =>
-    search === '' ||
-    g.title.toLowerCase().includes(search.toLowerCase()) ||
-    g.category.toLowerCase().includes(search.toLowerCase()) ||
-    g.symptoms.some(s => s.toLowerCase().includes(search.toLowerCase())) ||
-    g.relatedWires.some(w => w.includes(search)) ||
-    g.relatedEquipment.some(e => e.toLowerCase().includes(search.toLowerCase()))
-  );
+  const activeGuide = TROUBLESHOOTING_GUIDES.find(g => g.id === selectedGuide);
 
-  const selected = TROUBLESHOOTING_GUIDES.find(g => g.id === selectedGuide);
-  const sevConfig = selected ? SEVERITY_COLORS[selected.severity] || SEVERITY_COLORS.high : null;
+  const filteredIssues = activeGuide?.issues.filter(issue => 
+    searchTerm === '' || 
+    issue.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    issue.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    issue.trainlines.some(tl => tl.includes(searchTerm))
+  ) || [];
 
   return (
     <div className="animated-bg min-h-screen p-6 grid-pattern">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold gradient-text">Troubleshooting Guide</h1>
+        <h1 className="text-3xl font-bold gradient-text">VCC Troubleshooting Guide</h1>
         <p className="mt-2 text-slate-400">
-          Step-by-step fault diagnosis procedures for VCC systems
+          Fault diagnosis and resolution for Vehicle Control Circuits - KMRCL RS(3R) Project
         </p>
-        <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
-          <span>{TROUBLESHOOTING_GUIDES.length} fault guides</span>
-          <span className="flex items-center gap-1">
-            <AlertTriangle className="h-3 w-3 text-red-400" /> {TROUBLESHOOTING_GUIDES.filter(g => g.severity === 'critical').length} critical
-          </span>
-        </div>
       </div>
 
-      <div className="flex gap-6">
+      {/* Search */}
+      <div className="mb-6 relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <input
+          type="text"
+          placeholder="Search fault codes, trainlines..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Guide List */}
-        <div className="w-96 flex-shrink-0">
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input type="text" placeholder="Search symptoms, wires, equipment..."
-              value={search} onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
-          </div>
-
-          {/* Warning */}
-          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-red-300">
-                <strong>Safety:</strong> Always verify HV isolation before working on high tension circuits. Use proper PPE.
-              </p>
-            </div>
-          </div>
-
-          {/* Guide Cards */}
-          <div className="space-y-3">
-            {filtered.map(guide => {
-              const Icon = guide.icon;
-              const sev = SEVERITY_COLORS[guide.severity];
-              const isSelected = selectedGuide === guide.id;
-
-              return (
-                <div
-                  key={guide.id}
-                  onClick={() => setSelectedGuide(isSelected ? null : guide.id)}
-                  className={`glass-card p-4 cursor-pointer transition-all ${isSelected ? 'border-cyan-500/50' : 'hover:border-slate-600/50'}`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${sev.bg}`}>
-                      <Icon className={`h-5 w-5 ${sev.color}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-white font-semibold truncate">{guide.title}</h3>
-                        <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${sev.color} ${sev.bg}`}>
-                          {sev.label}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-1">{guide.category}</p>
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-1">
-                        {guide.symptoms[0]}
-                      </p>
-                    </div>
-                    <ChevronRight className={`h-5 w-5 text-slate-400 transition-transform ${isSelected ? 'rotate-90' : ''}`} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold text-slate-300 mb-4">System Guides</h2>
+          {TROUBLESHOOTING_GUIDES.map(guide => (
+            <button
+              key={guide.id}
+              onClick={() => setSelectedGuide(guide.id)}
+              className={`w-full text-left p-3 rounded-lg border flex items-center gap-3 transition-all ${
+                selectedGuide === guide.id
+                  ? 'border-cyan-500/50 bg-cyan-500/10'
+                  : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600/50'
+              }`}
+            >
+              <guide.icon className={`h-5 w-5 ${guide.color}`} />
+              <span className="text-sm font-medium text-white">{guide.title}</span>
+            </button>
+          ))}
         </div>
 
-        {/* Guide Detail */}
-        <div className="flex-1">
-          {selected ? (
-            <div className="glass-card overflow-hidden">
-              {/* Header */}
-              <div className={`px-6 py-4 border-b border-slate-700/50 ${sevConfig?.bg}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${sevConfig?.bg}`}>
-                      {(() => { const Icon = selected.icon; return <Icon className={`h-6 w-6 ${sevConfig?.color}`} />; })()}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-2xl font-bold text-white">{selected.title}</h2>
-                        <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${sevConfig?.color} ${sevConfig?.bg}`}>
-                          {sevConfig?.label}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-400 mt-1">{selected.category} System</p>
-                    </div>
+        {/* Fault Details */}
+        <div className="lg:col-span-3 space-y-4">
+          {filteredIssues.map((issue, idx) => (
+            <div key={idx} className="glass-card p-5 border border-slate-700/50">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-white">{issue.description}</span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium border ${SEVERITY_STYLES[issue.severity]}`}>
+                      {issue.severity.toUpperCase()}
+                    </span>
                   </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-sm text-slate-400">Code: {issue.code}</span>
+                    <span className="text-slate-600">•</span>
+                    <span className="text-sm text-slate-400">System: {issue.system}</span>
+                  </div>
+                </div>
+                <AlertTriangle className={`h-6 w-6 ${
+                  issue.severity === 'critical' ? 'text-red-400' :
+                  issue.severity === 'warning' ? 'text-amber-400' : 'text-blue-400'
+                }`} />
+              </div>
+
+              {issue.trainlines.length > 0 && (
+                <div className="mb-4">
+                  <span className="text-sm text-slate-500">Related Trainlines:</span>
+                  <div className="flex gap-2 mt-1">
+                    {issue.trainlines.map(tl => (
+                      <Link key={tl} href={`/trainlines/${tl}`} className="px-2 py-1 bg-cyan-500/10 text-cyan-400 rounded text-sm font-mono hover:bg-cyan-500/20">
+                        {tl}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="bg-slate-800/30 p-3 rounded">
+                  <h4 className="font-medium text-slate-300 mb-2">Symptoms</h4>
+                  <ul className="space-y-1">
+                    {issue.symptoms.map((s, i) => (
+                      <li key={i} className="text-slate-400">• {s}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="bg-slate-800/30 p-3 rounded">
+                  <h4 className="font-medium text-slate-300 mb-2">Possible Causes</h4>
+                  <ul className="space-y-1">
+                    {issue.causes.map((c, i) => (
+                      <li key={i} className="text-slate-400">• {c}</li>
+                    ))}
+                  </ul>
                 </div>
               </div>
 
-              {/* Symptoms */}
-              <div className="px-6 py-5 border-b border-slate-700/50">
-                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Symptoms</h3>
-                <ul className="space-y-2">
-                  {selected.symptoms.map((s, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                      <ChevronRight className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                      {s}
+              <div className="mt-4 bg-green-500/10 border border-green-500/30 p-3 rounded">
+                <h4 className="font-medium text-green-400 mb-2">Solutions</h4>
+                <ol className="space-y-1">
+                  {issue.solutions.map((s, i) => (
+                    <li key={i} className="text-slate-300 text-sm">
+                      <span className="text-green-400 font-mono">{i + 1}.</span> {s}
                     </li>
                   ))}
-                </ul>
+                </ol>
               </div>
 
-              {/* Check Points */}
-              <div className="px-6 py-5">
-                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
-                  Diagnostic Steps ({selected.checkPoints.length} steps)
-                </h3>
-                <div className="space-y-3">
-                  {selected.checkPoints.map(cp => (
-                    <div key={cp.step} className="rounded-lg border border-slate-700/50 overflow-hidden">
-                      <div
-                        className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-slate-800/30 transition-colors"
-                        onClick={() => setExpandedStep(expandedStep === cp.step ? null : cp.step)}
-                      >
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 font-bold text-sm">
-                          {cp.step}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-white font-medium">{cp.title}</h4>
-                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{cp.description}</p>
-                        </div>
-                        {cp.wire !== 'N/A' && (
-                          <Link href={`/wires/${cp.wire}`}
-                            className="px-2 py-1 rounded bg-cyan-500/10 text-cyan-400 text-xs font-mono hover:bg-cyan-500/20">
-                            {cp.wire}
-                          </Link>
-                        )}
-                        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${expandedStep === cp.step ? 'rotate-180' : ''}`} />
-                      </div>
-                      {expandedStep === cp.step && (
-                        <div className="px-4 py-4 border-t border-slate-700/50 bg-slate-800/30">
-                          <p className="text-sm text-slate-300 leading-relaxed">{cp.description}</p>
-                          <div className="mt-3 grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/30">
-                              <div className="text-xs text-slate-500">Expected Value</div>
-                              <div className="text-sm text-cyan-400 font-medium mt-1">{cp.expected}</div>
-                            </div>
-                            <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/30">
-                              <div className="text-xs text-slate-500">Normal Condition</div>
-                              <div className="text-sm text-emerald-400 font-medium mt-1">{cp.normal}</div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+              {issue.drawings.length > 0 && (
+                <div className="mt-4 flex items-center gap-2">
+                  <span className="text-sm text-slate-500">Reference Drawings:</span>
+                  {issue.drawings.map(dwg => (
+                    <Link key={dwg} href={`/drawings/${dwg}`} className="px-2 py-1 bg-slate-700/50 text-slate-300 rounded text-sm hover:bg-slate-600/50">
+                      {dwg}
+                    </Link>
                   ))}
                 </div>
-              </div>
-
-              {/* Related */}
-              <div className="px-6 py-5 border-t border-slate-700/50 grid grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Related Drawings</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selected.relatedDrawings.map(d => (
-                      <Link key={d} href={`/drawings/${d}`}
-                        className="px-2 py-1 rounded bg-purple-500/10 text-purple-400 text-xs font-mono hover:bg-purple-500/20">
-                        {d}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Related Equipment</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selected.relatedEquipment.map(eq => (
-                      <Link key={eq} href={`/equipment/${eq}`}
-                        className="px-2 py-1 rounded bg-slate-700/50 text-slate-300 text-xs font-mono hover:bg-slate-600/50">
-                        {eq}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
-          ) : (
+          ))}
+
+          {filteredIssues.length === 0 && (
             <div className="glass-card p-12 text-center">
               <Wrench className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-300">Select a Troubleshooting Guide</h3>
-              <p className="text-sm text-slate-500 mt-2">
-                Click on a fault symptom on the left to view diagnostic steps, check points, and related references.
-              </p>
+              <p className="text-slate-400">No matching fault codes found</p>
             </div>
           )}
         </div>
