@@ -20,7 +20,8 @@ import {
   Radio,
   Battery,
   Activity,
-  Wrench
+  Wrench,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +48,7 @@ const dataNav = [
   { name: 'Connectors', href: '/connectors', icon: Cable },
   { name: 'Equipment', href: '/equipment', icon: Cpu },
   { name: 'Pins', href: '/pins', icon: Cable },
+  { name: 'VCC Reference', href: '/vcc-reference', icon: FileText },
 ];
 
 const bottomNav = [

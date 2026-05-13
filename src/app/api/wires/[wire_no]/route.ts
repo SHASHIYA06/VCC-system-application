@@ -3,18 +3,18 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ wire_no: string }> }
+  { params }: { params: { wire_no: string } }
 ) {
-  const { wire_no } = await params;
-
   try {
+    const wireNo = params.wire_no;
+
     const wire = await prisma.wire.findUnique({
-      where: { wireNo: wire_no },
+      where: { wireNo },
       include: {
         endpoints: {
           include: {
-            device: { include: { system: true, connectors: true } },
-            connector: { include: { device: true } },
+            device: true,
+            connector: true,
             pin: true,
           },
         },
@@ -25,18 +25,60 @@ export async function GET(
       return NextResponse.json({ error: 'Wire not found' }, { status: 404 });
     }
 
-    const connections = wire.endpoints.map(ep => ({
-      role: ep.endpointRole,
-      device: ep.device ? { code: ep.device.tag || ep.device.name, name: ep.device.name, car: ep.device.carType } : null,
-      connector: ep.connector ? { code: ep.connector.connectorCode, type: ep.connector.connectorType } : null,
-      pin: ep.pin ? { number: ep.pin.pinNo, name: ep.pin.signalName || ep.pin.endpointLabel } : null,
-      label: ep.endpointLabel,
-    }));
+    let trace = null;
+    let relatedDrawings: any[] = [];
+
+    if (wire.sourceEq && wire.destEq) {
+      trace = {
+        source: {
+          type: 'equipment',
+          code: wire.sourceEq,
+          name: wire.sourceEq,
+          pin: wire.sourcePin ? `${wire.sourceConnector}-${wire.sourcePin}` : undefined,
+          description: `Source device`,
+        },
+        destination: {
+          type: 'equipment',
+          code: wire.destEq,
+          name: wire.destEq,
+          pin: wire.destPin ? `${wire.destConnector}-${wire.destPin}` : undefined,
+          description: `Destination device`,
+        },
+        wires: [wireNo],
+        colorCode: '#00BFFF',
+        junctions: [],
+      };
+    }
+
+    relatedDrawings = await prisma.drawingDocument.findMany({
+      where: {
+        OR: [
+          { carType: { contains: 'ALL' } },
+          { subsystem: { contains: 'TRL' } },
+        ],
+      },
+      take: 5,
+      orderBy: { drawingNo: 'asc' },
+    });
 
     return NextResponse.json({
-      wire,
-      connections,
-      connectionCount: connections.length,
+      wire: {
+        id: wire.id,
+        wireNo: wire.wireNo,
+        signalName: wire.signalName,
+        description: wire.description,
+        wireColor: wire.wireColor,
+        voltageClass: wire.voltageClass,
+        cableSpec: wire.cableSpec,
+        sourceEq: wire.sourceEq,
+        sourceConnector: wire.sourceConnector,
+        sourcePin: wire.sourcePin,
+        destEq: wire.destEq,
+        destConnector: wire.destConnector,
+        destPin: wire.destPin,
+      },
+      trace,
+      relatedDrawings,
     });
   } catch (error) {
     console.error('Error fetching wire:', error);

@@ -16,6 +16,17 @@ model DrawingDocument {
   sourceFile  String?
   carType     String?
   subsystem   String?
+  drawingType String   @default("SCHEMATIC")
+  pageCount   Int      @default(1)
+  currentAlt  String?
+  drwnBy      String?
+  chkdBy      String?
+  revdBy      String?
+  appdBy      String?
+  status      String   @default("active")
+  notes       String?
+  systemCode  String?
+  equipment   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -24,6 +35,8 @@ model DrawingDocument {
 
   @@index([sourceFile])
   @@index([carType, subsystem])
+  @@index([drawingType])
+  @@index([systemCode])
 }
 
 model DrawingPage {
@@ -44,9 +57,15 @@ model System {
   id          String   @id @default(cuid())
   name        String   @unique
   code        String?
+  category    String?
   description String?
+  iconName    String?
+  sortOrder   Int      @default(0)
 
   devices DeviceInstance[]
+
+  @@index([code])
+  @@index([category])
 }
 
 model DeviceType {
@@ -131,15 +150,28 @@ model Wire {
   id            String   @id @default(cuid())
   wireNo        String   @unique
   wireType      String?
+  wireSize      String?
   wireColor     String?
   cableSpec     String?
-  shielded      Boolean?
+  shielded      Boolean  @default(false)
   voltageClass  String?
+  description   String?
   remarks       String?
+  signalName    String?
+  sourceEq      String?
+  sourceConnector String?
+  sourcePin     String?
+  destEq        String?
+  destConnector String?
+  destPin       String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   endpoints WireEndpoint[]
+
+  @@index([wireNo])
+  @@index([signalName])
+  @@index([voltageClass])
 }
 
 model WireEndpoint {
