@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { query } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 import {
   Train, ShieldCheck, Zap, Wind, Radio, Battery, Settings, DoorOpen,
   Activity, Lightbulb, Link2, AlertTriangle, Gauge, Cpu, Box, ZapOff
@@ -53,7 +53,7 @@ export default async function SystemsPage() {
   let systems: System[] = ALL_SYSTEMS;
 
   try {
-    const dbSystems = await query<{ id: string; code: string; name: string; description: string }>('SELECT id, code, name, description FROM systems ORDER BY name');
+    const dbSystems = await prisma.system.findMany({ orderBy: { name: 'asc' } });
     if (dbSystems.length > 0) {
       systems = ALL_SYSTEMS.map(s => {
         const db = dbSystems.find(d => d.code === s.code || d.name === s.name);
