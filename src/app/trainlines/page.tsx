@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { TRAINLINE_REGISTRY, VCC_DRAWING_REGISTRY } from '@/types/index';
 import { Search, ArrowRight, Zap, ChevronDown, AlertTriangle, Filter } from 'lucide-react';
 
 const CROSS_CONNECTED_TRAINLINES = [3005, 3006, 6009, 6014, 6046, 6051];
@@ -27,26 +26,54 @@ const VOLTAGE_COLORS: Record<string, { text: string; bg: string }> = {
   '230VAC': { text: 'text-cyan-400', bg: 'bg-cyan-500/20' },
 };
 
+interface TrainlineData {
+  trainline_no: string;
+  name: string;
+  description: string;
+  voltage_domain: string;
+  car_code: string;
+  system_code: string;
+  is_cross_connected: boolean;
+}
+
 export default function TrainlinesPage() {
   const [search, setSearch] = useState('');
   const [systemFilter, setSystemFilter] = useState<string>('all');
   const [crossConnectedOnly, setCrossConnectedOnly] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [trainlines, setTrainlines] = useState<TrainlineData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const allTrainlines = Object.values(TRAINLINE_REGISTRY);
+  useEffect(() => {
+    async function fetchTrainlines() {
+      try {
+        const response = await fetch('/api/trainlines');
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        setTrainlines(data.trainlines || []);
+      } catch (err) {
+        setError('Failed to load trainlines from database');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTrainlines();
+  }, []);
 
-  const filtered = allTrainlines.filter(tl => {
+  const filtered = trainlines.filter(tl => {
     const matchSearch = search === '' ||
       tl.trainline_no.toString().includes(search) ||
-      tl.name.toLowerCase().includes(search.toLowerCase()) ||
-      tl.description.toLowerCase().includes(search.toLowerCase());
-    const matchSystem = systemFilter === 'all' || tl.system_id === systemFilter;
+      (tl.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (tl.description || '').toLowerCase().includes(search.toLowerCase());
+    const matchSystem = systemFilter === 'all' || tl.system_code === systemFilter;
     const matchCross = !crossConnectedOnly || tl.is_cross_connected;
     return matchSearch && matchSystem && matchCross;
   });
 
   const grouped = filtered.reduce((acc, tl) => {
-    const sys = tl.system_id;
+    const sys = tl.system_code || 'TRL';
     if (!acc[sys]) acc[sys] = [];
     acc[sys].push(tl);
     return acc;
@@ -54,15 +81,37 @@ export default function TrainlinesPage() {
 
   const systems = Object.keys(grouped).sort();
 
+  if (loading) {
+    return (
+      <div className="animated-bg min-h-screen p-6 grid-pattern">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && trainlines.length === 0) {
+    return (
+      <div className="animated-bg min-h-screen p-6 grid-pattern">
+        <div className="glass-card p-8 text-center">
+          <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <p className="text-red-400">{error}</p>
+          <p className="text-slate-400 mt-2">Please check database connection</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="animated-bg min-h-screen p-6 grid-pattern">
       <div className="mb-8">
         <h1 className="text-3xl font-bold gradient-text">Trainline Explorer</h1>
         <p className="mt-2 text-slate-400">
-          Trace all 52 trainlines across the 6-car formation with cross-connection details
+          Trace all trainlines across the 6-car formation with cross-connection details
         </p>
         <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
-          <span>{allTrainlines.length} trainlines</span>
+          <span>{trainlines.length} trainlines in database</span>
           <span>{CROSS_CONNECTED_TRAINLINES.length} cross-connected</span>
           <span>{CRITICAL_TRAINLINES.length} critical</span>
         </div>
@@ -143,8 +192,7 @@ export default function TrainlinesPage() {
         <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Critical Trainlines</h2>
         <div className="flex flex-wrap gap-2">
           {CRITICAL_TRAINLINES.map(no => {
-            const tl = TRAINLINE_REGISTRY[no];
-            if (!tl) return null;
+            const tl = trainlines.find(t => parseInt(t.trainline_no) === no);
             return (
               <Link key={no} href={`/trainlines/${no}`}
                 className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-mono font-medium transition-all hover:scale-105 ${
@@ -153,7 +201,7 @@ export default function TrainlinesPage() {
                     : 'bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:bg-slate-700/50'
                 }`}>
                 {no}
-                <span className="ml-2 text-xs text-slate-500">{tl.name}</span>
+                {tl && <span className="ml-2 text-xs text-slate-500">{tl.name}</span>}
               </Link>
             );
           })}
@@ -192,7 +240,7 @@ export default function TrainlinesPage() {
                   <tbody className="divide-y divide-slate-700/30">
                     {tlList.map(tl => {
                       const vColor = VOLTAGE_COLORS[tl.voltage_domain] || VOLTAGE_COLORS['110VDC'];
-                      const isCross = CROSS_CONNECTED_TRAINLINES.includes(tl.trainline_no);
+                      const isCross = CROSS_CONNECTED_TRAINLINES.includes(parseInt(tl.trainline_no));
 
                       return (
                         <tr key={tl.trainline_no} className="hover:bg-slate-800/30 transition-colors">
@@ -202,14 +250,14 @@ export default function TrainlinesPage() {
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-white font-medium">{tl.name}</span>
+                            <span className="text-white font-medium">{tl.name || 'Unknown'}</span>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-sm text-slate-400">{tl.description}</span>
+                            <span className="text-sm text-slate-400">{tl.description || 'N/A'}</span>
                           </td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${vColor.text} ${vColor.bg}`}>
-                              {tl.voltage_domain}
+                              {tl.voltage_domain || '110V'}
                             </span>
                           </td>
                           <td className="px-6 py-4">
