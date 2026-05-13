@@ -9,7 +9,7 @@ datasource db {
 
 model DrawingDocument {
   id          String   @id @default(cuid())
-  drawingNo   String?
+  drawingNo   String   @unique
   title       String?
   revision    String?
   sheetInfo   String?
@@ -22,7 +22,6 @@ model DrawingDocument {
   pages   DrawingPage[]
   devices DeviceInstance[]
 
-  @@index([drawingNo])
   @@index([sourceFile])
   @@index([carType, subsystem])
 }
