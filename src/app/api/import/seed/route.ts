@@ -236,7 +236,7 @@ async function seedConnectorsAndPins() {
       const existingConn = await prisma.connector.findFirst({ where: { deviceId: device.id, connectorCode: connCode } });
       if (!existingConn) {
         const conn = await prisma.connector.create({
-          data: { deviceId: device.id, connectorCode, connectorType: 'IO', normCode: connCode }
+          data: { deviceId: device.id, connectorCode: connCode, connectorType: 'IO', normCode: connCode }
         });
         connCount++;
         const pinCountNum = connCode.startsWith('X') ? 20 : 10;

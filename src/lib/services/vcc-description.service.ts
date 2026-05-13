@@ -267,25 +267,21 @@ export async function seedVCCData() {
 
   let abbreviationCount = 0;
   for (const abbr of ABBREVIATIONS) {
-    await prisma.validationIssue.upsert({
-      where: { id: `abbr_${abbr.abbreviation.replace(/[^a-zA-Z0-9]/g, '_')}` },
-      update: {
-        severity: 'info',
-        issueType: 'ABBREVIATION',
-        message: `${abbr.abbreviation}: ${abbr.description}`,
-        details: { category: abbr.category, description: abbr.description },
-        resolved: true,
-      },
-      create: {
-        id: `abbr_${abbr.abbreviation.replace(/[^a-zA-Z0-9]/g, '_')}`,
-        severity: 'info',
-        issueType: 'ABBREVIATION',
-        message: `${abbr.abbreviation}: ${abbr.description}`,
-        details: { category: abbr.category, description: abbr.description },
-        resolved: true,
-      },
+    const existing = await prisma.validationIssue.findFirst({
+      where: { message: `${abbr.abbreviation}: ${abbr.description}` }
     });
-    abbreviationCount++;
+    if (!existing) {
+      await prisma.validationIssue.create({
+        data: {
+          severity: 'info',
+          issueType: 'ABBREVIATION',
+          message: `${abbr.abbreviation}: ${abbr.description}`,
+          details: { category: abbr.category, description: abbr.description },
+          resolved: true,
+        },
+      });
+      abbreviationCount++;
+    }
   }
   console.log(`✓ ${abbreviationCount} abbreviations seeded`);
 

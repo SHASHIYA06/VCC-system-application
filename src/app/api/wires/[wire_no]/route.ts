@@ -3,10 +3,11 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { wire_no: string } }
+  { params }: { params: Promise<{ wire_no: string }> }
 ) {
   try {
-    const wireNo = params.wire_no;
+    const { wire_no } = await params;
+    const wireNo = wire_no;
 
     const wire = await prisma.wire.findUnique({
       where: { wireNo },

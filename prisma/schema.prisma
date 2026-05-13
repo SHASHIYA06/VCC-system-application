@@ -153,7 +153,7 @@ model Wire {
   wireSize      String?
   wireColor     String?
   cableSpec     String?
-  shielded      Boolean  @default(false)
+shielded     Boolean?
   voltageClass  String?
   description   String?
   remarks       String?

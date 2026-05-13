@@ -3,14 +3,15 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     let drawing = await prisma.drawingDocument.findFirst({
       where: {
         OR: [
-          { id: params.id },
-          { drawingNo: params.id },
+          { id: id },
+          { drawingNo: id },
         ],
       },
       include: {
