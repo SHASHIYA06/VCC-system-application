@@ -188,7 +188,7 @@ function DrawingsContent() {
                             {details.wires && (
                               <div className="flex items-center gap-1">
                                 <Cable className="h-3 w-3" />
-                                <span>{Array.isArray(details.wires) ? details.wires.length : details.wires.split(',').length} wires</span>
+                                <span>{details.wires.length} wires</span>
                               </div>
                             )}
                           </div>
