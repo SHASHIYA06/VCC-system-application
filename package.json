@@ -20,6 +20,11 @@
     "db:sql:normalize": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/010_promote_to_normalized_entities.sql",
     "db:sql:validate": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/011_validation_rules.sql",
     "db:sql:catalog": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/012_seed_system_catalog.sql",
+    "db:vcc:schema": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/014_vcc_complete_schema.sql",
+    "db:vcc:master": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/015_vcc_seed_master_data.sql",
+    "db:vcc:drawings": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/016_vcc_seed_all_drawings.sql",
+    "db:vcc:wires": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/017_vcc_seed_connectors_wires.sql",
+    "db:vcc:all": "psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/014_vcc_complete_schema.sql && psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/015_vcc_seed_master_data.sql && psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/016_vcc_seed_all_drawings.sql && psql \"$DIRECT_URL\" -v ON_ERROR_STOP=1 -f supabase/migrations/017_vcc_seed_connectors_wires.sql",
     "rag:index": "tsx src/lib/rag/indexDocuments.ts"
   },
   "dependencies": {
