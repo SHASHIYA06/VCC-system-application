@@ -37,13 +37,17 @@ const systemNav = [
   { name: 'Brake', href: '/systems/BRAKE', icon: Shield, color: 'red' },
   { name: 'Doors', href: '/systems/DOOR', icon: DoorOpen, color: 'amber' },
   { name: 'VAC/HVAC', href: '/systems/VAC', icon: Wind, color: 'emerald' },
-  { name: 'TCMS', href: '/tcms', icon: Cpu, color: 'purple' },
+  { name: 'TCMS', href: '/systems/TMS', icon: Cpu, color: 'purple' },
   { name: 'Comms', href: '/systems/COMMS', icon: Radio, color: 'pink' },
   { name: 'APS', href: '/systems/APS', icon: Battery, color: 'green' },
+  { name: 'HV System', href: '/systems/HV', icon: Zap, color: 'red' },
+  { name: 'Bogie', href: '/systems/BOGIE', icon: Settings, color: 'slate' },
+  { name: 'Components', href: '/systems/components', icon: Cpu, color: 'cyan' },
 ];
 
 const dataNav = [
   { name: 'Drawings', href: '/drawings', icon: Files },
+  { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'Wires', href: '/wires', icon: Search },
   { name: 'Connectors', href: '/connectors', icon: Cable },
   { name: 'Equipment', href: '/equipment', icon: Cpu },
@@ -66,6 +70,7 @@ const colorClasses: Record<string, { bg: string; text: string }> = {
   pink: { bg: 'bg-pink-500/20', text: 'text-pink-400' },
   amber: { bg: 'bg-amber-500/20', text: 'text-amber-400' },
   green: { bg: 'bg-green-500/20', text: 'text-green-400' },
+  slate: { bg: 'bg-slate-500/20', text: 'text-slate-400' },
 };
 
 export default function Sidebar() {
