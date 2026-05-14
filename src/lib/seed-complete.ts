@@ -245,11 +245,12 @@ export async function seedComplete() {
     const system = systemMap.get(eq.systemCode);
     if (!drawing || !system) continue;
 
-    await prisma.device.upsert({
-      where: { tagNo: eq.code },
-      update: { carType: eq.carType, locationTag: eq.location },
-      create: { drawingId: drawing.id, systemId: system.id, tagNo: eq.code, deviceName: eq.name, carType: eq.carType, locationTag: eq.location }
-    });
+    const existing = await prisma.device.findFirst({ where: { tagNo: eq.code } });
+    if (existing) {
+      await prisma.device.update({ where: { id: existing.id }, data: { carType: eq.carType, locationTag: eq.location } });
+    } else {
+      await prisma.device.create({ data: { drawingId: drawing.id, systemId: system.id, tagNo: eq.code, deviceName: eq.name, carType: eq.carType, locationTag: eq.location } });
+    }
   }
   console.log(`Seeded ${EQUIPMENT.length} equipment`);
 
@@ -313,11 +314,12 @@ export async function seedComplete() {
     const drawing = drawingMap.get('942-58103');
     if (!drawing) continue;
 
-    await prisma.trainLine.upsert({
-      where: { wireNo: tl.wireNo },
-      update: { itemName: tl.itemName, lineGroup: tl.lineGroup, carType: tl.carType, note: tl.note },
-      create: { drawingId: drawing.id, wireNo: tl.wireNo, itemName: tl.itemName, lineGroup: tl.lineGroup, carType: tl.carType, note: tl.note }
-    });
+    const existing = await prisma.trainLine.findFirst({ where: { wireNo: tl.wireNo } });
+    if (existing) {
+      await prisma.trainLine.update({ where: { id: existing.id }, data: { itemName: tl.itemName, lineGroup: tl.lineGroup, carType: tl.carType, note: tl.note } });
+    } else {
+      await prisma.trainLine.create({ data: { drawingId: drawing.id, wireNo: tl.wireNo, itemName: tl.itemName, lineGroup: tl.lineGroup, carType: tl.carType, note: tl.note } });
+    }
   }
   console.log(`Seeded ${TRAINLINES.length} trainlines`);
 

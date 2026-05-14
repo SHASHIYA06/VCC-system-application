@@ -127,7 +127,7 @@ class AgentEngine {
         supportingAgents = ['system-agent', 'connector-agent'];
         break;
 
-      case 'trace_trainline':
+      case 'trace_trainline': {
         const trainlines = await prisma.trainLine.findMany({ 
           where: { wireNo: { contains: task.query } },
           include: { drawing: true }
@@ -146,6 +146,7 @@ class AgentEngine {
         primaryAgent = 'trainline-agent';
         supportingAgents = ['wire-agent', 'connector-agent'];
         break;
+      }
 
       case 'document_lookup':
         result = await prisma.drawing.findMany({ 
@@ -162,7 +163,7 @@ class AgentEngine {
         supportingAgents = ['system-agent'];
         break;
 
-      case 'wire_trace':
+      case 'wire_trace': {
         const wire = await prisma.wire.findUnique({ where: { wireNo: task.query } });
         if (wire) {
           const pins = await prisma.connectorPin.findMany({
@@ -174,8 +175,9 @@ class AgentEngine {
         primaryAgent = 'wire-agent';
         supportingAgents = ['connector-agent'];
         break;
+      }
 
-      case 'system_overview':
+      case 'system_overview': {
         const systems = await prisma.system.findMany({
           include: {
             _count: { select: { devices: true, drawings: true } }
@@ -186,8 +188,9 @@ class AgentEngine {
         primaryAgent = 'system-agent';
         supportingAgents = ['equipment-agent', 'drawing-agent'];
         break;
+      }
 
-      case 'search_all':
+      case 'search_all': {
         const [wires, connectors, devices, drawings, trainlines, signals] = await Promise.all([
           prisma.wire.findMany({ where: { OR: [
             { wireNo: { contains: task.query } },
@@ -215,6 +218,7 @@ class AgentEngine {
         primaryAgent = 'wire-agent';
         supportingAgents = ['connector-agent', 'equipment-agent', 'drawing-agent', 'trainline-agent'];
         break;
+      }
 
       default:
         result = await prisma.system.findMany({ take: 50 });
