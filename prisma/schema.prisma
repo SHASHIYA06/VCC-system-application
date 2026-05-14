@@ -8,6 +8,21 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum DrawingStatus {
+  ACTIVE
+  ARCHIVED
+  DRAFT
+  DEPRECATED
+}
+
+enum ConnectorScope {
+  INTERCAR
+  POWER
+  COMMUNICATION
+  DEVICE
+  DIAGNOSTIC
+}
+
 model Project {
   id            String   @id @default(cuid())
   projectCode   String   @unique
@@ -51,6 +66,29 @@ model Car {
   @@unique([formationId, carCode])
 }
 
+model CarType {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  positions   CarPosition[]
+  drawingApplicability DrawingApplicability[]
+}
+
+model CarPosition {
+  id            String   @id @default(cuid())
+  carTypeId     String
+  formationCode String
+  positionNo    Int
+  createdAt     DateTime @default(now())
+
+  carType       CarType @relation(fields: [carTypeId], references: [id])
+
+  @@unique([formationCode, positionNo])
+}
+
 model System {
   id          String   @id @default(cuid())
   code        String   @unique
@@ -89,6 +127,7 @@ model Drawing {
   sourceFileId  String?
   isReference   Boolean  @default(false)
   remarks       String?
+  status        DrawingStatus @default(ACTIVE)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -96,13 +135,16 @@ model Drawing {
   system        System?  @relation(fields: [systemId], references: [id])
 
   pages         DrawingPage[]
+  sheets        DrawingSheet[]
   devices       Device[]
   connectors    Connector[]
   circuits      Circuit[]
   trainLines    TrainLine[]
   signals       Signal[]
   crossConnections CrossConnection[]
+  crossConnectionRules CrossConnectionRule[]
   notes         DrawingNote[]
+  noteEntities  Note[]
   applicability DrawingApplicability[]
   references    DrawingReference[]
 
@@ -114,13 +156,14 @@ model Drawing {
 model DrawingApplicability {
   id          String   @id @default(cuid())
   drawingId   String
-  carType     String
+  carTypeId   String
   applicable  Boolean  @default(true)
   remark      String?
 
   drawing     Drawing  @relation(fields: [drawingId], references: [id])
+  carType     CarType  @relation(fields: [carTypeId], references: [id])
 
-  @@unique([drawingId, carType])
+  @@unique([drawingId, carTypeId])
 }
 
 model DrawingReference {
@@ -152,15 +195,46 @@ model DrawingPage {
   @@unique([drawingId, pageNo])
 }
 
+model DrawingSheet {
+  id            String   @id @default(cuid())
+  drawingId     String
+  sheetNo       Int
+  sheetLabel    String?
+  ocrPageRef    String?
+  extra         Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+  connectors    Connector[]
+  crossConnectionRules CrossConnectionRule[]
+  noteEntities  Note[]
+
+  @@unique([drawingId, sheetNo])
+}
+
 model DrawingNote {
   id            String   @id @default(cuid())
   drawingId     String
+  noteCode      String?
   noteType      String
   noteText      String
   sourceSheet   String?
   extra         Json     @default("{}")
 
   drawing       Drawing  @relation(fields: [drawingId], references: [id])
+}
+
+model Note {
+  id            String   @id @default(cuid())
+  drawingId     String
+  sheetId       String?
+  noteCode      String?
+  noteText      String
+  createdAt     DateTime @default(now())
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+  sheet         DrawingSheet? @relation(fields: [sheetId], references: [id])
+  crossConnectionRules CrossConnectionRule[]
 }
 
 model ConductorClass {
@@ -179,27 +253,30 @@ model ConnectorType {
   description   String
   voltageClass  String?
   remarks       String?
-
-  instances     Connector[]
 }
 
 model Connector {
   id            String   @id @default(cuid())
   drawingId     String
+  sheetId       String?
   connectorCode String
   carType       String?
   instanceLabel String?
   locationTag   String?
   sideTag       String?
   description   String?
+  connectorTypeCode String?
+  pinCount      Int?
+  scope         ConnectorScope?
   extra         Json     @default("{}")
   createdAt     DateTime @default(now())
 
   drawing       Drawing  @relation(fields: [drawingId], references: [id])
-  connectorType ConnectorType @relation(fields: [connectorCode], references: code)
+  sheet         DrawingSheet? @relation(fields: [sheetId], references: [id])
 
   pins          ConnectorPin[]
 
+  @@unique([drawingId, connectorCode])
   @@index([drawingId])
   @@index([connectorCode])
 }
@@ -236,7 +313,7 @@ model Device {
   carType       String?
   locationTag   String?
   manufacturerRef String?
-  note           String?
+  note          String?
   extra         Json     @default("{}")
 
   drawing       Drawing  @relation(fields: [drawingId], references: [id])
@@ -317,6 +394,7 @@ model Signal {
   direction     String?
   sourceSheet   String?
   note          String?
+  signalFamily  String?
   extra         Json     @default("{}")
 
   drawing       Drawing  @relation(fields: [drawingId], references: [id])
@@ -333,9 +411,30 @@ model CrossConnection {
   wireA         String?
   wireB         String?
   note          String
+  ruleType      String?
   extra         Json     @default("{}")
 
   drawing       Drawing  @relation(fields: [drawingId], references: [id])
+}
+
+model CrossConnectionRule {
+  id            String   @id @default(cuid())
+  drawingId     String
+  sheetId       String?
+  connectorCode String
+  pinA          String?
+  pinB          String?
+  wireA         String?
+  wireB         String?
+  ruleType      String
+  noteId        String?
+  extra         Json     @default("{}")
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+  sheet         DrawingSheet? @relation(fields: [sheetId], references: [id])
+  note          Note?    @relation(fields: [noteId], references: [id])
+
+  @@index([connectorCode])
 }
 
 model Wire {

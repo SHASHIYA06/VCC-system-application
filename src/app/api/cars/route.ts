@@ -19,12 +19,12 @@ export async function GET(request: NextRequest) {
       const stats = await Promise.all(
         carTypes.map(async (car) => {
           const [equipmentCount, connectorCount, wireCount] = await Promise.all([
-            prisma.deviceInstance.count({ where: { carType: car.code } }),
+            prisma.device.count({ where: { carType: car.code } }),
             prisma.connector.count({
-              where: { device: { carType: car.code } },
+              where: { carType: car.code },
             }),
-            prisma.wireEndpoint.count({
-              where: { device: { carType: car.code } },
+            prisma.wire.count({
+              where: { remarks: { contains: car.code } },
             }),
           ]);
           return {

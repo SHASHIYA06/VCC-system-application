@@ -48,10 +48,8 @@ export async function POST() {
         await prisma.wire.update({
           where: { id: wire.id },
           data: {
-            sourceEq: trace.sourceDevice,
             sourceConnector: trace.sourceConn,
             sourcePin: trace.sourcePin,
-            destEq: trace.destDevice,
             destConnector: trace.destConn,
             destPin: trace.destPin,
             wireColor: trace.color === '#FF6600' || trace.color === '#FFA500' ? 'Orange' : trace.color === '#FF0000' ? 'Red' : trace.color === '#00FF00' ? 'Green' : 'Blue',

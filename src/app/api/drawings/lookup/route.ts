@@ -10,28 +10,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const drawing = await prisma.drawingDocument.findFirst({
+    const drawing = await prisma.drawing.findFirst({
       where: {
         OR: [
-          { drawingNo: { equals: drawingNo, mode: 'insensitive' } },
-          { drawingNo: { contains: drawingNo, mode: 'insensitive' } },
+          { drawingNo: { equals: drawingNo } },
+          { drawingNo: { contains: drawingNo } },
         ],
       },
       include: {
         pages: { orderBy: { pageNo: 'asc' } },
-        devices: {
-          include: {
-            system: true,
-            type: true,
-            connectors: {
-              include: {
-                pins: {
-                  orderBy: { pinNo: 'asc' },
-                },
-              },
-            },
-          },
-        },
+        system: true,
       },
     });
 
@@ -52,22 +40,15 @@ export async function GET(request: NextRequest) {
         drawingNo: drawing.drawingNo,
         title: drawing.title,
         revision: drawing.revision,
-        carType: drawing.carType,
-        subsystem: drawing.subsystem,
-        drawingType: drawing.drawingType,
-        pageCount: drawing.pageCount,
-        currentRevision: drawing.revision,
-        systemCode: drawing.systemCode,
-        sourceFile: drawing.sourceFile,
-        notes: drawing.notes,
+        systemCode: drawing.system?.code || '',
+        totalSheets: drawing.totalSheets,
+        sourceFile: drawing.sourceFileId,
+        remarks: drawing.remarks,
       },
       relatedWires,
       relatedTrainlines,
       relatedEquipment,
-      deviceCount: drawing.devices.length,
-      pinCount: drawing.devices.reduce((acc, d) => 
-        acc + d.connectors.reduce((a, c) => a + c.pins.length, 0), 0
-      ),
+      pageCount: drawing.pages.length,
     });
   } catch (error) {
     console.error('Drawing lookup error:', error);
@@ -79,8 +60,8 @@ async function getRelatedWires(drawingNo: string) {
   const wires = await prisma.wire.findMany({
     where: {
       OR: [
-        { sourceEq: { contains: drawingNo, mode: 'insensitive' } },
-        { destEq: { contains: drawingNo, mode: 'insensitive' } },
+        { remarks: { contains: drawingNo } },
+        { description: { contains: drawingNo } },
       ],
     },
     take: 20,
@@ -96,35 +77,31 @@ async function getRelatedWires(drawingNo: string) {
 }
 
 async function getRelatedTrainlines(drawingNo: string) {
-  const trainlines = await prisma.wire.findMany({
-    where: {
-      signalName: { contains: drawingNo, mode: 'insensitive' },
-    },
-    select: { wireNo: true },
+  const trainlines = await prisma.trainLine.findMany({
+    where: { drawingId: drawingNo },
+    select: { wireNo: true, itemName: true, lineGroup: true },
     take: 10,
   });
   return trainlines;
 }
 
 async function getRelatedEquipment(drawingNo: string) {
-  const equipment = await prisma.deviceInstance.findMany({
-    where: { documentId: drawingNo },
+  const equipment = await prisma.device.findMany({
+    where: { drawingId: drawingNo },
     include: { system: true },
     take: 20,
   });
   return equipment.map(e => ({
-    name: e.name,
-    tag: e.tag,
+    name: e.deviceName,
+    tag: e.tagNo,
     carType: e.carType,
     systemCode: e.system?.code,
   }));
 }
 
 async function getDrawingSuggestions(query: string) {
-  const drawings = await prisma.drawingDocument.findMany({
-    where: {
-      drawingNo: { contains: query, mode: 'insensitive' },
-    },
+  const drawings = await prisma.drawing.findMany({
+    where: { drawingNo: { contains: query } },
     select: { drawingNo: true, title: true },
     take: 5,
   });

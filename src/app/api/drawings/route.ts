@@ -8,10 +8,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const where: Record<string, unknown> = {};
-    if (systemCode) where.subsystem = systemCode;
-    if (drawingNo) where.drawingNo = { contains: drawingNo, mode: 'insensitive' };
+    if (systemCode) where.systemId = systemCode;
+    if (drawingNo) where.drawingNo = { contains: drawingNo, mode: 'insensitive' as const };
 
-    const docs = await prisma.drawingDocument.findMany({
+    const docs = await prisma.drawing.findMany({
       where,
       include: { pages: { orderBy: { pageNo: 'asc' } } },
       orderBy: { drawingNo: 'asc' },

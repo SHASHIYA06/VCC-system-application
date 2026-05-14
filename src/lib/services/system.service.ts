@@ -1,9 +1,17 @@
-import { prisma } from '../prisma';
-import { Prisma } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-export async function findSystemByCode(code: string) {
+export async function getSystemWithDevices(code: string) {
   return prisma.system.findFirst({
-    where: { OR: [{ code: { equals: code, mode: Prisma.QueryMode.insensitive } }, { name: { equals: code, mode: Prisma.QueryMode.insensitive } }] },
-    include: { devices: { include: { type: true, connectors: { include: { pins: { orderBy: { normPinNo: 'asc' } } } } } } },
+    where: { code },
+    include: { 
+      devices: true,
+      drawings: true,
+    },
+  });
+}
+
+export async function getAllSystems() {
+  return prisma.system.findMany({
+    orderBy: { sortOrder: 'asc' },
   });
 }

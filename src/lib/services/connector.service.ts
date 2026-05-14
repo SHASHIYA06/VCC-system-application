@@ -1,31 +1,24 @@
-import { prisma } from '../prisma';
-import { Prisma } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export async function findConnectorPins(connectorCode: string) {
   return prisma.connector.findMany({
-    where: { OR: [{ connectorCode }, { normCode: connectorCode.toUpperCase().replace(/[^A-Za-z0-9]/g, '') }] },
-    include: { pins: { orderBy: { normPinNo: 'asc' } }, device: true },
+    where: { connectorCode },
+    include: { pins: { orderBy: { pinNo: 'asc' } } },
   });
 }
 
 export async function findConnectorByCode(connectorCode: string) {
   return prisma.connector.findFirst({
-    where: {
-      OR: [
-        { connectorCode: { equals: connectorCode, mode: Prisma.QueryMode.insensitive } },
-        { normCode: connectorCode.toUpperCase().replace(/[^A-Z0-9]/g, '') },
-      ],
-    },
+    where: { connectorCode: { equals: connectorCode, mode: 'insensitive' } },
     include: {
-      pins: { orderBy: { normPinNo: 'asc' } },
-      device: { include: { system: true, type: true } },
+      pins: { orderBy: { pinNo: 'asc' } },
     },
   });
 }
 
 export async function findConnectorsByDevice(deviceId: string) {
   return prisma.connector.findMany({
-    where: { deviceId },
-    include: { pins: { orderBy: { normPinNo: 'asc' } } },
+    where: { drawingId: deviceId },
+    include: { pins: { orderBy: { pinNo: 'asc' } } },
   });
 }

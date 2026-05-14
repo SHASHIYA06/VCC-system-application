@@ -3,22 +3,19 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const device_id = searchParams.get('device_id');
-  const connector_code = searchParams.get('connector_code');
+  const drawingId = searchParams.get('drawing_id');
+  const connectorCode = searchParams.get('connector_code');
 
   try {
     const where: Record<string, unknown> = {};
-    if (device_id) where.deviceId = device_id;
-    if (connector_code) where.OR = [
-      { connectorCode: { contains: connector_code, mode: 'insensitive' } },
-      { normCode: connector_code.toUpperCase().replace(/[^A-Z0-9]/g, '') },
-    ];
+    if (drawingId) where.drawingId = drawingId;
+    if (connectorCode) where.connectorCode = { contains: connectorCode };
 
     const connectors = await prisma.connector.findMany({
       where,
       include: {
-        device: { include: { system: true } },
-        pins: { orderBy: { normPinNo: 'asc' } },
+        connectorType: true,
+        pins: { orderBy: { pinNo: 'asc' } },
       },
       orderBy: { connectorCode: 'asc' },
     });

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
-import { searchDocuments, searchWiring } from '@/lib/rag/service';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('q') || searchParams.get('query');
   const type = searchParams.get('type') || 'all';
   const carType = searchParams.get('car');
-  const subsystem = searchParams.get('subsystem');
+  const systemCode = searchParams.get('subsystem');
   const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
 
   if (!query) {
@@ -20,14 +18,17 @@ export async function GET(request: NextRequest) {
       query,
       type,
       carType: carType || null,
-      subsystem: subsystem || null,
+      systemCode: systemCode || null,
       total: 0,
     };
 
     if (type === 'all' || type === 'wires') {
       const wires = await prisma.wire.findMany({
         where: {
-          wireNo: { contains: query, mode: Prisma.QueryMode.insensitive },
+          OR: [
+            { wireNo: { contains: query } },
+            { signalName: { contains: query } },
+          ],
         },
         take: limit,
         orderBy: { wireNo: 'asc' },
@@ -39,14 +40,10 @@ export async function GET(request: NextRequest) {
     if (type === 'all' || type === 'connectors') {
       const connectors = await prisma.connector.findMany({
         where: {
-          OR: [
-            { connectorCode: { contains: query, mode: Prisma.QueryMode.insensitive } },
-            { normCode: { contains: query, mode: Prisma.QueryMode.insensitive } },
-          ],
-          ...(carType && { device: { carType } }),
+          connectorCode: { contains: query },
         },
         include: {
-          device: { include: { system: true } },
+          connectorType: true,
           pins: { take: 10 },
         },
         take: limit,
@@ -57,33 +54,31 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === 'all' || type === 'equipment') {
-      const equipment = await prisma.deviceInstance.findMany({
+      const equipment = await prisma.device.findMany({
         where: {
           OR: [
-            { name: { contains: query, mode: Prisma.QueryMode.insensitive } },
-            { tag: { contains: query, mode: Prisma.QueryMode.insensitive } },
+            { deviceName: { contains: query } },
+            { tagNo: { contains: query } },
           ],
           ...(carType && { carType }),
-          ...(subsystem && { system: { code: subsystem } }),
         },
-        include: { system: true, type: true, connectors: true },
+        include: { system: true },
         take: limit,
-        orderBy: { name: 'asc' },
+        orderBy: { deviceName: 'asc' },
       });
       results.equipment = equipment;
       results.total += equipment.length;
     }
 
     if (type === 'all' || type === 'drawings') {
-      const drawings = await prisma.drawingDocument.findMany({
+      const drawings = await prisma.drawing.findMany({
         where: {
           OR: [
-            { drawingNo: { contains: query, mode: Prisma.QueryMode.insensitive } },
-            { title: { contains: query, mode: Prisma.QueryMode.insensitive } },
+            { drawingNo: { contains: query } },
+            { title: { contains: query } },
           ],
-          ...(carType && { carType }),
-          ...(subsystem && { subsystem }),
         },
+        include: { system: true },
         take: limit,
         orderBy: { drawingNo: 'asc' },
       });
@@ -92,27 +87,18 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === 'all' || type === 'trainlines') {
-      const trainlines = await prisma.connectorPin.findMany({
+      const trainlines = await prisma.trainLine.findMany({
         where: {
-          wireNo: { contains: query, mode: Prisma.QueryMode.insensitive },
+          OR: [
+            { wireNo: { contains: query } },
+            { itemName: { contains: query } },
+          ],
         },
-        include: {
-          connector: {
-            include: {
-              device: { include: { system: true } },
-            },
-          },
-        },
+        include: { drawing: { include: { system: true } } },
         take: limit,
+        orderBy: { wireNo: 'asc' },
       });
-      results.trainlines = trainlines.map(p => ({
-        number: p.wireNo,
-        connector: p.connector?.connectorCode,
-        pin: p.pinNo,
-        device: p.connector?.device?.name,
-        car: p.connector?.device?.carType,
-        signal: p.signalName || p.endpointLabel,
-      }));
+      results.trainlines = trainlines;
       results.total += trainlines.length;
     }
 
@@ -120,12 +106,12 @@ export async function GET(request: NextRequest) {
       const systems = await prisma.system.findMany({
         where: {
           OR: [
-            { name: { contains: query, mode: Prisma.QueryMode.insensitive } },
-            { code: { contains: query, mode: Prisma.QueryMode.insensitive } },
+            { name: { contains: query } },
+            { code: { contains: query } },
           ],
         },
         include: {
-          devices: { take: 5 },
+          _count: { select: { devices: true, drawings: true } },
         },
         take: limit,
         orderBy: { name: 'asc' },
@@ -134,16 +120,19 @@ export async function GET(request: NextRequest) {
       results.total += systems.length;
     }
 
-    if (type === 'rag') {
-      const ragResults = await searchDocuments(query, limit);
-      results.rag = ragResults;
-      results.total += ragResults.length;
-    }
-
-    if (type === 'semantic') {
-      const semanticResults = await searchWiring(query, carType || undefined, subsystem || undefined);
-      results.semantic = semanticResults;
-      results.total += semanticResults.length;
+    if (type === 'all' || type === 'signals') {
+      const signals = await prisma.signal.findMany({
+        where: {
+          OR: [
+            { signalName: { contains: query } },
+            { signalCode: { contains: query } },
+          ],
+        },
+        take: limit,
+        orderBy: { signalName: 'asc' },
+      });
+      results.signals = signals;
+      results.total += signals.length;
     }
 
     return NextResponse.json(results);
@@ -157,50 +146,65 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { query, filters = {} } = body;
-    const { carType, subsystem, wireType, voltageClass, limit = 20 } = filters;
+    const { carType, systemCode, limit = 20 } = filters;
 
     if (!query) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
-    const [wires, connectors, devices, docs] = await Promise.all([
+    const [wires, connectors, devices, docs, trainlines, signals] = await Promise.all([
       prisma.wire.findMany({
         where: {
-          wireNo: { contains: query, mode: Prisma.QueryMode.insensitive },
-          ...(voltageClass && { voltageClass }),
-          ...(wireType && { wireType }),
+          OR: [
+            { wireNo: { contains: query } },
+            { signalName: { contains: query } },
+          ],
         },
         take: limit,
-        include: { endpoints: { include: { device: true, connector: true } } },
       }),
       prisma.connector.findMany({
         where: {
-          OR: [
-            { connectorCode: { contains: query, mode: Prisma.QueryMode.insensitive } },
-            { normCode: { contains: query, mode: Prisma.QueryMode.insensitive } },
-          ],
-          ...(carType && { device: { carType } }),
+          connectorCode: { contains: query },
         },
         take: limit,
-        include: { device: true, pins: true },
+        include: { connectorType: true },
       }),
-      prisma.deviceInstance.findMany({
+      prisma.device.findMany({
         where: {
           OR: [
-            { name: { contains: query, mode: Prisma.QueryMode.insensitive } },
-            { tag: { contains: query, mode: Prisma.QueryMode.insensitive } },
+            { deviceName: { contains: query } },
+            { tagNo: { contains: query } },
           ],
           ...(carType && { carType }),
-          ...(subsystem && { system: { code: subsystem } }),
         },
         take: limit,
-        include: { system: true, connectors: true },
+        include: { system: true },
       }),
-      prisma.drawingDocument.findMany({
+      prisma.drawing.findMany({
         where: {
           OR: [
-            { drawingNo: { contains: query, mode: Prisma.QueryMode.insensitive } },
-            { title: { contains: query, mode: Prisma.QueryMode.insensitive } },
+            { drawingNo: { contains: query } },
+            { title: { contains: query } },
+          ],
+        },
+        take: limit,
+        include: { system: true },
+      }),
+      prisma.trainLine.findMany({
+        where: {
+          OR: [
+            { wireNo: { contains: query } },
+            { itemName: { contains: query } },
+          ],
+        },
+        take: limit,
+        include: { drawing: true },
+      }),
+      prisma.signal.findMany({
+        where: {
+          OR: [
+            { signalName: { contains: query } },
+            { signalCode: { contains: query } },
           ],
         },
         take: limit,
@@ -214,16 +218,21 @@ export async function POST(request: NextRequest) {
         connectors,
         equipment: devices,
         drawings: docs,
+        trainlines,
+        signals,
       },
       counts: {
         wires: wires.length,
         connectors: connectors.length,
         equipment: devices.length,
         drawings: docs.length,
-        total: wires.length + connectors.length + devices.length + docs.length,
+        trainlines: trainlines.length,
+        signals: signals.length,
+        total: wires.length + connectors.length + devices.length + docs.length + trainlines.length + signals.length,
       },
     });
   } catch (error) {
+    console.error('Search error:', error);
     return NextResponse.json({ error: 'Search failed' }, { status: 500 });
   }
 }

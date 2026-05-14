@@ -21,7 +21,7 @@ async function seedSystems() {
     { name: 'Electrical Distribution Box', code: 'EDB', category: 'Power', description: 'Electrical distribution', iconName: 'Box', sortOrder: 16 },
   ];
   for (const s of systems) {
-    await prisma.system.upsert({ where: { name: s.name }, update: s, create: s });
+    await prisma.system.upsert({ where: { code: s.code }, update: s, create: s });
   }
   return systems.length;
 }
@@ -70,13 +70,13 @@ async function seedDrawings() {
     { drawingNo: '942-58145', title: 'Saloon VAC Control', carType: 'MC', subsystem: 'VAC', drawingType: 'SCHEMATIC', pageCount: 2 },
     { drawingNo: '942-58146', title: 'TMS Interface 1 to 4', carType: 'MC', subsystem: 'TMS', drawingType: 'SCHEMATIC', pageCount: 4 },
     { drawingNo: '942-58147', title: 'PIS/TIS - Passenger Information System', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
-    { drawingNo: '942-58148', title: 'PIS/TIS Sheet 2', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
-    { drawingNo: '942-58149', title: 'DVAS/PA - Digital Voice Announcement', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
-    { drawingNo: '942-58150', title: 'PA Amplifier', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
-    { drawingNo: '942-58151', title: 'PA Amplifier Sheet 2', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
-    { drawingNo: '942-58152', title: 'CBTC - Communication Based Train Control', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
-    { drawingNo: '942-58153', title: 'Train Radio Interface', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
-    { drawingNo: '942-58154', title: 'CCTV - Closed Circuit Television', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
+    { drawingNo: '942-38109', title: 'PIS/TIS Sheet 2', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
+    { drawingNo: '942-38149', title: 'DVAS/PA - Digital Voice Announcement', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
+    { drawingNo: '942-38150', title: 'PA Amplifier', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
+    { drawingNo: '942-38151', title: 'PA Amplifier Sheet 2', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
+    { drawingNo: '942-38152', title: 'CBTC - Communication Based Train Control', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
+    { drawingNo: '942-38153', title: 'Train Radio Interface', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
+    { drawingNo: '942-38154', title: 'CCTV - Closed Circuit Television', carType: 'MC', subsystem: 'COMMS', drawingType: 'SCHEMATIC', pageCount: 1 },
     { drawingNo: '942-38309', title: 'DMC Underframe PIN Drawing', carType: 'DMC', subsystem: 'LTEB', drawingType: 'PIN_ASSIGNMENT', pageCount: 26 },
     { drawingNo: '942-38409', title: 'TC Ceiling PIN Drawing', carType: 'TC', subsystem: 'TMS', drawingType: 'PIN_ASSIGNMENT', pageCount: 27 },
     { drawingNo: '942-38509', title: 'TC Underframe PIN Drawing', carType: 'TC', subsystem: 'APS', drawingType: 'PIN_ASSIGNMENT', pageCount: 21 },
@@ -85,59 +85,67 @@ async function seedDrawings() {
     { drawingNo: '942-38103', title: 'HV System PIN Drawing', carType: 'DMC', subsystem: 'HV', drawingType: 'PIN_ASSIGNMENT', pageCount: 1 },
     { drawingNo: '942-38107', title: 'CAB PIN Drawing', carType: 'CAB', subsystem: 'CAB', drawingType: 'PIN_ASSIGNMENT', pageCount: 48 },
   ];
+  const project = await prisma.project.findFirst() || await prisma.project.create({ data: { projectCode: 'KMRCL_RS3R', projectName: 'KMRCL RS3R Metro' } });
   for (const d of drawings) {
-    await prisma.drawingDocument.upsert({ where: { drawingNo: d.drawingNo }, update: d, create: d });
+    const sys = await prisma.system.findFirst({ where: { code: d.subsystem } });
+    await prisma.drawing.upsert({ 
+      where: { projectId_drawingNo_revision: { projectId: project.id, drawingNo: d.drawingNo, revision: 'A' } }, 
+      update: { title: d.title, systemId: sys?.id, totalSheets: d.pageCount, remarks: `${d.carType}|${d.subsystem}` }, 
+      create: { projectId: project.id, drawingNo: d.drawingNo, title: d.title, systemId: sys?.id, totalSheets: d.pageCount, remarks: `${d.carType}|${d.subsystem}` } 
+    });
   }
   return drawings.length;
 }
 
 async function seedEquipment() {
   const equipment = [
-    { tag: 'V1', name: 'VVVF Inverter 1', carType: 'DMC', systemCode: 'TRAC', location: 'Underframe' },
-    { tag: 'V2', name: 'VVVF Inverter 2', carType: 'MC', systemCode: 'TRAC', location: 'Underframe' },
-    { tag: 'BCU1', name: 'Brake Control Unit 1', carType: 'DMC', systemCode: 'BRAKE', location: 'Underframe' },
-    { tag: 'BCU2', name: 'Brake Control Unit 2', carType: 'TC', systemCode: 'BRAKE', location: 'Underframe' },
-    { tag: 'BCU3', name: 'Brake Control Unit 3', carType: 'MC', systemCode: 'BRAKE', location: 'Underframe' },
-    { tag: 'BECU1', name: 'Brake Electronic Control Unit 1', carType: 'MC', systemCode: 'BRAKE', location: 'Underframe' },
-    { tag: 'TCMS_RIO1', name: 'TCMS Remote IO Unit 1', carType: 'MC', systemCode: 'TMS', location: 'Ceiling' },
-    { tag: 'TCMS_RIO2', name: 'TCMS Remote IO Unit 2', carType: 'TC', systemCode: 'TMS', location: 'Ceiling' },
-    { tag: 'APS1', name: 'Auxiliary Power Supply 1', carType: 'TC', systemCode: 'APS', location: 'Underframe' },
-    { tag: 'SSB1', name: 'Shore Supply Box 1', carType: 'TC', systemCode: 'APS', location: 'Underframe' },
-    { tag: 'BATT1', name: 'Battery Box 1', carType: 'TC', systemCode: 'APS', location: 'Underframe' },
-    { tag: 'HSCB1', name: 'High Speed Circuit Breaker 1', carType: 'DMC', systemCode: 'HV', location: 'Underframe' },
-    { tag: 'HSCB2', name: 'High Speed Circuit Breaker 2', carType: 'MC', systemCode: 'HV', location: 'Underframe' },
-    { tag: 'DCU1', name: 'Door Control Unit 1', carType: 'MC', systemCode: 'DOOR', location: 'Ceiling' },
-    { tag: 'DCU2', name: 'Door Control Unit 2', carType: 'TC', systemCode: 'DOOR', location: 'Ceiling' },
-    { tag: 'VAC1', name: 'Saloon VAC Unit 1', carType: 'MC', systemCode: 'VAC', location: 'Ceiling' },
-    { tag: 'VAC2', name: 'Saloon VAC Unit 2', carType: 'TC', systemCode: 'VAC', location: 'Ceiling' },
-    { tag: 'CAB_VAC1', name: 'Cab VAC Unit 1', carType: 'CAB', systemCode: 'VAC', location: 'Cab' },
-    { tag: 'OP_PNL1', name: 'Operating Panel 1', carType: 'CAB', systemCode: 'CAB', location: 'Cab Desk' },
-    { tag: 'IND_PNL1', name: 'Indicator Panel 1', carType: 'CAB', systemCode: 'CAB', location: 'Cab Desk' },
-    { tag: 'MCB_PNL1', name: 'MCB Panel 1', carType: 'CAB', systemCode: 'CAB', location: 'Cab' },
-    { tag: 'LTEB1', name: 'Low Tension Equipment Box 1', carType: 'DMC', systemCode: 'LTEB', location: 'Underframe' },
-    { tag: 'LTEB2', name: 'Low Tension Equipment Box 2', carType: 'TC', systemCode: 'LTEB', location: 'Underframe' },
-    { tag: 'LTEB3', name: 'Low Tension Equipment Box 3', carType: 'MC', systemCode: 'LTEB', location: 'Underframe' },
-    { tag: 'LTJB1', name: 'Low Tension Junction Box 1', carType: 'DMC', systemCode: 'LTJB', location: 'Underframe' },
-    { tag: 'LTJB2', name: 'Low Tension Junction Box 2', carType: 'TC', systemCode: 'LTJB', location: 'Underframe' },
-    { tag: 'LTJB3', name: 'Low Tension Junction Box 3', carType: 'MC', systemCode: 'LTJB', location: 'Underframe' },
-    { tag: 'EDB1', name: 'Electrical Distribution Box 1', carType: 'MC', systemCode: 'EDB', location: 'Ceiling' },
-    { tag: 'EDB2', name: 'Electrical Distribution Box 2', carType: 'TC', systemCode: 'EDB', location: 'Ceiling' },
-    { tag: 'ETH_SW1', name: 'Ethernet Switch CCTV 1', carType: 'MC', systemCode: 'COMMS', location: 'Ceiling' },
-    { tag: 'ETH_SW2', name: 'Ethernet Switch CCTV 2', carType: 'TC', systemCode: 'COMMS', location: 'Ceiling' },
-    { tag: 'AAU1', name: 'Audio Alarm Unit 1', carType: 'MC', systemCode: 'COMMS', location: 'Ceiling' },
-    { tag: 'AAU2', name: 'Audio Alarm Unit 2', carType: 'TC', systemCode: 'COMMS', location: 'Ceiling' },
-    { tag: 'COMP1', name: 'Compressor Motor 1', carType: 'TC', systemCode: 'BRAKE', location: 'Underframe' },
-    { tag: 'PBMV1', name: 'Parking Brake Magnetic Valve 1', carType: 'MC', systemCode: 'BRAKE', location: 'Underframe' },
-    { tag: 'CSJB1', name: 'Collector Shoe Junction Box 1', carType: 'DMC', systemCode: 'HV', location: 'Underframe' },
-    { tag: 'CSJB2', name: 'Collector Shoe Junction Box 2', carType: 'TC', systemCode: 'HV', location: 'Underframe' },
-    { tag: 'CSJB3', name: 'Collector Shoe Junction Box 3', carType: 'MC', systemCode: 'HV', location: 'Underframe' },
+    { tagNo: 'V1', deviceName: 'VVVF Inverter 1', carType: 'DMC', systemCode: 'TRAC', locationTag: 'Underframe' },
+    { tagNo: 'V2', deviceName: 'VVVF Inverter 2', carType: 'MC', systemCode: 'TRAC', locationTag: 'Underframe' },
+    { tagNo: 'BCU1', deviceName: 'Brake Control Unit 1', carType: 'DMC', systemCode: 'BRAKE', locationTag: 'Underframe' },
+    { tagNo: 'BCU2', deviceName: 'Brake Control Unit 2', carType: 'TC', systemCode: 'BRAKE', locationTag: 'Underframe' },
+    { tagNo: 'BCU3', deviceName: 'Brake Control Unit 3', carType: 'MC', systemCode: 'BRAKE', locationTag: 'Underframe' },
+    { tagNo: 'BECU1', deviceName: 'Brake Electronic Control Unit 1', carType: 'MC', systemCode: 'BRAKE', locationTag: 'Underframe' },
+    { tagNo: 'TCMS_RIO1', deviceName: 'TCMS Remote IO Unit 1', carType: 'MC', systemCode: 'TMS', locationTag: 'Ceiling' },
+    { tagNo: 'TCMS_RIO2', deviceName: 'TCMS Remote IO Unit 2', carType: 'TC', systemCode: 'TMS', locationTag: 'Ceiling' },
+    { tagNo: 'APS1', deviceName: 'Auxiliary Power Supply 1', carType: 'TC', systemCode: 'APS', locationTag: 'Underframe' },
+    { tagNo: 'SSB1', deviceName: 'Shore Supply Box 1', carType: 'TC', systemCode: 'APS', locationTag: 'Underframe' },
+    { tagNo: 'BATT1', deviceName: 'Battery Box 1', carType: 'TC', systemCode: 'APS', locationTag: 'Underframe' },
+    { tagNo: 'HSCB1', deviceName: 'High Speed Circuit Breaker 1', carType: 'DMC', systemCode: 'HV', locationTag: 'Underframe' },
+    { tagNo: 'HSCB2', deviceName: 'High Speed Circuit Breaker 2', carType: 'MC', systemCode: 'HV', locationTag: 'Underframe' },
+    { tagNo: 'DCU1', deviceName: 'Door Control Unit 1', carType: 'MC', systemCode: 'DOOR', locationTag: 'Ceiling' },
+    { tagNo: 'DCU2', deviceName: 'Door Control Unit 2', carType: 'TC', systemCode: 'DOOR', locationTag: 'Ceiling' },
+    { tagNo: 'VAC1', deviceName: 'Saloon VAC Unit 1', carType: 'MC', systemCode: 'VAC', locationTag: 'Ceiling' },
+    { tagNo: 'VAC2', deviceName: 'Saloon VAC Unit 2', carType: 'TC', systemCode: 'VAC', locationTag: 'Ceiling' },
+    { tagNo: 'CAB_VAC1', deviceName: 'Cab VAC Unit 1', carType: 'CAB', systemCode: 'VAC', locationTag: 'Cab' },
+    { tagNo: 'OP_PNL1', deviceName: 'Operating Panel 1', carType: 'CAB', systemCode: 'CAB', locationTag: 'Cab Desk' },
+    { tagNo: 'IND_PNL1', deviceName: 'Indicator Panel 1', carType: 'CAB', systemCode: 'CAB', locationTag: 'Cab Desk' },
+    { tagNo: 'MCB_PNL1', deviceName: 'MCB Panel 1', carType: 'CAB', systemCode: 'CAB', locationTag: 'Cab' },
+    { tagNo: 'LTEB1', deviceName: 'Low Tension Equipment Box 1', carType: 'DMC', systemCode: 'LTEB', locationTag: 'Underframe' },
+    { tagNo: 'LTEB2', deviceName: 'Low Tension Equipment Box 2', carType: 'TC', systemCode: 'LTEB', locationTag: 'Underframe' },
+    { tagNo: 'LTEB3', deviceName: 'Low Tension Equipment Box 3', carType: 'MC', systemCode: 'LTEB', locationTag: 'Underframe' },
+    { tagNo: 'LTJB1', deviceName: 'Low Tension Junction Box 1', carType: 'DMC', systemCode: 'LTJB', locationTag: 'Underframe' },
+    { tagNo: 'LTJB2', deviceName: 'Low Tension Junction Box 2', carType: 'TC', systemCode: 'LTJB', locationTag: 'Underframe' },
+    { tagNo: 'LTJB3', deviceName: 'Low Tension Junction Box 3', carType: 'MC', systemCode: 'LTJB', locationTag: 'Underframe' },
+    { tagNo: 'EDB1', deviceName: 'Electrical Distribution Box 1', carType: 'MC', systemCode: 'EDB', locationTag: 'Ceiling' },
+    { tagNo: 'EDB2', deviceName: 'Electrical Distribution Box 2', carType: 'TC', systemCode: 'EDB', locationTag: 'Ceiling' },
+    { tagNo: 'ETH_SW1', deviceName: 'Ethernet Switch CCTV 1', carType: 'MC', systemCode: 'COMMS', locationTag: 'Ceiling' },
+    { tagNo: 'ETH_SW2', deviceName: 'Ethernet Switch CCTV 2', carType: 'TC', systemCode: 'COMMS', locationTag: 'Ceiling' },
+    { tagNo: 'AAU1', deviceName: 'Audio Alarm Unit 1', carType: 'MC', systemCode: 'COMMS', locationTag: 'Ceiling' },
+    { tagNo: 'AAU2', deviceName: 'Audio Alarm Unit 2', carType: 'TC', systemCode: 'COMMS', locationTag: 'Ceiling' },
+    { tagNo: 'COMP1', deviceName: 'Compressor Motor 1', carType: 'TC', systemCode: 'BRAKE', locationTag: 'Underframe' },
+    { tagNo: 'PBMV1', deviceName: 'Parking Brake Magnetic Valve 1', carType: 'MC', systemCode: 'BRAKE', locationTag: 'Underframe' },
+    { tagNo: 'CSJB1', deviceName: 'Collector Shoe Junction Box 1', carType: 'DMC', systemCode: 'HV', locationTag: 'Underframe' },
+    { tagNo: 'CSJB2', deviceName: 'Collector Shoe Junction Box 2', carType: 'TC', systemCode: 'HV', locationTag: 'Underframe' },
+    { tagNo: 'CSJB3', deviceName: 'Collector Shoe Junction Box 3', carType: 'MC', systemCode: 'HV', locationTag: 'Underframe' },
   ];
   let count = 0;
+  const project = await prisma.project.findFirst() || await prisma.project.create({ data: { projectCode: 'KMRCL_RS3R', projectName: 'KMRCL RS3R' } });
+  const defaultDrawing = await prisma.drawing.findFirst({ where: { projectId: project.id } }) || await prisma.drawing.create({ data: { projectId: project.id, drawingNo: 'DUMMY', title: 'Default Drawing' } });
   for (const eq of equipment) {
     const sys = await prisma.system.findFirst({ where: { code: eq.systemCode } });
-    const existing = await prisma.deviceInstance.findFirst({ where: { tag: eq.tag } });
-    if (!existing && sys) {
-      await prisma.deviceInstance.create({ data: { name: eq.name, tag: eq.tag, carType: eq.carType, location: eq.location, systemId: sys.id } });
+    const existing = await prisma.device.findFirst({ where: { tagNo: eq.tagNo } });
+    if (!existing) {
+      await prisma.device.create({ data: { tagNo: eq.tagNo, deviceName: eq.deviceName, carType: eq.carType, locationTag: eq.locationTag, systemId: sys?.id, drawingId: defaultDrawing.id } });
       count++;
     }
   }
@@ -148,8 +156,8 @@ async function seedWires() {
   const trainlines = [
     { no: '3003', name: 'FORWARD', desc: 'Forward propulsion command', system: 'TRAC' },
     { no: '3004', name: 'REVERSE', desc: 'Reverse propulsion command', system: 'TRAC' },
-    { no: '3005', name: 'POWERING_1', desc: 'Powering command level 1 (crossed with 3006)', system: 'TRAC', crossed: true, crossWith: '3006' },
-    { no: '3006', name: 'POWERING_2', desc: 'Powering command level 2 (crossed with 3005)', system: 'TRAC', crossed: true, crossWith: '3005' },
+    { no: '3005', name: 'POWERING_1', desc: 'Powering command level 1 (crossed with 3006)', system: 'TRAC' },
+    { no: '3006', name: 'POWERING_2', desc: 'Powering command level 2 (crossed with 3005)', system: 'TRAC' },
     { no: '3010', name: 'BRAKING', desc: 'Braking command to VVVF', system: 'TRAC' },
     { no: '3011', name: 'FSB_CMD', desc: 'Full service brake command', system: 'TRAC' },
     { no: '4024', name: 'BRAKE_LOOP_N', desc: 'Brake loop normal', system: 'BRAKE' },
@@ -160,10 +168,10 @@ async function seedWires() {
     { no: '4110', name: 'EM_BRAKE_R_RTN', desc: 'Emergency brake loop redundant return', system: 'BRAKE' },
     { no: '4122', name: 'PB_APPLIED', desc: 'Parking brake applied indication', system: 'BRAKE' },
     { no: '4153', name: 'PB_RELEASED', desc: 'Parking brake released indication', system: 'BRAKE' },
-    { no: '6009', name: 'DOOR_OPEN_L', desc: 'Left door open command (crossed with 6046)', system: 'DOOR', crossed: true, crossWith: '6046' },
-    { no: '6014', name: 'DOOR_CLOSE_L', desc: 'Left door close command (crossed with 6051)', system: 'DOOR', crossed: true, crossWith: '6051' },
-    { no: '6046', name: 'DOOR_OPEN_R', desc: 'Right door open command (crossed with 6009)', system: 'DOOR', crossed: true, crossWith: '6009' },
-    { no: '6051', name: 'DOOR_CLOSE_R', desc: 'Right door close command (crossed with 6014)', system: 'DOOR', crossed: true, crossWith: '6014' },
+    { no: '6009', name: 'DOOR_OPEN_L', desc: 'Left door open command (crossed with 6046)', system: 'DOOR' },
+    { no: '6014', name: 'DOOR_CLOSE_L', desc: 'Left door close command (crossed with 6051)', system: 'DOOR' },
+    { no: '6046', name: 'DOOR_OPEN_R', desc: 'Right door open command (crossed with 6009)', system: 'DOOR' },
+    { no: '6051', name: 'DOOR_CLOSE_R', desc: 'Right door close command (crossed with 6051)', system: 'DOOR' },
     { no: '6073', name: 'DOOR_PROVE_1', desc: 'Door 1 proving loop feedback', system: 'DOOR' },
     { no: '6076', name: 'DOOR_PROVE_2', desc: 'Door 2 proving loop feedback', system: 'DOOR' },
     { no: '6112', name: 'ZERO_SPEED', desc: 'Zero speed signal - enables door opening', system: 'DOOR' },
@@ -190,10 +198,8 @@ async function seedWires() {
       await prisma.wire.create({
         data: {
           wireNo: tl.no,
-          wireType: 'single',
           wireColor: 'Blue',
           voltageClass: tl.no.startsWith('5') ? '415V' : '110V',
-          cableSpec: tl.no.startsWith('5') ? '2.5sqmm' : '1.5sqmm',
           description: tl.desc,
           signalName: tl.name,
         }
@@ -230,19 +236,20 @@ async function seedConnectorsAndPins() {
   let connCount = 0;
   let pinCount = 0;
   for (const dc of deviceConnectors) {
-    const device = await prisma.deviceInstance.findFirst({ where: { tag: dc.deviceTag } });
+    const device = await prisma.device.findFirst({ where: { tagNo: dc.deviceTag } });
     if (!device) continue;
+    const drawing = await prisma.drawing.findFirst({ where: { id: device.drawingId } });
     for (const connCode of dc.connectors) {
-      const existingConn = await prisma.connector.findFirst({ where: { deviceId: device.id, connectorCode: connCode } });
-      if (!existingConn) {
+      const existingConn = await prisma.connector.findFirst({ where: { drawingId: device.drawingId, connectorCode: connCode } });
+      if (!existingConn && drawing) {
         const conn = await prisma.connector.create({
-          data: { deviceId: device.id, connectorCode: connCode, connectorType: 'IO', normCode: connCode }
+          data: { drawingId: device.drawingId, connectorCode: connCode }
         });
         connCount++;
         const pinCountNum = connCode.startsWith('X') ? 20 : 10;
         for (let i = 1; i <= pinCountNum; i++) {
           await prisma.connectorPin.create({
-            data: { connectorId: conn.id, pinNo: String(i), normPinNo: `${connCode}-${i}` }
+            data: { connectorId: conn.id, pinNo: String(i) }
           });
           pinCount++;
         }

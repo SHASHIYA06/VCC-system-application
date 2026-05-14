@@ -106,27 +106,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST() {
   try {
-    await prisma.drawingDocument.upsert({
-      where: { drawingNo: 'VCC-DESC-01' },
+    const project = await prisma.project.findFirst() || await prisma.project.create({ data: { projectCode: 'KMRCL_RS3R', projectName: 'KMRCL RS3R' } });
+    await prisma.drawing.upsert({
+      where: { projectId_drawingNo_revision: { projectId: project.id, drawingNo: 'VCC-DESC-01', revision: '01' } },
       update: {
         title: 'VCC Description Document',
-        subsystem: 'GEN',
-        carType: 'ALL',
-        pageCount: 54,
-        sourceFile: 'VCC DESCRIPTION 13.12.2017.pdf',
-        notes: 'Complete VCC technical description - 54 pages covering all 11 systems',
+        totalSheets: 54,
+        sourceFileId: 'VCC DESCRIPTION 13.12.2017.pdf',
+        remarks: 'ALL|GEN',
       },
       create: {
+        projectId: project.id,
         drawingNo: 'VCC-DESC-01',
         title: 'VCC Description Document',
-        subsystem: 'GEN',
-        carType: 'ALL',
-        pageCount: 54,
-        sourceFile: 'VCC DESCRIPTION 13.12.2017.pdf',
-        notes: 'Complete VCC technical description - 54 pages covering all 11 systems',
-        drawingType: 'DRAWING_LIST',
+        totalSheets: 54,
+        sourceFileId: 'VCC DESCRIPTION 13.12.2017.pdf',
+        remarks: 'ALL|GEN',
         revision: '01',
-        status: 'active',
       },
     });
 

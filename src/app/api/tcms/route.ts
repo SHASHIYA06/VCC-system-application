@@ -3,18 +3,25 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const signal_type = searchParams.get('signal_type');
-  const device_id = searchParams.get('device_id');
+  const connectorCode = searchParams.get('connector_code');
+  const drawingNo = searchParams.get('drawing_no');
 
   try {
     const where: Record<string, unknown> = {};
-    if (device_id) where.connectorId = device_id;
+
+    if (connectorCode) {
+      where.connectorCode = { contains: connectorCode };
+    }
+
+    if (drawingNo) {
+      where.drawingId = drawingNo;
+    }
 
     const connectors = await prisma.connector.findMany({
       where,
       include: {
-        device: { include: { system: true } },
-        pins: { orderBy: { normPinNo: 'asc' } },
+        connectorType: true,
+        pins: { orderBy: { pinNo: 'asc' } },
       },
       orderBy: { connectorCode: 'asc' },
     });
@@ -22,17 +29,19 @@ export async function GET(request: NextRequest) {
     const points = connectors.flatMap(c =>
       c.pins.map(p => ({
         id: p.id,
-        point_code: p.normPinNo || p.pinNo,
-        signal_name: p.signalName || p.endpointLabel || '',
-        signal_type: p.endpointDir || signal_type || 'DIGITAL',
-        connector_code: c.connectorCode,
-        wire_no: p.wireNo,
-        device_name: c.device?.name || '',
-        remarks: p.remarks || '',
+        pointCode: p.pinNo,
+        signalName: p.signalName || '',
+        connectorCode: c.connectorCode,
+        wireNo: p.wireNo,
+        conductorClass: p.conductorClassCode || '',
+        pinLabel: p.pinLabel || '',
+        note: p.note || '',
       }))
     );
-    return NextResponse.json({ points, count: points.length });
-  } catch {
-    return NextResponse.json({ points: [], count: 0 });
+
+    return NextResponse.json({ points, count: points.length, connectors });
+  } catch (error) {
+    console.error('Error fetching TCMS points:', error);
+    return NextResponse.json({ error: 'Failed to fetch TCMS points' }, { status: 500 });
   }
 }

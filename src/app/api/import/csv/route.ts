@@ -30,25 +30,22 @@ export async function POST(request: NextRequest) {
           where: { wireNo: row.wire_no },
           update: {
             signalName: row.signal_name,
-            sourceEq: row.from_device,
             sourceConnector: row.from_connector,
             sourcePin: row.from_pin,
-            destEq: row.to_device,
             destConnector: row.to_connector,
             destPin: row.to_pin,
+            remarks: row.from_device && row.to_device ? `${row.from_device} → ${row.to_device}` : null,
           },
           create: {
             wireNo: row.wire_no,
-            wireType: 'single',
             wireColor: 'Blue',
             voltageClass: '110V',
             signalName: row.signal_name,
-            sourceEq: row.from_device,
             sourceConnector: row.from_connector,
             sourcePin: row.from_pin,
-            destEq: row.to_device,
             destConnector: row.to_connector,
             destPin: row.to_pin,
+            remarks: row.from_device && row.to_device ? `${row.from_device} → ${row.to_device}` : null,
           }
         });
         imported++;

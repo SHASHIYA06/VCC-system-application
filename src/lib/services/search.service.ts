@@ -1,35 +1,12 @@
-import { prisma } from '../prisma';
-import { Prisma } from '@prisma/client';
-import type { WireConnection } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-export async function searchAll(term: string, options?: { skip?: number; take?: number }) {
-  const skip = options?.skip ?? 0;
-  const take = options?.take ?? 50;
+export async function search(query: string, limit: number = 20) {
   const [wires, connectors, devices, drawings] = await Promise.all([
-    prisma.wire.findMany({ where: { wireNo: { contains: term, mode: Prisma.QueryMode.insensitive } }, take: 20 }),
-    prisma.connector.findMany({ where: { OR: [{ connectorCode: { contains: term, mode: Prisma.QueryMode.insensitive } }, { normCode: { contains: term, mode: Prisma.QueryMode.insensitive } }] }, include: { pins: true, device: true }, take: 20 }),
-    prisma.deviceInstance.findMany({ where: { OR: [{ name: { contains: term, mode: 'insensitive' } }, { tag: { contains: term, mode: 'insensitive' } }] }, include: { system: true, type: true }, take: 20 }),
-    prisma.drawingDocument.findMany({ where: { OR: [{ drawingNo: { contains: term, mode: 'insensitive' } }, { title: { contains: term, mode: 'insensitive' } }] }, take: 20 }),
+    prisma.wire.findMany({ where: { wireNo: { contains: query } }, take: limit }),
+    prisma.connector.findMany({ where: { connectorCode: { contains: query } }, take: limit }),
+    prisma.device.findMany({ where: { OR: [{ deviceName: { contains: query } }, { tagNo: { contains: query } }] }, take: limit }),
+    prisma.drawing.findMany({ where: { OR: [{ drawingNo: { contains: query } }, { title: { contains: query } }] }, take: limit }),
   ]);
-  return { wires, connectors, devices, drawings };
-}
 
-export async function getStats() {
-  const [wireCount, connectorCount, deviceCount, drawingCount, systemCount, pinCount] = await Promise.all([
-    prisma.wire.count(),
-    prisma.connector.count(),
-    prisma.deviceInstance.count(),
-    prisma.drawingDocument.count(),
-    prisma.system.count(),
-    prisma.connectorPin.count(),
-  ]);
-  return { wireCount, connectorCount, deviceCount, drawingCount, systemCount, pinCount };
-}
-
-export async function getValidationIssues(severity?: string) {
-  return prisma.validationIssue.findMany({
-    where: severity ? { severity, resolved: false } : { resolved: false },
-    orderBy: { createdAt: 'desc' },
-    take: 100,
-  });
+  return { wires, connectors, devices, drawings, total: wires.length + connectors.length + devices.length + drawings.length };
 }

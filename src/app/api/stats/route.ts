@@ -10,22 +10,23 @@ export async function GET(request: NextRequest) {
       deviceCount,
       connectorCount,
       pinCount,
-      deviceByCar,
+      trainLineCount,
+      signalCount,
+      circuitCount,
       deviceBySystem,
       wireByVoltage,
     ] = await Promise.all([
       prisma.system.count(),
       prisma.wire.count(),
-      prisma.drawingDocument.count(),
-      prisma.deviceInstance.count(),
+      prisma.drawing.count(),
+      prisma.device.count(),
       prisma.connector.count(),
       prisma.connectorPin.count(),
-      prisma.deviceInstance.groupBy({
-        by: ['carType'],
-        _count: true,
-      }),
-      prisma.deviceInstance.groupBy({
-        by: ['carType'],
+      prisma.trainLine.count(),
+      prisma.signal.count(),
+      prisma.circuit.count(),
+      prisma.device.groupBy({
+        by: ['systemId'],
         _count: true,
       }),
       prisma.wire.groupBy({
@@ -36,9 +37,19 @@ export async function GET(request: NextRequest) {
 
     const systemStats = await prisma.system.findMany({
       include: {
-        _count: { select: { devices: true } },
+        _count: { select: { drawings: true, devices: true } },
       },
     });
+
+    const drawingStats = await prisma.drawing.groupBy({
+      by: ['systemId'],
+      _count: true,
+    });
+
+    const drawingsPerSystem = drawingStats.reduce((acc, item) => {
+      acc[item.systemId || 'Unknown'] = item._count;
+      return acc;
+    }, {} as Record<string, number>);
 
     return NextResponse.json({
       overview: {
@@ -48,10 +59,13 @@ export async function GET(request: NextRequest) {
         equipment: deviceCount,
         connectors: connectorCount,
         pins: pinCount,
+        trainLines: trainLineCount,
+        signals: signalCount,
+        circuits: circuitCount,
         totalConnections: pinCount * 2,
       },
-      byCarType: deviceByCar.reduce((acc, item) => {
-        acc[item.carType || 'Unknown'] = item._count;
+      bySystem: deviceBySystem.reduce((acc, item) => {
+        acc[item.systemId || 'Unknown'] = item._count;
         return acc;
       }, {} as Record<string, number>),
       byVoltageClass: wireByVoltage.reduce((acc, item) => {
@@ -59,14 +73,18 @@ export async function GET(request: NextRequest) {
         return acc;
       }, {} as Record<string, number>),
       systems: systemStats.map(s => ({
-        code: s.code || s.name,
+        code: s.code,
         name: s.name,
+        description: s.description,
+        category: s.category,
+        drawingCount: s._count.drawings,
         deviceCount: s._count.devices,
-        category: s.description,
       })),
       health: {
         connectorsWithPins: connectorCount > 0 ? Math.round((pinCount / connectorCount) * 100) / 100 : 0,
         averagePinsPerConnector: connectorCount > 0 ? Math.round((pinCount / connectorCount) * 100) / 100 : 0,
+        trainLineCoverage: trainLineCount > 0 ? `${Math.round((trainLineCount / 100) * 100)}%` : '0%',
+        signalCoverage: signalCount > 0 ? `${Math.round((signalCount / 100) * 100)}%` : '0%',
       },
     });
   } catch (error) {

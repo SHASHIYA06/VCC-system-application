@@ -11,55 +11,29 @@ export async function GET(
 
     const wire = await prisma.wire.findUnique({
       where: { wireNo },
-      include: {
-        endpoints: {
-          include: {
-            device: true,
-            connector: true,
-            pin: true,
-          },
-        },
-      },
     });
 
     if (!wire) {
       return NextResponse.json({ error: 'Wire not found' }, { status: 404 });
     }
 
-    let trace = null;
-    let relatedDrawings: any[] = [];
+    const relatedTrainLines = await prisma.trainLine.findMany({
+      where: { wireNo: wireNo },
+      include: { drawing: true },
+    });
 
-    if (wire.sourceEq && wire.destEq) {
-      trace = {
-        source: {
-          type: 'equipment',
-          code: wire.sourceEq,
-          name: wire.sourceEq,
-          pin: wire.sourcePin ? `${wire.sourceConnector}-${wire.sourcePin}` : undefined,
-          description: `Source device`,
-        },
-        destination: {
-          type: 'equipment',
-          code: wire.destEq,
-          name: wire.destEq,
-          pin: wire.destPin ? `${wire.destConnector}-${wire.destPin}` : undefined,
-          description: `Destination device`,
-        },
-        wires: [wireNo],
-        colorCode: '#00BFFF',
-        junctions: [],
-      };
-    }
+    const relatedPins = await prisma.connectorPin.findMany({
+      where: { wireNo: wireNo },
+      include: { connector: true },
+    });
 
-    relatedDrawings = await prisma.drawingDocument.findMany({
+    const relatedSignals = await prisma.signal.findMany({
       where: {
         OR: [
-          { carType: { contains: 'ALL' } },
-          { subsystem: { contains: 'TRL' } },
+          { signalCode: { contains: wireNo } },
+          { signalName: { contains: wire.signalName || '' } },
         ],
       },
-      take: 5,
-      orderBy: { drawingNo: 'asc' },
     });
 
     return NextResponse.json({
@@ -71,15 +45,31 @@ export async function GET(
         wireColor: wire.wireColor,
         voltageClass: wire.voltageClass,
         cableSpec: wire.cableSpec,
-        sourceEq: wire.sourceEq,
+        conductorClass: wire.conductorClassCode,
+        wireSize: wire.wireSize,
+        sourceEquipment: wire.sourceEquipment,
         sourceConnector: wire.sourceConnector,
         sourcePin: wire.sourcePin,
-        destEq: wire.destEq,
+        destEquipment: wire.destEquipment,
         destConnector: wire.destConnector,
         destPin: wire.destPin,
+        remarks: wire.remarks,
       },
-      trace,
-      relatedDrawings,
+      relatedTrainLines,
+      relatedPins,
+      relatedSignals,
+      wireTrace: {
+        source: wire.sourceEquipment ? {
+          equipment: wire.sourceEquipment,
+          connector: wire.sourceConnector,
+          pin: wire.sourcePin,
+        } : null,
+        destination: wire.destEquipment ? {
+          equipment: wire.destEquipment,
+          connector: wire.destConnector,
+          pin: wire.destPin,
+        } : null,
+      },
     });
   } catch (error) {
     console.error('Error fetching wire:', error);

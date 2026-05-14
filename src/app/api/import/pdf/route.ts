@@ -30,28 +30,27 @@ export async function POST() {
         continue;
       }
 
-      const existing = await prisma.drawingDocument.findFirst({ where: { drawingNo: pdf.drawingNo } });
+      const existing = await prisma.drawing.findFirst({ where: { drawingNo: pdf.drawingNo } });
       
       if (existing) {
-        await prisma.drawingDocument.update({
+        await prisma.drawing.update({
           where: { id: existing.id },
           data: {
-            sourceFile: pdf.file,
-            carType: pdf.carType,
-            subsystem: pdf.subsystem,
-            pageCount: pdf.pages,
+            sourceFileId: pdf.file,
+            remarks: `${pdf.carType}|${pdf.subsystem}`,
+            totalSheets: pdf.pages,
           }
         });
 
         for (let i = 1; i <= pdf.pages; i++) {
           const existingPage = await prisma.drawingPage.findFirst({
-            where: { documentId: existing.id, pageNo: i }
+            where: { drawingId: existing.id, pageNo: i }
           });
           
           if (!existingPage) {
             await prisma.drawingPage.create({
               data: {
-                documentId: existing.id,
+                drawingId: existing.id,
                 pageNo: i,
                 ocrText: `Page ${i} of ${pdf.file} - PIN drawing data`,
               }
@@ -60,24 +59,24 @@ export async function POST() {
           }
         }
       } else {
-        const newDoc = await prisma.drawingDocument.create({
+        const system = await prisma.system.findFirst({ where: { code: pdf.subsystem } });
+        const newDoc = await prisma.drawing.create({
           data: {
+            projectId: 'default',
             drawingNo: pdf.drawingNo,
             title: `${pdf.carType} ${pdf.subsystem} PIN Drawing`,
-            sourceFile: pdf.file,
-            carType: pdf.carType,
-            subsystem: pdf.subsystem,
-            drawingType: 'PIN_ASSIGNMENT',
-            pageCount: pdf.pages,
+            sourceFileId: pdf.file,
+            systemId: system?.id,
+            remarks: `${pdf.carType}|${pdf.subsystem}`,
+            totalSheets: pdf.pages,
             revision: 'A',
-            status: 'active',
           }
         });
 
         for (let i = 1; i <= pdf.pages; i++) {
           await prisma.drawingPage.create({
             data: {
-              documentId: newDoc.id,
+              drawingId: newDoc.id,
               pageNo: i,
               ocrText: `Page ${i} of ${pdf.file}`,
             }

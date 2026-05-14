@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ code: string }> }
+) {
+  const { code } = await params;
   const { searchParams } = new URL(request.url);
-  const code = searchParams.get('code');
+  const includeDetails = searchParams.get('details') === 'true';
 
   if (!code) {
     return NextResponse.json({ error: 'System code required' }, { status: 400 });
@@ -11,49 +15,44 @@ export async function GET(request: NextRequest) {
 
   try {
     const system = await prisma.system.findFirst({
-      where: {
-        OR: [
-          { code: { equals: code, mode: 'insensitive' } },
-          { name: { equals: code, mode: 'insensitive' } },
-        ],
-      },
-      include: {
-        devices: {
-          include: { type: true, connectors: { include: { pins: true } } },
-        },
-      },
+      where: { code: code },
+      include: includeDetails ? {
+        _count: { select: { drawings: true, devices: true } },
+      } : undefined,
     });
 
-    if (!system) return NextResponse.json({ error: 'System not found' }, { status: 404 });
+    if (!system) {
+      return NextResponse.json({ error: 'System not found' }, { status: 404 });
+    }
 
-    const drawings = await prisma.drawingDocument.findMany({
-      where: { subsystem: { equals: code, mode: 'insensitive' } },
+    const drawings = await prisma.drawing.findMany({
+      where: { systemId: system.id },
+      include: { pages: true },
+    });
+
+    const connectors = await prisma.connector.findMany({
+      where: { drawing: { systemId: system.id } },
+      include: { pins: true },
     });
 
     return NextResponse.json({
       system: {
         id: system.id,
-        code: system.code || system.name,
+        code: system.code,
         name: system.name,
+        category: system.category,
         description: system.description || '',
-        device_count: system.devices.length,
-        devices: system.devices.map(d => ({
-          id: d.id,
-          name: d.name,
-          tag: d.tag || '',
-          car_type: d.carType || '',
-          connector_count: d.connectors.length,
-          connectors: d.connectors.map(c => ({
-            connector_code: c.connectorCode,
-            connector_type: c.connectorType || '',
-            pin_count: c.pins.length,
-          })),
-        })),
+        sortOrder: system.sortOrder,
       },
       drawings,
-      count: { devices: system.devices.length, drawings: drawings.length },
+      stats: {
+        drawingCount: drawings.length,
+        connectorCount: connectors.length,
+        pinCount: connectors.reduce((acc, c) => acc + c.pins.length, 0),
+      },
     });
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+  } catch (error) {
+    console.error('Error fetching system:', error);
+    return NextResponse.json({ error: 'Failed to fetch system' }, { status: 500 });
   }
 }

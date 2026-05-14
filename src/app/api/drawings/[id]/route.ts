@@ -7,7 +7,7 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    let drawing = await prisma.drawingDocument.findFirst({
+    let drawing = await prisma.drawing.findFirst({
       where: {
         OR: [
           { id: id },
@@ -16,6 +16,7 @@ export async function GET(
       },
       include: {
         pages: { orderBy: { pageNo: 'asc' } },
+        system: true,
       },
     });
 
@@ -23,23 +24,14 @@ export async function GET(
       return NextResponse.json({ error: 'Drawing not found' }, { status: 404 });
     }
 
-    const deviceIds = await prisma.deviceInstance.findMany({
-      where: { carType: drawing.carType === 'ALL' ? undefined : drawing.carType },
-      select: { id: true },
-    });
-
     const pins = await prisma.connectorPin.findMany({
       where: {
         connector: {
-          deviceId: { in: deviceIds.map(d => d.id) },
+          drawingId: drawing.id,
         },
       },
       include: {
-        connector: {
-          include: {
-            device: true,
-          },
-        },
+        connector: true,
       },
       take: 100,
     });
@@ -49,9 +41,9 @@ export async function GET(
       pinNo: pin.pinNo,
       signalName: pin.signalName,
       wireNo: pin.wireNo,
+      pinLabel: pin.pinLabel,
       connectorCode: pin.connector?.connectorCode || 'N/A',
-      equipmentCode: pin.connector?.device?.tag || pin.connector?.device?.name || 'N/A',
-      endpointLabel: pin.endpointLabel,
+      equipmentCode: pin.connector?.connectorCode || 'N/A',
     }));
 
     return NextResponse.json({
@@ -59,16 +51,15 @@ export async function GET(
         id: drawing.id,
         drawingNo: drawing.drawingNo,
         title: drawing.title,
-        carType: drawing.carType,
-        subsystem: drawing.subsystem,
-        drawingType: drawing.drawingType,
-        pageCount: drawing.pageCount,
-        currentRevision: drawing.revision,
-        notes: drawing.notes,
-        systemCode: drawing.subsystem,
-        sourceFile: drawing.sourceFile,
+        revision: drawing.revision,
+        systemCode: drawing.systemId,
+        systemName: drawing.system?.name,
+        totalSheets: drawing.totalSheets,
+        remarks: drawing.remarks,
+        sourceFile: drawing.sourceFileId,
       },
       pins: formattedPins,
+      pageCount: drawing.pages.length,
     });
   } catch (error) {
     console.error('Error fetching drawing:', error);
