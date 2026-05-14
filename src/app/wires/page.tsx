@@ -1,45 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Cable, Search, ArrowRight, AlertTriangle, Filter, ChevronDown, Zap } from 'lucide-react';
+import { Cable, Search, ArrowRight, AlertTriangle, ChevronDown, Zap, RefreshCw } from 'lucide-react';
 
-const WIRE_REGISTRY = [
-  { wire_no: '3003', signal: 'FORWARD_CMD', description: 'Forward propulsion command to VVVF', system: 'TRAC', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-X1-17', dest: 'V1-CN1-12' },
-  { wire_no: '3004', signal: 'REVERSE_CMD', description: 'Reverse propulsion command to VVVF', system: 'TRAC', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-X1-18', dest: 'V1-CN1-13' },
-  { wire_no: '3005', signal: 'POWERING_1', description: 'Powering command level 1 (crossed with 3006)', system: 'TRAC', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-X1-19', dest: 'V1-CN1-14', cross_connected: true },
-  { wire_no: '3006', signal: 'POWERING_2', description: 'Powering command level 2 (crossed with 3005)', system: 'TRAC', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-X1-20', dest: 'V1-CN1-15', cross_connected: true },
-  { wire_no: '3010', signal: 'BRAKE_CMD', description: 'Braking command to VVVF', system: 'TRAC', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-X1-22', dest: 'V1-CN1-16' },
-  { wire_no: '3011', signal: 'FSB_CMD', description: 'Full service brake command', system: 'TRAC', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-X1-23', dest: 'V1-CN1-17' },
-  { wire_no: '4024', signal: 'BRAKE_LOOP_N', description: 'Brake loop normal - through BCU/BECU all cars', system: 'BRAKE', size: '2.5mm²', color: 'Red', voltage: '110VDC', type: 'Control', source: 'BCU1-X1-24', dest: 'BCU2-X1-24' },
-  { wire_no: '4028', signal: 'BRAKE_LOOP_R', description: 'Brake loop return path', system: 'BRAKE', size: '2.5mm²', color: 'Black', voltage: '110VDC', type: 'Control', source: 'BCU2-X1-24', dest: 'BCU1-X1-24' },
-  { wire_no: '4062', signal: 'EM_BRAKE_N', description: 'Emergency brake loop normal - all cars', system: 'BRAKE', size: '2.5mm²', color: 'Red', voltage: '110VDC', type: 'Safety', source: 'EBMV-X1-42', dest: 'EBSS-X1-42' },
-  { wire_no: '4070', signal: 'EM_BRAKE_N_RTN', description: 'Emergency brake loop normal return', system: 'BRAKE', size: '2.5mm²', color: 'Black', voltage: '110VDC', type: 'Safety', source: 'EBSS-X1-42', dest: 'EBMV-X1-42' },
-  { wire_no: '4103', signal: 'EM_BRAKE_R', description: 'Emergency brake loop redundant - failsafe', system: 'BRAKE', size: '2.5mm²', color: 'Red', voltage: '110VDC', type: 'Safety', source: 'EBMV-X1-44', dest: 'EBSS-X1-44' },
-  { wire_no: '4110', signal: 'EM_BRAKE_R_RTN', description: 'Emergency brake loop redundant return', system: 'BRAKE', size: '2.5mm²', color: 'Black', voltage: '110VDC', type: 'Safety', source: 'EBSS-X1-44', dest: 'EBMV-X1-44' },
-  { wire_no: '4122', signal: 'PB_APPLIED', description: 'Parking brake applied indication', system: 'BRAKE', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-U15-K4', dest: 'PBMV1-CN1-2' },
-  { wire_no: '4153', signal: 'PB_RELEASED', description: 'Parking brake released indication', system: 'BRAKE', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-U15-K5', dest: 'PBMV1-CN1-3' },
-  { wire_no: '6009', signal: 'DOOR_OPEN_L', description: 'Left door open command (crossed with 6046)', system: 'DOOR', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-U15-J7', dest: 'DCU1-CN1-3', cross_connected: true },
-  { wire_no: '6014', signal: 'DOOR_CLOSE_L', description: 'Left door close command (crossed with 6051)', system: 'DOOR', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-U15-J9', dest: 'DCU1-CN1-5', cross_connected: true },
-  { wire_no: '6046', signal: 'DOOR_OPEN_R', description: 'Right door open command (crossed with 6009)', system: 'DOOR', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-U15-J8', dest: 'DCU1-CN1-4', cross_connected: true },
-  { wire_no: '6051', signal: 'DOOR_CLOSE_R', description: 'Right door close command (crossed with 6014)', system: 'DOOR', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO1-U15-J10', dest: 'DCU1-CN1-6', cross_connected: true },
-  { wire_no: '6073', signal: 'DOOR_PROVE_1', description: 'Door 1 proving loop feedback', system: 'DOOR', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'DCU1-CN2-3', dest: 'TCMS_RIO1-U15-H2' },
-  { wire_no: '6076', signal: 'DOOR_PROVE_2', description: 'Door 2 proving loop feedback', system: 'DOOR', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'DCU1-CN2-4', dest: 'TCMS_RIO1-U15-H3' },
-  { wire_no: '6112', signal: 'ZERO_SPEED', description: 'Zero speed signal - enables door opening', system: 'DOOR', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'V1-CN2-3', dest: 'TCMS_RIO1-U15-L3' },
-  { wire_no: '7001', signal: 'CAB_VAC_FLT', description: 'Cab VAC fault indication', system: 'VAC', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'CAB_VAC1-CN1-5', dest: 'TCMS_RIO2-U25-F2' },
-  { wire_no: '7050', signal: 'VAC1_STATUS', description: 'Saloon VAC 1 status feedback', system: 'VAC', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'VAC1-CN1-3', dest: 'TCMS_RIO1-U15-F4' },
-  { wire_no: '7060', signal: 'VAC2_STATUS', description: 'Saloon VAC 2 status feedback', system: 'VAC', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'VAC1-CN1-4', dest: 'TCMS_RIO1-U15-F5' },
-  { wire_no: '7070', signal: 'SMOKE_DETECT', description: 'Smoke detection alarm', system: 'VAC', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'SMOKE_SNS-CN1-1', dest: 'TCMS_RIO1-U15-F6' },
-  { wire_no: '1032', signal: 'RESET', description: 'System reset command', system: 'TRL', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'OP_PNL1-CN1-1', dest: 'TCMS_RIO1-X1-32' },
-  { wire_no: '1040', signal: 'AUX_ON', description: 'Auxiliary power on command', system: 'APS', size: '2.5mm²', color: 'Red', voltage: '110VDC', type: 'Control', source: 'OP_PNL1-CN1-2', dest: 'APS1-CN2-1' },
-  { wire_no: '1050', signal: 'SHUTDOWN', description: 'System shutdown command', system: 'TRL', size: '2.5mm²', color: 'Black', voltage: '110VDC', type: 'Control', source: 'OP_PNL1-CN1-3', dest: 'APS1-CN2-2' },
-  { wire_no: '5000', signal: 'SHORE_SUPPLY', description: 'Shore supply contactor command', system: 'APS', size: '2.5mm²', color: 'Red', voltage: '110VDC', type: 'Control', source: 'TCMS_RIO2-U25-H5', dest: 'SSB1-CN1-3' },
-  { wire_no: '5030', signal: 'SIV_CONTACT1', description: 'SIV contactor 1 status', system: 'APS', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'APS1-CN3-1', dest: 'TCMS_RIO2-U25-J6' },
-  { wire_no: '5031', signal: 'SIV_CONTACT2', description: 'SIV contactor 2 status', system: 'APS', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'APS1-CN3-2', dest: 'TCMS_RIO2-U25-J6' },
-  { wire_no: '5064', signal: 'BAT_UNDER_VOLT', description: 'Battery under-voltage warning', system: 'APS', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Control', source: 'BATT1-CN1-2', dest: 'TCMS_RIO2-U25-G4' },
-  { wire_no: '1207', signal: 'VVVF_FAULT', description: 'VVVF fault indication', system: 'TRAC', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Fault', source: 'V1-CN2-5', dest: 'TCMS_RIO1-U15-M2' },
-  { wire_no: '1209', signal: 'HSCB_TRIP', description: 'HSCB trip status indication', system: 'HV', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Fault', source: 'HSCB1-CN1-3', dest: 'TCMS_RIO1-U15-H4' },
-  { wire_no: '1215', signal: 'AUX_FAULT', description: 'Auxiliary system fault', system: 'APS', size: '1.5mm²', color: 'Blue', voltage: '110VDC', type: 'Fault', source: 'APS1-CN2-5', dest: 'TCMS_RIO2-U25-G3' },
+const FALLBACK_WIRES: WireData[] = [
+  { wireNo: '3003', signalName: 'FORWARD_CMD', description: 'Forward propulsion command to VVVF', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'X1', sourcePin: '17', destEq: 'V1', destConnector: 'CN1', destPin: '12' },
+  { wireNo: '3004', signalName: 'REVERSE_CMD', description: 'Reverse propulsion command to VVVF', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'X1', sourcePin: '18', destEq: 'V1', destConnector: 'CN1', destPin: '13' },
+  { wireNo: '3005', signalName: 'POWERING_1', description: 'Powering command level 1 (crossed with 3006)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'X1', sourcePin: '19', destEq: 'V1', destConnector: 'CN1', destPin: '14' },
+  { wireNo: '3006', signalName: 'POWERING_2', description: 'Powering command level 2 (crossed with 3005)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'X1', sourcePin: '20', destEq: 'V1', destConnector: 'CN1', destPin: '15' },
+  { wireNo: '3010', signalName: 'BRAKE_CMD', description: 'Braking command to VVVF', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'X1', sourcePin: '22', destEq: 'V1', destConnector: 'CN1', destPin: '16' },
+  { wireNo: '4024', signalName: 'BRAKE_LOOP_N', description: 'Brake loop normal - through BCU/BECU all cars', wireColor: 'Red', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'BCU1', sourceConnector: 'X1', sourcePin: '24', destEq: 'BCU2', destConnector: 'X1', destPin: '24' },
+  { wireNo: '4062', signalName: 'EM_BRAKE_N', description: 'Emergency brake loop normal - all cars', wireColor: 'Red', wireType: 'Safety', voltageClass: '110VDC', sourceEq: 'EBMV', sourceConnector: 'X1', sourcePin: '42', destEq: 'EBSS', destConnector: 'X1', destPin: '42' },
+  { wireNo: '6009', signalName: 'DOOR_OPEN_L', description: 'Left door open command (crossed with 6046)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'U15', sourcePin: 'J7', destEq: 'DCU1', destConnector: 'CN1', destPin: '3' },
+  { wireNo: '6014', signalName: 'DOOR_CLOSE_L', description: 'Left door close command (crossed with 6051)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'U15', sourcePin: 'J9', destEq: 'DCU1', destConnector: 'CN1', destPin: '5' },
+  { wireNo: '6046', signalName: 'DOOR_OPEN_R', description: 'Right door open command (crossed with 6009)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'U15', sourcePin: 'J8', destEq: 'DCU1', destConnector: 'CN1', destPin: '4' },
+  { wireNo: '6051', signalName: 'DOOR_CLOSE_R', description: 'Right door close command (crossed with 6014)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'U15', sourcePin: 'J10', destEq: 'DCU1', destConnector: 'CN1', destPin: '6' },
+  { wireNo: '6112', signalName: 'ZERO_SPEED', description: 'Zero speed signal - enables door opening', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'V1', sourceConnector: 'CN2', sourcePin: '3', destEq: 'TCMS_RIO1', destConnector: 'U15', destPin: 'L3' },
+  { wireNo: '7001', signalName: 'CAB_VAC_FLT', description: 'Cab VAC fault indication', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'CAB_VAC1', sourceConnector: 'CN1', sourcePin: '5', destEq: 'TCMS_RIO2', destConnector: 'U25', destPin: 'F2' },
+  { wireNo: '7050', signalName: 'VAC1_STATUS', description: 'Saloon VAC 1 status feedback', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'VAC1', sourceConnector: 'CN1', sourcePin: '3', destEq: 'TCMS_RIO1', destConnector: 'U15', destPin: 'F4' },
+  { wireNo: '1207', signalName: 'VVVF_FAULT', description: 'VVVF fault indication', wireColor: 'Blue', wireType: 'Fault', voltageClass: '110VDC', sourceEq: 'V1', sourceConnector: 'CN2', sourcePin: '5', destEq: 'TCMS_RIO1', destConnector: 'U15', destPin: 'M2' },
+  { wireNo: '1209', signalName: 'HSCB_TRIP', description: 'HSCB trip status indication', wireColor: 'Blue', wireType: 'Fault', voltageClass: '110VDC', sourceEq: 'HSCB1', sourceConnector: 'CN1', sourcePin: '3', destEq: 'TCMS_RIO1', destConnector: 'U15', destPin: 'H4' },
+  { wireNo: '5000', signalName: 'SHORE_SUPPLY', description: 'Shore supply contactor command', wireColor: 'Red', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO2', sourceConnector: 'U25', sourcePin: 'H5', destEq: 'SSB1', destConnector: 'CN1', destPin: '3' },
+  { wireNo: '5030', signalName: 'SIV_CONTACT1', description: 'SIV contactor 1 status', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'APS1', sourceConnector: 'CN3', sourcePin: '1', destEq: 'TCMS_RIO2', destConnector: 'U25', destPin: 'J6' },
+  { wireNo: '5064', signalName: 'BAT_UNDER_VOLT', description: 'Battery under-voltage warning', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'BATT1', sourceConnector: 'CN1', sourcePin: '2', destEq: 'TCMS_RIO2', destConnector: 'U25', destPin: 'G4' },
 ];
 
 const SYSTEM_COLORS: Record<string, { color: string; bg: string; label: string }> = {
@@ -62,30 +46,112 @@ const COLOR_CODES: Record<string, string> = {
   Blue: 'bg-blue-500/20 text-blue-400',
   Red: 'bg-red-500/20 text-red-400',
   Black: 'bg-slate-700 text-slate-300',
-  White: 'bg-slate-100 text-slate-700',
   Green: 'bg-green-500/20 text-green-400',
-  Yellow: 'bg-yellow-500/20 text-yellow-400',
-  Orange: 'bg-orange-500/20 text-orange-400',
 };
+
+const CROSS_CONNECTED = ['3005', '3006', '6009', '6014', '6046', '6051'];
+
+interface WireData {
+  wireNo: string;
+  signalName: string | null;
+  description: string | null;
+  wireColor: string | null;
+  wireType: string | null;
+  voltageClass: string | null;
+  sourceEq: string | null;
+  sourceConnector: string | null;
+  sourcePin: string | null;
+  destEq: string | null;
+  destConnector: string | null;
+  destPin: string | null;
+  endpoints?: Array<{
+    endpointRole: string | null;
+    endpointLabel: string | null;
+    device?: { name: string; carType: string | null } | null;
+    connector?: { connectorCode: string } | null;
+  }>;
+}
 
 export default function WiresPage() {
   const [search, setSearch] = useState('');
   const [systemFilter, setSystemFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [crossOnly, setCrossOnly] = useState(false);
+  const [wires, setWires] = useState<WireData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const limit = 50;
 
-  const filtered = WIRE_REGISTRY.filter(w => {
+  useEffect(() => {
+    async function fetchWires() {
+      try {
+        const params = new URLSearchParams();
+        params.set('limit', String(limit));
+        params.set('offset', String(offset));
+        if (search) params.set('search', search);
+        
+        const response = await fetch(`/api/wires?${params.toString()}`);
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        
+        if (offset === 0) {
+          setWires(data.wires || []);
+        } else {
+          setWires(prev => [...prev, ...(data.wires || [])]);
+        }
+        setHasMore(data.pagination?.hasMore || false);
+        setError(null);
+      } catch (err) {
+        console.error('Wire fetch error:', err);
+        if (offset === 0) {
+          setWires(FALLBACK_WIRES);
+          setError('Using offline data - database may be unavailable');
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchWires();
+  }, [offset]);
+
+  const loadMore = () => {
+    if (hasMore && !loading) {
+      setOffset(prev => prev + limit);
+    }
+  };
+
+  const filtered = wires.filter(w => {
     const matchSearch = search === '' ||
-      w.wire_no.includes(search) || w.signal.toLowerCase().includes(search.toLowerCase()) ||
-      w.description.toLowerCase().includes(search.toLowerCase());
-    const matchSystem = systemFilter === 'all' || w.system === systemFilter;
-    const matchType = typeFilter === 'all' || w.type === typeFilter;
-    const matchCross = !crossOnly || w.cross_connected;
+      w.wireNo?.includes(search) || 
+      (w.signalName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (w.description || '').toLowerCase().includes(search.toLowerCase());
+    const matchSystem = systemFilter === 'all' || 
+      w.endpoints?.some(ep => ep.device?.carType === systemFilter);
+    const matchType = typeFilter === 'all' || (w.wireType || 'Control') === typeFilter;
+    const matchCross = !crossOnly || CROSS_CONNECTED.includes(w.wireNo);
     return matchSearch && matchSystem && matchType && matchCross;
   });
 
-  const systems = ['TRAC', 'BRAKE', 'DOOR', 'VAC', 'APS', 'TRL', 'HV'];
-  const types = ['Control', 'Safety', 'Fault'];
+  const getSourceDest = (wire: WireData) => {
+    if (wire.endpoints && wire.endpoints.length > 0) {
+      const source = wire.endpoints.find(e => e.endpointRole === 'source');
+      const dest = wire.endpoints.find(e => e.endpointRole === 'destination');
+      const srcLabel = source?.endpointLabel || source?.connector?.connectorCode || wire.sourceConnector || '';
+      const dstLabel = dest?.endpointLabel || dest?.connector?.connectorCode || wire.destConnector || '';
+      return { source: srcLabel, dest: dstLabel };
+    }
+    return { source: wire.sourceConnector || '', dest: wire.destConnector || '' };
+  };
+
+  if (loading && wires.length === 0) {
+    return (
+      <div className="animated-bg min-h-screen flex items-center justify-center">
+        <RefreshCw className="h-8 w-8 text-cyan-400 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="animated-bg min-h-screen p-6 grid-pattern">
@@ -95,12 +161,16 @@ export default function WiresPage() {
           Complete wire registry with specifications for point-to-point tracing
         </p>
         <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
-          <span>{WIRE_REGISTRY.length} wires defined</span>
-          <span>{WIRE_REGISTRY.filter(w => w.cross_connected).length} cross-connected</span>
-          <span className="flex items-center gap-1">
-            <AlertTriangle className="h-3 w-3 text-amber-400" /> 4 critical cross-connections
-          </span>
+          <span>{wires.length} wires loaded</span>
+          {CROSS_CONNECTED.length > 0 && (
+            <span className="flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3 text-amber-400" /> {CROSS_CONNECTED.length} cross-connected
+            </span>
+          )}
         </div>
+        {error && (
+          <div className="mt-2 text-amber-400 text-sm">{error}</div>
+        )}
       </div>
 
       {/* Wire Format Decoder */}
@@ -156,18 +226,22 @@ export default function WiresPage() {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input type="text" placeholder="Search wires..."
-            value={search} onChange={(e) => setSearch(e.target.value)}
+            value={search} onChange={(e) => { setSearch(e.target.value); setOffset(0); }}
             className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
         </div>
         <select value={systemFilter} onChange={(e) => setSystemFilter(e.target.value)}
           className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">
           <option value="all">All Systems</option>
-          {systems.map(s => <option key={s} value={s}>{s} - {SYSTEM_COLORS[s]?.label}</option>)}
+          <option value="DMC">DMC</option>
+          <option value="TC">TC</option>
+          <option value="MC">MC</option>
         </select>
         <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
           className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">
           <option value="all">All Types</option>
-          {types.map(t => <option key={t} value={t}>{t}</option>)}
+          <option value="Control">Control</option>
+          <option value="Safety">Safety</option>
+          <option value="Fault">Fault</option>
         </select>
         <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
           <input type="checkbox" checked={crossOnly} onChange={(e) => setCrossOnly(e.target.checked)}
@@ -185,63 +259,55 @@ export default function WiresPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Wire #</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Signal</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Description</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">System</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Size</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Color</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Type</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Path</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/30">
               {filtered.map(wire => {
-                const sysInfo = SYSTEM_COLORS[wire.system] || SYSTEM_COLORS['TRL'];
-                const colorClass = COLOR_CODES[wire.color] || 'bg-slate-700 text-slate-300';
-                const typeColor = TYPE_COLORS[wire.type] || TYPE_COLORS['Control'];
+                const isCross = CROSS_CONNECTED.includes(wire.wireNo);
+                const { source, dest } = getSourceDest(wire);
+                const colorClass = COLOR_CODES[wire.wireColor || 'Blue'] || COLOR_CODES['Blue'];
+                const type = wire.wireType || 'Control';
+                const typeColor = TYPE_COLORS[type] || TYPE_COLORS['Control'];
 
                 return (
-                  <tr key={wire.wire_no} className="hover:bg-slate-800/30 transition-colors">
+                  <tr key={wire.wireNo} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className={`font-mono text-lg font-bold ${wire.cross_connected ? 'text-amber-400' : 'text-cyan-400'}`}>
-                          {wire.wire_no}
+                        <span className={`font-mono text-lg font-bold ${isCross ? 'text-amber-400' : 'text-cyan-400'}`}>
+                          {wire.wireNo}
                         </span>
-                        {wire.cross_connected && <AlertTriangle className="h-3 w-3 text-amber-400" />}
+                        {isCross && <AlertTriangle className="h-3 w-3 text-amber-400" />}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-white font-medium text-sm">{wire.signal}</span>
+                      <span className="text-white font-medium text-sm">{wire.signalName || '-'}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-xs text-slate-400 max-w-xs truncate block">{wire.description}</span>
+                      <span className="text-xs text-slate-400 max-w-xs truncate block">{wire.description || '-'}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${sysInfo.color} ${sysInfo.bg}`}>
-                        {wire.system}
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
+                        {wire.wireColor || 'N/A'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${typeColor}`}>
-                        {wire.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-slate-400">{wire.size}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}>
-                        {wire.color}
+                        {type}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 text-xs text-slate-500">
-                        <span className="font-mono">{wire.source}</span>
+                        <span className="font-mono">{source || '-'}</span>
                         <span className="text-slate-600">→</span>
-                        <span className="font-mono">{wire.dest}</span>
+                        <span className="font-mono">{dest || '-'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link href={`/wires/${wire.wire_no}`}
+                      <Link href={`/wires/${wire.wireNo}`}
                         className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300 text-sm">
                         Trace <ArrowRight className="h-4 w-4" />
                       </Link>
@@ -253,6 +319,14 @@ export default function WiresPage() {
           </table>
         </div>
       </div>
+
+      {hasMore && (
+        <div className="mt-4 text-center">
+          <button onClick={loadMore} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg">
+            Load More
+          </button>
+        </div>
+      )}
 
       {filtered.length === 0 && (
         <div className="glass-card p-12 text-center">
