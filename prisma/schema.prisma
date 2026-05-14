@@ -253,6 +253,8 @@ model ConnectorType {
   description   String
   voltageClass  String?
   remarks       String?
+
+  connectors    Connector[]
 }
 
 model Connector {
@@ -273,6 +275,7 @@ model Connector {
 
   drawing       Drawing  @relation(fields: [drawingId], references: [id])
   sheet         DrawingSheet? @relation(fields: [sheetId], references: [id])
+  connectorType ConnectorType? @relation(fields: [connectorTypeCode], references: [code])
 
   pins          ConnectorPin[]
 
