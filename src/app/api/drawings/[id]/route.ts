@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function GET(
   request: NextRequest,
@@ -11,12 +12,13 @@ export async function GET(
       where: {
         OR: [
           { id: id },
-          { drawingNo: id },
+          { drawingNo: { contains: id, mode: Prisma.QueryMode.insensitive } },
         ],
       },
       include: {
         pages: { orderBy: { pageNo: 'asc' } },
         system: true,
+        connectors: { include: { pins: true } },
       },
     });
 
@@ -33,7 +35,7 @@ export async function GET(
       include: {
         connector: true,
       },
-      take: 100,
+      take: 200,
     });
 
     const formattedPins = pins.map(pin => ({
@@ -41,28 +43,57 @@ export async function GET(
       pinNo: pin.pinNo,
       signalName: pin.signalName,
       wireNo: pin.wireNo,
+      wireColor: pin.conductorClassCode,
       pinLabel: pin.pinLabel,
       connectorCode: pin.connector?.connectorCode || 'N/A',
       equipmentCode: pin.connector?.connectorCode || 'N/A',
+      endpointLabel: pin.terminalFrom || pin.terminalTo,
     }));
+
+    const remarksParts = (drawing.remarks || '').split('|');
+    const carType = remarksParts[0] || 'ALL';
+    const subsystem = remarksParts[1] || drawing.system?.code || 'GEN';
+
+    const drawingTypeMap: Record<string, string> = {
+      GEN: 'DRAWING_LIST',
+      TRL: 'SCHEMATIC',
+      TRAC: 'SCHEMATIC',
+      HV: 'SCHEMATIC',
+      BRAKE: 'SCHEMATIC',
+      DOOR: 'SCHEMATIC',
+      TMS: 'PIN_ASSIGNMENT',
+      COMMS: 'SCHEMATIC',
+      APS: 'SCHEMATIC',
+    };
 
     return NextResponse.json({
       drawing: {
         id: drawing.id,
         drawingNo: drawing.drawingNo,
         title: drawing.title,
-        revision: drawing.revision,
-        systemCode: drawing.systemId,
-        systemName: drawing.system?.name,
-        totalSheets: drawing.totalSheets,
-        remarks: drawing.remarks,
+        carType: carType,
+        subsystem: subsystem,
+        drawingType: drawingTypeMap[drawing.system?.code || 'GEN'] || 'SCHEMATIC',
+        currentRevision: drawing.revision || 'A',
+        pageCount: drawing.totalSheets,
+        notes: drawing.remarks || '',
+        systemCode: drawing.system?.code || 'GEN',
+        systemName: drawing.system?.name || 'General',
         sourceFile: drawing.sourceFileId,
+        totalConnectors: drawing.connectors?.length || 0,
+        totalPins: pins.length,
       },
       pins: formattedPins,
-      pageCount: drawing.pages.length,
+      connectors: drawing.connectors?.map(c => ({
+        id: c.id,
+        code: c.connectorCode,
+        pinCount: c.pins?.length || c.pinCount || 0,
+        description: c.description,
+        carType: c.carType,
+      })) || [],
     });
   } catch (error) {
     console.error('Error fetching drawing:', error);
-    return NextResponse.json({ error: 'Failed to fetch drawing' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch drawing', details: String(error) }, { status: 500 });
   }
 }
