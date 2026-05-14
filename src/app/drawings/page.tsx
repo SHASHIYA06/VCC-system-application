@@ -16,7 +16,7 @@ interface Drawing {
 }
 
 interface DrawingDetail {
-  connectors?: { connectorCode: string; pinCount: number }[];
+  connectors?: string[];
   wires?: string[];
 }
 
