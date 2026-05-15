@@ -160,7 +160,7 @@ model DrawingApplicability {
   applicable  Boolean  @default(true)
   remark      String?
 
-  drawing     Drawing  @relation(fields: [drawingId], references: [id])
+drawing       Drawing?  @relation(fields: [drawingId], references: [id])
   carType     CarType? @relation(fields: [carTypeId], references: [id])
 
   @@unique([drawingId, carTypeId])
@@ -173,7 +173,7 @@ model DrawingReference {
   relationType  String   @default("REFERENCE")
   note          String?
 
-  drawing       Drawing          @relation(fields: [drawingId], references: [id])
+drawing       Drawing?  @relation(fields: [drawingId], references: [id])
   reference     ReferenceDrawing @relation(fields: [referenceId], references: [id])
 
   @@unique([drawingId, referenceId, relationType])
@@ -389,18 +389,19 @@ model TrainLine {
 
 model Signal {
   id            String   @id @default(cuid())
-  drawingId     String
+  drawingId     String?
   signalName    String
-  signalCode    String?
+  signalCode    String? @unique
   protocol      String?
   voltageText   String?
   direction     String?
+  medium        String?
   sourceSheet   String?
   note          String?
   signalFamily  String?
   extra         Json     @default("{}")
 
-  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+  drawing       Drawing?  @relation(fields: [drawingId], references: [id])
 
   @@index([drawingId])
 }
@@ -430,6 +431,7 @@ model CrossConnectionRule {
   wireA         String?
   wireB         String?
   ruleType      String
+  remarks       String?
   noteId        String?
   extra         Json     @default("{}")
 

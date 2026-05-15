@@ -15,7 +15,7 @@ function mapScope(scope?: string): 'INTERCAR' | 'POWER' | 'COMMUNICATION' | 'DEV
   return 'DEVICE';
 }
 
-async function getOrCreateConnector(drawingId: string, code: string, description?: string, pinCount?: number, carType?: string, location?: string, scope?: string) {
+async function getOrCreateConnector(drawingId: string, code: string, description?: string, pinCount?: number | null, carType?: string, location?: string, scope?: string) {
   const existing = await prisma.connector.findFirst({ where: { drawingId, connectorCode: code } });
   if (existing) {
     return prisma.connector.update({
@@ -48,10 +48,10 @@ async function getOrCreateWire(wireNo: string, signalName?: string, color?: stri
 }
 
 async function getOrCreateSignal(code: string, name: string, medium?: string, direction?: string) {
-  const existing = await prisma.signal.findUnique({ where: { signalCode: code } });
+  const existing = await prisma.signal.findFirst({ where: { signalCode: code } });
   if (existing) {
     return prisma.signal.update({
-      where: { signalCode: code },
+      where: { id: existing.id },
       data: { signalName: name, medium, direction }
     });
   }
