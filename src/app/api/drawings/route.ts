@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         _count: { select: { connectors: true, trainLines: true } }
       },
       orderBy: { drawingNo: 'asc' },
-      take: 200,
+      take: 500,
     });
 
     return NextResponse.json({ 

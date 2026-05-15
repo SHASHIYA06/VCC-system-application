@@ -156,12 +156,12 @@ model Drawing {
 model DrawingApplicability {
   id          String   @id @default(cuid())
   drawingId   String
-  carTypeId   String
+  carTypeId   String?
   applicable  Boolean  @default(true)
   remark      String?
 
   drawing     Drawing  @relation(fields: [drawingId], references: [id])
-  carType     CarType  @relation(fields: [carTypeId], references: [id])
+  carType     CarType? @relation(fields: [carTypeId], references: [id])
 
   @@unique([drawingId, carTypeId])
 }

@@ -4,7 +4,7 @@ export async function seedComplete() {
   console.log('Starting comprehensive VCC seed...');
 
   const project = await prisma.project.findFirst() || await prisma.project.create({
-    data: { projectCode: 'KMRCL_RS3R', projectName: 'KMRCL RS3R Metro', description: 'Kochi Metro Rail Corporation RS3R Vehicles' }
+    data: { projectCode: 'KMRCL-RS3R', projectName: 'KMRCL RS3R Metro', description: 'Kochi Metro Rail Corporation RS3R Vehicles' }
   });
 
   const SYSTEMS = [
