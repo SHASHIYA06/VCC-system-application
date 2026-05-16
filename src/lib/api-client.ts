@@ -31,7 +31,7 @@ class ApiClientError extends Error {
 
 async function fetchApi<T>(
   endpoint: string,
-  options?: RequestInit & { params?: Record<string, string | number | undefined> }
+  options?: RequestInit & { params?: Record<string, string | number | boolean | undefined> }
 ): Promise<T> {
   const { params, ...fetchOptions } = options || {};
   
