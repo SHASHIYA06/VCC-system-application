@@ -58,10 +58,12 @@ interface WireData {
   wireColor: string | null;
   wireType: string | null;
   voltageClass: string | null;
-  sourceEq: string | null;
+  sourceEq?: string | null;
+  sourceEquipment?: string | null;
   sourceConnector: string | null;
   sourcePin: string | null;
-  destEq: string | null;
+  destEq?: string | null;
+  destEquipment?: string | null;
   destConnector: string | null;
   destPin: string | null;
   endpoints?: Array<{
@@ -114,7 +116,7 @@ export default function WiresPage() {
       }
     }
     fetchWires();
-  }, [offset]);
+  }, [offset, search]); // Added search to dependency array so it refetches when search changes
 
   const loadMore = () => {
     if (hasMore && !loading) {
@@ -123,6 +125,7 @@ export default function WiresPage() {
   };
 
   const filtered = wires.filter(w => {
+    // If we're filtering server-side via the search input, client-side filtering by search is redundant but harmless.
     const matchSearch = search === '' ||
       w.wireNo?.includes(search) || 
       (w.signalName || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -138,11 +141,15 @@ export default function WiresPage() {
     if (wire.endpoints && wire.endpoints.length > 0) {
       const source = wire.endpoints.find(e => e.endpointRole === 'source');
       const dest = wire.endpoints.find(e => e.endpointRole === 'destination');
-      const srcLabel = source?.endpointLabel || source?.connector?.connectorCode || wire.sourceConnector || '';
-      const dstLabel = dest?.endpointLabel || dest?.connector?.connectorCode || wire.destConnector || '';
+      const srcLabel = source?.endpointLabel || source?.connector?.connectorCode || wire.sourceEquipment || wire.sourceEq || wire.sourceConnector || '';
+      const dstLabel = dest?.endpointLabel || dest?.connector?.connectorCode || wire.destEquipment || wire.destEq || wire.destConnector || '';
       return { source: srcLabel, dest: dstLabel };
     }
-    return { source: wire.sourceConnector || '', dest: wire.destConnector || '' };
+    const srcEq = wire.sourceEquipment || wire.sourceEq || '';
+    const dstEq = wire.destEquipment || wire.destEq || '';
+    const src = srcEq ? `${srcEq} ${wire.sourceConnector || ''}`.trim() : wire.sourceConnector || '';
+    const dst = dstEq ? `${dstEq} ${wire.destConnector || ''}`.trim() : wire.destConnector || '';
+    return { source: src, dest: dst };
   };
 
   if (loading && wires.length === 0) {

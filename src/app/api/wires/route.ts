@@ -35,6 +35,14 @@ export async function GET(request: NextRequest) {
         take: limit,
         skip: offset,
         orderBy: { wireNo: 'asc' },
+        include: {
+          endpoints: {
+            include: {
+              device: true,
+              connector: true,
+            }
+          }
+        }
       }),
       prisma.wire.count({ where }),
       prisma.wire.groupBy({

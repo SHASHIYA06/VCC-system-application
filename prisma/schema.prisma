@@ -278,6 +278,7 @@ model Connector {
   connectorType ConnectorType? @relation(fields: [connectorTypeCode], references: [code])
 
   pins          ConnectorPin[]
+  wireEndpoints WireEndpoint[]
 
   @@unique([drawingId, connectorCode])
   @@index([drawingId])
@@ -301,6 +302,7 @@ model ConnectorPin {
 
   connector           Connector @relation(fields: [connectorId], references: [id], onDelete: Cascade)
   conductorClass      ConductorClass? @relation(fields: [conductorClassCode], references: code)
+  wireEndpoints       WireEndpoint[]
 
   @@unique([connectorId, pinNo])
   @@index([wireNo])
@@ -321,6 +323,7 @@ model Device {
 
   drawing       Drawing  @relation(fields: [drawingId], references: [id])
   system        System?  @relation(fields: [systemId], references: [id])
+  wireEndpoints WireEndpoint[]
 
   @@index([drawingId])
   @@index([tagNo])
@@ -483,6 +486,9 @@ model WireEndpoint {
   createdAt     DateTime @default(now())
 
   wire          Wire     @relation(fields: [wireId], references: [id], onDelete: Cascade)
+  device        Device?  @relation(fields: [deviceId], references: [id])
+  connector     Connector? @relation(fields: [connectorId], references: [id])
+  pin           ConnectorPin? @relation(fields: [pinId], references: [id])
 
   @@index([wireId])
   @@index([endpointLabel])
