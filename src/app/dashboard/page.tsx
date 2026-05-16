@@ -167,7 +167,23 @@ export default function DashboardPage() {
       const response = await fetch(`/api/drawings/lookup?drawing_no=${encodeURIComponent(drawingSearch.trim())}`);
       const data = await response.json();
       if (response.ok) {
-        setDrawingResult(data);
+        if (data.drawing) {
+          const remarksParts = (data.drawing.remarks || '').split('|');
+          const carType = remarksParts[0] || 'ALL';
+          const subsystem = remarksParts[1] || data.drawing.systemCode || 'GEN';
+          
+          setDrawingResult({
+            ...data.drawing,
+            carType,
+            subsystem,
+            drawingType: data.drawing.systemCode || 'SCHEMATIC',
+            pageCount: data.pageCount || 0,
+            relatedWires: data.relatedWires || [],
+            relatedEquipment: data.relatedEquipment || []
+          });
+        } else {
+          setDrawingResult(data);
+        }
       } else {
         setDrawingError(data.error || 'Drawing not found');
       }
