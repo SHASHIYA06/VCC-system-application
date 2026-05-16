@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
   try {
     if (action === 'status') {
-      let postgresStatus: PostgresStatus = { connected: false, error: null, stats: null };
+      const postgresStatus: PostgresStatus = { connected: false, error: null, stats: null };
 
       try {
         await prisma.$connect();

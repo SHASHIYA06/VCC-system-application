@@ -8,7 +8,7 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    let drawing = await prisma.drawing.findFirst({
+    const drawing = await prisma.drawing.findFirst({
       where: {
         OR: [
           { id: id },
@@ -35,6 +35,11 @@ export async function GET(
       include: {
         connector: true,
       },
+      take: 500,
+    });
+
+    const trainLines = await prisma.trainLine.findMany({
+      where: { drawingId: drawing.id },
       take: 200,
     });
 
@@ -48,6 +53,15 @@ export async function GET(
       connectorCode: pin.connector?.connectorCode || 'N/A',
       equipmentCode: pin.connector?.connectorCode || 'N/A',
       endpointLabel: pin.terminalFrom || pin.terminalTo,
+    }));
+
+    const formattedTrainLines = trainLines.map(tl => ({
+      id: tl.id,
+      lineGroup: tl.lineGroup,
+      itemName: tl.itemName,
+      wireNo: tl.wireNo,
+      connectorCode: tl.connectorCode,
+      pinNo: tl.pinNo,
     }));
 
     const remarksParts = (drawing.remarks || '').split('|');
@@ -82,8 +96,10 @@ export async function GET(
         sourceFile: drawing.sourceFileId,
         totalConnectors: drawing.connectors?.length || 0,
         totalPins: pins.length,
+        totalTrainLines: trainLines.length,
       },
       pins: formattedPins,
+      trainLines: formattedTrainLines,
       connectors: drawing.connectors?.map(c => ({
         id: c.id,
         code: c.connectorCode,

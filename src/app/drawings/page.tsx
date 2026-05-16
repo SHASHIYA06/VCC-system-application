@@ -13,11 +13,8 @@ interface Drawing {
   totalSheets: number;
   system?: { code: string; name: string };
   remarks?: string;
-}
-
-interface DrawingDetail {
-  connectors?: string[];
-  wires?: string[];
+  connectorCount?: number;
+  trainlineCount?: number;
 }
 
 const SYSTEM_COLORS: Record<string, { color: string; bg: string; label: string }> = {
@@ -38,16 +35,6 @@ const SYSTEM_COLORS: Record<string, { color: string; bg: string; label: string }
   LIGHT: { color: 'text-amber-500', bg: 'bg-amber-600/20', label: 'Lighting' },
   CAB: { color: 'text-indigo-400', bg: 'bg-indigo-500/20', label: 'Cab' },
   COUPL: { color: 'text-gray-400', bg: 'bg-gray-500/20', label: 'Coupling' },
-};
-
-const DETAILED_DRAWINGS: Record<string, DrawingDetail> = {
-  '942-58131': { connectors: ['APS1-CN1', 'APS1-CN2', 'APS1-CN3', 'APS1-CN4'], wires: ['5020', '5021', '5030', '5031', '5040', '5050'] },
-  '942-58130': { connectors: ['APS1-CN1', 'APS1-CN2', 'BATT1-CN1'], wires: ['1040', '1050', '5000', '5064'] },
-  '942-58138': { connectors: ['DCU1-CN1', 'DCU1-CN2', 'DCU1-CN3', 'DCU1-CN4'], wires: ['6009', '6014', '6046', '6051', '6073', '6076'] },
-  '942-38606': { connectors: ['TCMS_RIO1-CN1', 'TCMS_RIO1-CN10', 'TCMS_RIO1-CN11', 'TCMS_RIO1-CN12'], wires: ['9001', '9100-9120', '9200-9220', '9300-9320'] },
-  '942-38409': { connectors: ['TCMS_RIO2-CN1', 'TCMS_RIO2-CN10', 'TCMS_RIO2-CN11', 'TCMS_RIO2-CN12'], wires: ['9002', '9100-9120', '9200-9220'] },
-  '942-58147': { connectors: ['PA_AMP-CN1', 'PA_AMP-CN2', 'DVAS-CN1', 'DVAS-CN2'], wires: ['8001', '8002', '8003', '8010', '8015'] },
-  '942-58153': { connectors: ['CCTV_CTRL-CN1', 'CCTV_CTRL-CN2', 'NVR-CN1'], wires: ['8050', '8055', '8060', '8065'] },
 };
 
 function DrawingsContent() {
@@ -160,7 +147,6 @@ function DrawingsContent() {
 
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {systemDrawings.map(dwg => {
-                    const details = DETAILED_DRAWINGS[dwg.drawingNo];
                     const subsystem = dwg.remarks?.split('|')[1] || systemCode;
                     
                     return (
@@ -177,22 +163,22 @@ function DrawingsContent() {
                           <span>{dwg.totalSheets} sheets</span>
                         </div>
                         
-                        {details && (
+                        {(dwg.connectorCount || dwg.trainlineCount) ? (
                           <div className="space-y-1 text-xs text-slate-500">
-                            {details.connectors && (
+                            {dwg.connectorCount ? (
                               <div className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
-                                <span>{details.connectors.length} connectors</span>
+                                <span>{dwg.connectorCount} connectors</span>
                               </div>
-                            )}
-                            {details.wires && (
+                            ) : null}
+                            {dwg.trainlineCount ? (
                               <div className="flex items-center gap-1">
                                 <Cable className="h-3 w-3" />
-                                <span>{details.wires.length} wires</span>
+                                <span>{dwg.trainlineCount} trainlines</span>
                               </div>
-                            )}
+                            ) : null}
                           </div>
-                        )}
+                        ) : null}
                         
                         <Link href={`/drawings/${dwg.drawingNo}`} className="mt-2 text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
                           View Details <ArrowRight className="h-3 w-3" />
