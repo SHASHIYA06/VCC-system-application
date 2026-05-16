@@ -6,11 +6,16 @@ import { drawingFiltersSchema, createApiResponse, createErrorResponse } from '@/
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   
+  const getParam = (key: string) => {
+    const val = searchParams.get(key);
+    return val === null ? undefined : val;
+  };
+
   const validationResult = drawingFiltersSchema.safeParse({
-    system_code: searchParams.get('system_code'),
-    drawing_no: searchParams.get('drawing_no'),
-    page: searchParams.get('page'),
-    limit: searchParams.get('limit'),
+    system_code: getParam('system_code'),
+    drawing_no: getParam('drawing_no'),
+    page: getParam('page'),
+    limit: getParam('limit'),
   });
 
   if (!validationResult.success) {
