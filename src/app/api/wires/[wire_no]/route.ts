@@ -36,6 +36,36 @@ export async function GET(
       },
     });
 
+    const wireTrace = (wire.sourceEquipment && wire.destEquipment) ? {
+      source: {
+        type: 'equipment',
+        code: wire.sourceEquipment,
+        name: wire.sourceEquipment,
+        pin: wire.sourcePin ? (wire.sourceConnector ? `${wire.sourceConnector}-${wire.sourcePin}` : wire.sourcePin) : undefined,
+        description: '',
+      },
+      destination: {
+        type: 'equipment',
+        code: wire.destEquipment,
+        name: wire.destEquipment,
+        pin: wire.destPin ? (wire.destConnector ? `${wire.destConnector}-${wire.destPin}` : wire.destPin) : undefined,
+        description: '',
+      },
+      wires: [wire.wireNo],
+      colorCode: wire.voltageClass === 'HV' ? '#FF4444' : 
+                 wire.voltageClass === 'ED' ? '#FFA500' :
+                 wire.voltageClass === 'AP' ? '#44FF44' : '#00BFFF',
+    } : null;
+
+    const relatedDrawings = relatedTrainLines
+      .filter(tl => tl.drawing)
+      .map(tl => ({
+        id: tl.drawing.id,
+        drawingNo: tl.drawing.drawingNo,
+        title: tl.drawing.title,
+      }))
+      .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+
     return NextResponse.json({
       wire: {
         id: wire.id,
@@ -47,29 +77,18 @@ export async function GET(
         cableSpec: wire.cableSpec,
         conductorClass: wire.conductorClassCode,
         wireSize: wire.wireSize,
-        sourceEquipment: wire.sourceEquipment,
+        sourceEq: wire.sourceEquipment,
         sourceConnector: wire.sourceConnector,
         sourcePin: wire.sourcePin,
-        destEquipment: wire.destEquipment,
+        destEq: wire.destEquipment,
         destConnector: wire.destConnector,
         destPin: wire.destPin,
         remarks: wire.remarks,
       },
-      relatedTrainLines,
+      relatedDrawings,
       relatedPins,
       relatedSignals,
-      wireTrace: {
-        source: wire.sourceEquipment ? {
-          equipment: wire.sourceEquipment,
-          connector: wire.sourceConnector,
-          pin: wire.sourcePin,
-        } : null,
-        destination: wire.destEquipment ? {
-          equipment: wire.destEquipment,
-          connector: wire.destConnector,
-          pin: wire.destPin,
-        } : null,
-      },
+      trace: wireTrace,
     });
   } catch (error) {
     console.error('Error fetching wire:', error);
