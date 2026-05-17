@@ -277,7 +277,7 @@ export default function DrawingDetailPage() {
                 <span className="text-slate-500">Source File:</span>
                 <span className="text-cyan-400 font-mono">{drawing.sourceFile}</span>
               </div>
-              <a href={`/DOCUMENTS/${drawing.sourceFile}`} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+              <a href={`/api/documents/serve/${encodeURIComponent(drawing.sourceFile)}`} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
                 <Download className="h-4 w-4" />
                 View PDF
               </a>
@@ -553,7 +553,7 @@ export default function DrawingDetailPage() {
                 <h3 className="text-lg font-semibold text-white">Schematic View</h3>
                 <div className="flex items-center gap-3">
                   <a
-                    href={`/DOCUMENTS/${drawing.sourceFile}`}
+                    href={`/api/documents/serve/${encodeURIComponent(drawing.sourceFile)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors"

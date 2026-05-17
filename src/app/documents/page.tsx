@@ -236,7 +236,7 @@ export default function DocumentsPage() {
                   View Details
                 </Link>
                 <Link 
-                  href={doc.sourcePath}
+                  href={`/api/documents/serve/${encodeURIComponent(doc.filename)}`}
                   target="_blank"
                   className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm"
                 >
