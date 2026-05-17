@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { searchWeb, fetchWebPage, TinyFishClient } from '@/lib/tinyfish';
+
+const TINYFISH_API_KEY = process.env.TINYFISH_API_KEY || 'sk-tinyfish-JAI-1Lk0ZP-FkvhUYsWUaZD4AhpAxlbG';
+const tinyfishClient = new TinyFishClient(TINYFISH_API_KEY);
 
 const TOOLS = [
   { name: 'get_systems', description: 'Get all electrical/electronic systems in the VCC. Returns system code, name, category, and description.', inputSchema: { type: 'object', properties: { category: { type: 'string' } } } },
@@ -24,6 +28,10 @@ const TOOLS = [
   { name: 'get_subsystems', description: 'Get all subsystems by car type (TCMS, CCTV, DOOR, AAU, DISPLAY, etc.)', inputSchema: { type: 'object', properties: { car_type: { type: 'string' } } } },
   { name: 'get_signals', description: 'Get signals and protocols including RS422, RS485, CAN, Ethernet.', inputSchema: { type: 'object', properties: { protocol: { type: 'string' } } } },
   { name: 'get_cross_connections', description: 'Get cross-connection details for connectors.', inputSchema: { type: 'object', properties: { connector_code: { type: 'string' } } } },
+  { name: 'tinyfish_search', description: 'Search the web using TinyFish AI for external information. Use for current events, technical references, or information not in the local database.', inputSchema: { type: 'object', properties: { query: { type: 'string' }, location: { type: 'string' }, language: { type: 'string' }, num_results: { type: 'number' } } } },
+  { name: 'tinyfish_fetch', description: 'Fetch and extract content from a specific web URL using TinyFish.', inputSchema: { type: 'object', properties: { url: { type: 'string' } } } },
+  { name: 'search_circuits', description: 'Search for circuits by wire number, signal name, or description. Returns circuit details with related drawings and connections.', inputSchema: { type: 'object', properties: { query: { type: 'string' }, wire_no: { type: 'string' } } } },
+  { name: 'get_circuit_details', description: 'Get detailed circuit information including wire path, connected equipment, and related drawings.', inputSchema: { type: 'object', properties: { circuit_id: { type: 'string' }, wire_no: { type: 'string' } } } },
 ];
 
 const TRAINLINE_TRACES: Record<number, any> = {
@@ -196,6 +204,67 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
           take: 20
         });
         return { cross_connections: crossConns };
+      }
+      case 'tinyfish_search': {
+        const query = String(params.query || '');
+        const location = String(params.location || 'US');
+        const language = String(params.language || 'en');
+        const numResults = Number(params.num_results || 10);
+        try {
+          const results = await tinyfishClient.search(query, { location, language, numResults });
+          return { web_search: results };
+        } catch (e) {
+          return { error: 'TinyFish search failed', details: e instanceof Error ? e.message : String(e) };
+        }
+      }
+      case 'tinyfish_fetch': {
+        const url = String(params.url || '');
+        try {
+          const result = await tinyfishClient.fetch(url);
+          return { web_fetch: result };
+        } catch (e) {
+          return { error: 'TinyFish fetch failed', details: e instanceof Error ? e.message : String(e) };
+        }
+      }
+      case 'search_circuits': {
+        const query = String(params.query || '');
+        const wireNo = String(params.wire_no || '');
+        const circuits = await prisma.circuit.findMany({
+          where: {
+            OR: [
+              ...(query ? [
+                { circuitName: { contains: query, mode: Prisma.QueryMode.insensitive } },
+                { note: { contains: query, mode: Prisma.QueryMode.insensitive } },
+              ] : []),
+              ...(wireNo ? [{ circuitCode: { contains: wireNo, mode: Prisma.QueryMode.insensitive } }] : []),
+            ],
+          },
+          include: { drawing: true },
+          take: 50,
+        });
+        return { circuits: circuits.map(c => ({
+          id: c.id,
+          circuit_code: c.circuitCode,
+          circuit_name: c.circuitName,
+          category: c.category,
+          voltage: c.voltageText,
+          car_scope: c.carScope,
+          note: c.note,
+          drawing: c.drawing?.drawingNo
+        })) };
+      }
+      case 'get_circuit_details': {
+        const circuitId = String(params.circuit_id || '');
+        const wireNo = String(params.wire_no || '');
+        const circuit = await prisma.circuit.findFirst({
+          where: circuitId ? { id: circuitId } : { circuitCode: { contains: wireNo, mode: Prisma.QueryMode.insensitive } },
+          include: {
+            drawing: { include: { system: true } },
+            endpoints: true
+          }
+        });
+        if (!circuit) return { error: 'Circuit not found' };
+        return { circuit: { ...circuit, endpoint_count: circuit.endpoints?.length || 0 } };
       }
       default:
         return { error: `Unknown tool: ${toolName}` };

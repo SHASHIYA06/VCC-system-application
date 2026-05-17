@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { drawingFiltersSchema, createApiResponse, createErrorResponse } from '@/lib/schemas';
+import { createApiResponse } from '@/lib/schemas';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -11,21 +11,19 @@ export async function GET(request: NextRequest) {
     return val === null ? undefined : val;
   };
 
-  const validationResult = drawingFiltersSchema.safeParse({
-    system_code: getParam('system_code'),
-    drawing_no: getParam('drawing_no'),
-    page: getParam('page'),
-    limit: getParam('limit'),
-  });
+  let system_code = getParam('system_code');
+  let drawing_no = getParam('drawing_no');
+  let page = 1;
+  let limit = 100;
 
-  if (!validationResult.success) {
-    return NextResponse.json(
-      createErrorResponse('Invalid query parameters', 'VALIDATION_ERROR'),
-      { status: 400 }
-    );
+  try {
+    if (searchParams.get('page')) page = parseInt(searchParams.get('page')!) || 1;
+    if (searchParams.get('limit')) limit = Math.min(parseInt(searchParams.get('limit')!) || 100, 500);
+  } catch (e) {
+    page = 1;
+    limit = 100;
   }
-
-  const { system_code, drawing_no, page = 1, limit = 100 } = validationResult.data;
+  
   const skip = (page - 1) * limit;
 
   try {
@@ -70,7 +68,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching drawings:', error);
     return NextResponse.json(
-      createErrorResponse('Failed to fetch drawings', 'DB_ERROR'),
+      { error: { message: 'Failed to fetch drawings', code: 'DB_ERROR' } },
       { status: 500 }
     );
   }

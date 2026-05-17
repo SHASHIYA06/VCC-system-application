@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function GET(
   request: NextRequest,
@@ -7,10 +8,15 @@ export async function GET(
 ) {
   try {
     const { wire_no } = await params;
-    const wireNo = wire_no;
+    const wireNo = wire_no.replace(/-W$/, '');
 
-    const wire = await prisma.wire.findUnique({
-      where: { wireNo },
+    const wire = await prisma.wire.findFirst({
+      where: {
+        OR: [
+          { wireNo: wireNo },
+          { wireNo: { contains: wireNo, mode: Prisma.QueryMode.insensitive } },
+        ],
+      },
     });
 
     if (!wire) {
@@ -92,6 +98,7 @@ export async function GET(
     });
   } catch (error) {
     console.error('Error fetching wire:', error);
-    return NextResponse.json({ error: 'Failed to fetch wire' }, { status: 500 });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: 'Failed to fetch wire', details: errMsg }, { status: 500 });
   }
 }
