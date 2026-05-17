@@ -6,10 +6,14 @@ const DOCUMENTS_DIR = path.join(process.cwd(), 'DOCUMENTS');
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ filename: string }> }
+  { params }: { params: Promise<{ filename?: string }> }
 ) {
   try {
     const { filename } = await params;
+    
+    if (!filename) {
+      return NextResponse.json({ error: 'Filename is required' }, { status: 400 });
+    }
     
     const filePath = path.join(DOCUMENTS_DIR, decodeURIComponent(filename));
     
