@@ -130,9 +130,6 @@ export async function POST() {
       { equipmentCode: 'CSJB1', equipmentName: 'Collector Shoe Junction Box', carType: 'DMC', systemCode: 'HV', location: 'Underframe-A' },
     ];
 
-    const carTypes = await prisma.carType.findMany();
-    const carMap = new Map(carTypes.map(c => [c.code, c.id]));
-
     for (const eq of equipmentData) {
       const carId = carMap.get(eq.carType);
       const sysId = sysMap.get(eq.systemCode);
