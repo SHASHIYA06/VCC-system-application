@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   Train, ShieldCheck, Zap, Wind, Radio, Battery, Settings, DoorOpen,
   Activity, Box, Lightbulb, Link2, Search, ChevronRight, Layers,
-  Cpu, Cable, FileText, AlertTriangle, CheckCircle, Clock, Eye, X
+  Cpu, Cable, FileText, AlertTriangle, CheckCircle, Clock, Eye, X, Database
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -141,14 +141,45 @@ export default function DashboardPage() {
   const [drawingResult, setDrawingResult] = useState<DrawingResult | null>(null);
   const [drawingLoading, setDrawingLoading] = useState(false);
   const [drawingError, setDrawingError] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState<any>(null);
+
+  async function seedDatabase() {
+    setSeeding(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/vcc-complete-seed', { method: 'POST' });
+      const data = await response.json();
+      if (response.ok) {
+        setSeedResult(data);
+        const statsResponse = await fetch('/api/stats');
+        const statsData = await statsResponse.json();
+        setStats(statsData);
+        setError(null);
+      } else {
+        setError('Seed failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      setError('Seed failed: ' + String(err));
+    } finally {
+      setSeeding(false);
+    }
+  }
 
   useEffect(() => {
     async function fetchStats() {
       try {
         const response = await fetch('/api/stats');
-        if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
-        setStats(data);
+        
+        if (response.ok && data.overview) {
+          setStats(data);
+          if (data.overview.drawings === 0 && data.overview.wires === 0) {
+            setError('Database is empty. Please click "Load VCC Data" button below to populate the database with all drawings, wires, circuits, and equipment.');
+          }
+        } else if (data.error) {
+          setError('Database connection error. Please ensure database is running and click "Load VCC Data" to initialize.');
+        }
       } catch (err) {
         setError('Failed to load database stats');
         console.error(err);
@@ -449,7 +480,36 @@ export default function DashboardPage() {
       {error && (
         <div className="mt-8 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
           <p className="text-red-400">{error}</p>
-          <p className="text-sm text-slate-500 mt-1">Some data may be from static fallback</p>
+          <div className="mt-4 flex gap-3">
+            <button 
+              onClick={seedDatabase}
+              disabled={seeding}
+              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-600 text-white rounded-lg font-medium flex items-center gap-2"
+            >
+              {seeding ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  Loading VCC Data...
+                </>
+              ) : (
+                <>
+                  <Database className="h-4 w-4" />
+                  Load VCC Data
+                </>
+              )}
+            </button>
+          </div>
+          {seedResult && (
+            <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <p className="text-green-400 font-medium">Data Loaded Successfully!</p>
+              <div className="text-sm text-slate-400 mt-2 grid grid-cols-2 gap-2">
+                <span>Drawings: {seedResult.stats?.drawings}</span>
+                <span>Wires: {seedResult.stats?.wires}</span>
+                <span>Circuits: {seedResult.stats?.circuits}</span>
+                <span>Equipment: {seedResult.stats?.equipment}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
