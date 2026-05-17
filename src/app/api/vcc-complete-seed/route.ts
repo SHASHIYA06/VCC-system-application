@@ -359,14 +359,10 @@ export async function POST() {
       if (!sysId) continue;
       await prisma.drawing.upsert({
         where: { projectId_drawingNo_revision: { projectId: project.id, drawingNo: d.drawingNo, revision: '0' } },
-        update: { title: d.title, totalSheets: d.sheets, systemId: sysId, remarks: `${d.system}|PIN_ASSIGNMENT|${d.file}` },
-        create: { projectId: project.id, systemId: sysId, drawingNo: d.drawingNo, title: d.title, totalSheets: d.sheets, revision: '0',
-            status: 'ACTIVE',
-            remarks: `${d.system}|PIN_ASSIGNMENT|${d.file}|${d.carType}`
-          }
-        });
-        pinDwgCreated++;
-      }
+        update: { title: d.title, totalSheets: d.sheets, systemId: sysId, remarks: `${d.system}|PIN_ASSIGNMENT|${d.file}|${d.carType}` },
+        create: { projectId: project.id, systemId: sysId, drawingNo: d.drawingNo, title: d.title, totalSheets: d.sheets, revision: '0', status: 'ACTIVE', remarks: `${d.system}|PIN_ASSIGNMENT|${d.file}|${d.carType}` }
+      });
+      pinDwgCreated++;
     }
     console.log(`✓ Created ${pinDwgCreated} pin assignment drawings`);
 
