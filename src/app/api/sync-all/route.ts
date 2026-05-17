@@ -131,7 +131,6 @@ export async function POST() {
     ];
 
     for (const eq of equipmentData) {
-      const carId = carMap.get(eq.carType);
       const sysId = sysMap.get(eq.systemCode);
       
       const existing = await prisma.device.findFirst({ where: { tagNo: eq.equipmentCode } });
