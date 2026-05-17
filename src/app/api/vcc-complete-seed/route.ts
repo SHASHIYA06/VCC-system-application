@@ -343,22 +343,12 @@ export async function POST() {
     for (const d of VCC_SCHEMATIC_DRAWINGS) {
       const sysId = sysMap.get(d.system);
       if (!sysId) continue;
-      const existing = await prisma.drawing.findFirst({ where: { drawingNo: d.drawingNo } });
-      if (!existing) {
-        await prisma.drawing.create({
-          data: {
-            projectId: project.id,
-            systemId: sysId,
-            drawingNo: d.drawingNo,
-            title: d.title,
-            totalSheets: d.sheets,
-            revision: 'A',
-            status: 'ACTIVE',
-            remarks: `${d.system}|SCHEMATIC`
-          }
-        });
-        dwgCreated++;
-      }
+      await prisma.drawing.upsert({
+        where: { projectId_drawingNo_revision: { projectId: project.id, drawingNo: d.drawingNo, revision: 'A' } },
+        update: { title: d.title, totalSheets: d.sheets, systemId: sysId, remarks: `${d.system}|SCHEMATIC` },
+        create: { projectId: project.id, systemId: sysId, drawingNo: d.drawingNo, title: d.title, totalSheets: d.sheets, revision: 'A', status: 'ACTIVE', remarks: `${d.system}|SCHEMATIC` }
+      });
+      dwgCreated++;
     }
     console.log(`✓ Created ${dwgCreated} schematic drawings`);
 
@@ -367,16 +357,10 @@ export async function POST() {
     for (const d of PIN_ASSIGNMENT_DRAWINGS) {
       const sysId = sysMap.get(d.system);
       if (!sysId) continue;
-      const existing = await prisma.drawing.findFirst({ where: { drawingNo: d.drawingNo } });
-      if (!existing) {
-        await prisma.drawing.create({
-          data: {
-            projectId: project.id,
-            systemId: sysId,
-            drawingNo: d.drawingNo,
-            title: d.title,
-            totalSheets: d.sheets,
-            revision: '0',
+      await prisma.drawing.upsert({
+        where: { projectId_drawingNo_revision: { projectId: project.id, drawingNo: d.drawingNo, revision: '0' } },
+        update: { title: d.title, totalSheets: d.sheets, systemId: sysId, remarks: `${d.system}|PIN_ASSIGNMENT|${d.file}` },
+        create: { projectId: project.id, systemId: sysId, drawingNo: d.drawingNo, title: d.title, totalSheets: d.sheets, revision: '0',
             status: 'ACTIVE',
             remarks: `${d.system}|PIN_ASSIGNMENT|${d.file}|${d.carType}`
           }

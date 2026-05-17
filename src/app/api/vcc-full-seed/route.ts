@@ -176,25 +176,38 @@ export async function POST() {
       const sysId = sysMap.get(d.system);
       if (!sysId) continue;
       
-      const existing = await prisma.drawing.findFirst({ where: { drawingNo: d.drawingNo } });
+      const revision = d.type === 'PIN_ASSIGNMENT' ? '0' : 'A';
       const remarks = d.file ? `${d.system}|${d.type}|${d.file}|${d.carType || 'ALL'}` : `${d.system}|${d.type}`;
       
-      if (!existing) {
-        await prisma.drawing.create({
-          data: {
+      await prisma.drawing.upsert({
+        where: {
+          projectId_drawingNo_revision: {
             projectId: project.id,
-            systemId: sysId,
             drawingNo: d.drawingNo,
-            title: d.title,
-            totalSheets: d.sheets,
-            revision: d.type === 'PIN_ASSIGNMENT' ? '0' : 'A',
-            status: 'ACTIVE',
-            sourceFileId: d.file || null,
-            remarks: remarks
+            revision: revision
           }
-        });
-        dwgCount++;
-      }
+        },
+        update: {
+          title: d.title,
+          totalSheets: d.sheets,
+          systemId: sysId,
+          sourceFileId: d.file || null,
+          remarks: remarks,
+          status: 'ACTIVE'
+        },
+        create: {
+          projectId: project.id,
+          systemId: sysId,
+          drawingNo: d.drawingNo,
+          title: d.title,
+          totalSheets: d.sheets,
+          revision: revision,
+          status: 'ACTIVE',
+          sourceFileId: d.file || null,
+          remarks: remarks
+        }
+      });
+      dwgCount++;
     }
     console.log(`✓ Created ${dwgCount} drawings`);
 

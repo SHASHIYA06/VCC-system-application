@@ -122,24 +122,14 @@ export async function POST() {
     let drawingsCreated = 0;
     for (const d of VCC_DOCUMENTS) {
       const sysId = sysMap.get(d.system);
-      const carId = d.carType === 'ALL' ? null : carMap.get(d.carType);
+      if (!sysId) continue;
       
-      const existing = await prisma.drawing.findFirst({ where: { drawingNo: d.drawingNo } });
-      if (!existing && sysId) {
-        await prisma.drawing.create({
-          data: {
-            projectId: project.id,
-            systemId: sysId,
-            drawingNo: d.drawingNo,
-            title: d.title,
-            totalSheets: d.sheets,
-            revision: 'A',
-            status: 'ACTIVE',
-            remarks: `${d.carType}|${d.system}`
-          }
-        });
-        drawingsCreated++;
-      }
+      await prisma.drawing.upsert({
+        where: { projectId_drawingNo_revision: { projectId: project.id, drawingNo: d.drawingNo, revision: 'A' } },
+        update: { title: d.title, totalSheets: d.sheets, systemId: sysId, remarks: `${d.carType}|${d.system}` },
+        create: { projectId: project.id, systemId: sysId, drawingNo: d.drawingNo, title: d.title, totalSheets: d.sheets, revision: 'A', status: 'ACTIVE', remarks: `${d.carType}|${d.system}` }
+      });
+      drawingsCreated++;
     }
     console.log(`VCC Drawings created: ${drawingsCreated}\n`);
 
@@ -147,23 +137,14 @@ export async function POST() {
     let pinDrawingsCreated = 0;
     for (const d of PIN_DRAWINGS) {
       const sysId = sysMap.get(d.system);
+      if (!sysId) continue;
       
-      const existing = await prisma.drawing.findFirst({ where: { drawingNo: d.drawingNo } });
-      if (!existing && sysId) {
-        await prisma.drawing.create({
-          data: {
-            projectId: project.id,
-            systemId: sysId,
-            drawingNo: d.drawingNo,
-            title: d.title,
-            totalSheets: d.sheets,
-            revision: '0',
-            status: 'ACTIVE',
-            remarks: `${d.carType}|${d.system}|${d.file}`
-          }
-        });
-        pinDrawingsCreated++;
-      }
+      await prisma.drawing.upsert({
+        where: { projectId_drawingNo_revision: { projectId: project.id, drawingNo: d.drawingNo, revision: '0' } },
+        update: { title: d.title, totalSheets: d.sheets, systemId: sysId, remarks: `${d.carType}|${d.system}|${d.file}` },
+        create: { projectId: project.id, systemId: sysId, drawingNo: d.drawingNo, title: d.title, totalSheets: d.sheets, revision: '0', status: 'ACTIVE', remarks: `${d.carType}|${d.system}|${d.file}` }
+      });
+      pinDrawingsCreated++;
     }
     console.log(`PIN Drawings created: ${pinDrawingsCreated}\n`);
 
