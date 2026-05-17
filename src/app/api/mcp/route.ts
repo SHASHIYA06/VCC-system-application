@@ -32,6 +32,12 @@ const TOOLS = [
   { name: 'tinyfish_fetch', description: 'Fetch and extract content from a specific web URL using TinyFish.', inputSchema: { type: 'object', properties: { url: { type: 'string' } } } },
   { name: 'search_circuits', description: 'Search for circuits by wire number, signal name, or description. Returns circuit details with related drawings and connections.', inputSchema: { type: 'object', properties: { query: { type: 'string' }, wire_no: { type: 'string' } } } },
   { name: 'get_circuit_details', description: 'Get detailed circuit information including wire path, connected equipment, and related drawings.', inputSchema: { type: 'object', properties: { circuit_id: { type: 'string' }, wire_no: { type: 'string' } } } },
+  { name: 'get_ocr_sources', description: 'Get all OCR source files that have been imported.', inputSchema: { type: 'object', properties: {} } },
+  { name: 'get_ocr_pages', description: 'Get all pages from a specific OCR source file.', inputSchema: { type: 'object', properties: { source_id: { type: 'string' } } } },
+  { name: 'search_ocr', description: 'Search OCR text content across all imported pages. Returns pages containing the search term.', inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number' } } } },
+  { name: 'get_ocr_page', description: 'Get a specific OCR page by source ID and page number.', inputSchema: { type: 'object', properties: { source_id: { type: 'string' }, page_no: { type: 'number' } } } },
+  { name: 'extract_wire_from_ocr', description: 'Extract wire information from OCR text. Parses wire numbers, connections, and components from raw OCR content.', inputSchema: { type: 'object', properties: { text: { type: 'string' } } } },
+  { name: 'validate_ocr_text', description: 'Validate OCR text for proper formatting, drawing numbers, and sheet metadata.', inputSchema: { type: 'object', properties: { text: { type: 'string' } } } },
 ];
 
 const TRAINLINE_TRACES: Record<number, any> = {
@@ -265,6 +271,66 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         });
         if (!circuit) return { error: 'Circuit not found' };
         return { circuit: { ...circuit, endpoint_count: circuit.endpoints?.length || 0 } };
+      }
+      case 'get_ocr_sources': {
+        const sources = await prisma.sourceFile.findMany({
+          select: { id: true, filename: true, fileType: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        });
+        return { sources };
+      }
+      case 'get_ocr_pages': {
+        const sourceId = String(params.source_id || '');
+        const pages = await prisma.sourcePage.findMany({
+          where: { sourceFileId: sourceId },
+          orderBy: { pageNo: 'asc' },
+          take: 100,
+        });
+        return { pages: pages.map(p => ({ id: p.id, page_no: p.pageNo, drawing_no: p.drawingNo, sheet: p.sheetNo })) };
+      }
+      case 'search_ocr': {
+        const query = String(params.query || '');
+        const limit = Number(params.limit || 20);
+        const pages = await prisma.sourcePage.findMany({
+          where: {
+            OR: [
+              { drawingNo: { contains: query, mode: Prisma.QueryMode.insensitive } },
+              { rawText: { contains: query, mode: Prisma.QueryMode.insensitive } },
+            ],
+          },
+          take: limit,
+          orderBy: { pageNo: 'asc' },
+        });
+        return { results: pages.map(p => ({ page_no: p.pageNo, drawing_no: p.drawingNo, text_preview: p.rawText?.slice(0, 200) })), count: pages.length };
+      }
+      case 'get_ocr_page': {
+        const sourceId = String(params.source_id || '');
+        const pageNo = Number(params.page_no || 1);
+        const page = await prisma.sourcePage.findFirst({
+          where: { sourceFileId: sourceId, pageNo },
+        });
+        if (!page) return { error: 'OCR page not found' };
+        return { page: { id: page.id, page_no: page.pageNo, drawing_no: page.drawingNo, raw_text: page.rawText } };
+      }
+      case 'extract_wire_from_ocr': {
+        const text = String(params.text || '');
+        const wireMatches = text.matchAll(/\b(\d{4,5}[A-Z]?[-]?\d*)\b/g);
+        const wires = Array.from(new Set(Array.from(wireMatches).map(m => m[1]))).slice(0, 20);
+        const connectorMatches = text.matchAll(/\b(CN\d+|X\d+|J\d+|TB\d+)\b/gi);
+        const connectors = Array.from(new Set(Array.from(connectorMatches).map(m => m[0]))).slice(0, 10);
+        return { extracted_wires: wires, extracted_connectors: connectors };
+      }
+      case 'validate_ocr_text': {
+        const text = String(params.text || '');
+        const drawingNo = text.match(/\b(\d{3}-\d{5})\b/)?.[1];
+        const sheet = text.match(/SHEET\s+(\d+)\s+OF\s+(\d+)/i);
+        const pageMarker = text.match(/page-(\d+)/i);
+        const issues = [];
+        if (!drawingNo) issues.push('No drawing number found');
+        if (!sheet) issues.push('No sheet metadata found');
+        if (!pageMarker) issues.push('No page marker found');
+        return { valid: issues.length === 0, drawing_no: drawingNo, sheet_info: sheet ? { sheet_no: sheet[1], sheet_count: sheet[2] } : null, issues };
       }
       default:
         return { error: `Unknown tool: ${toolName}` };

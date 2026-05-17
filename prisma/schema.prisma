@@ -34,6 +34,7 @@ model Project {
   formations    Formation[]
   drawings      Drawing[]
   referenceDrawings ReferenceDrawing[]
+  sourceFiles   SourceFile[]
 }
 
 model Formation {
@@ -544,4 +545,58 @@ model ValidationIssue {
   createdAt   DateTime @default(now())
 
   @@index([severity, resolved])
+}
+
+model SourceFile {
+  id          String   @id @default(cuid())
+  projectId   String
+  filename    String
+  fileType    String?
+  mimeType    String?
+  fileSize    Int?
+  status      String   @default("PENDING")
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project       @relation(fields: [projectId], references: [id])
+  pages       SourcePage[]
+
+  @@index([projectId])
+  @@index([filename])
+}
+
+model SourcePage {
+  id            String   @id @default(cuid())
+  sourceFileId  String
+  pageNo        Int
+  rawText       String?
+  drawingNo     String?
+  sheetNo       Int?
+  sheetCount   Int?
+  metadata      Json?
+  ocrQuality    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sourceFile    SourceFile @relation(fields: [sourceFileId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceFileId, pageNo])
+  @@index([drawingNo])
+  @@index([sourceFileId])
+}
+
+model ParseIssue {
+  id          String   @id @default(cuid())
+  entityType  String
+  entityId    String?
+  severity   String   @default("INFO")
+  issueCode   String
+  issueMessage String
+  evidenceText String?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([severity, resolved])
+  @@index([entityType, entityId])
 }

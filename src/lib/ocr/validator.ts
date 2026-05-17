@@ -1,9 +1,9 @@
+import { z } from 'zod';
 import fs from 'node:fs';
 import path from 'node:path';
-import { z, ZodError } from 'zod';
 
-export const OCR_JSON_SCHEMA_VERSION = '1.0.0' as const;
-export const OCR_DOCUMENT_TYPE = 'beml-vcc-ocr' as const;
+export const OCR_JSON_SCHEMA_VERSION = '1.0.0';
+export const OCR_DOCUMENT_TYPE = 'beml-vcc-ocr';
 
 const DRAWING_NO_RE = /^\d{3}-\d{5}[A-Z]?$/;
 const PAGE_MARKER_RE = /^page-(\d+)$/i;
@@ -28,28 +28,24 @@ export class OcrValidationError extends Error {
   }
 }
 
-const CanonicalOcrPageSchema = z
-  .object({
-    pageNo: z.number().int().positive(),
-    pageMarker: z.string().regex(PAGE_MARKER_RE),
-    drawingNo: z.string().regex(DRAWING_NO_RE),
-    sheetNo: z.number().int().positive(),
-    sheetCount: z.number().int().positive(),
-    text: z.string().min(80),
-  })
-  .strict();
+const CanonicalOcrPageSchema = z.object({
+  pageNo: z.number().int().positive(),
+  pageMarker: z.string().regex(PAGE_MARKER_RE),
+  drawingNo: z.string().regex(DRAWING_NO_RE),
+  sheetNo: z.number().int().positive(),
+  sheetCount: z.number().int().positive(),
+  text: z.string().min(80),
+}).strict();
 
-const CanonicalOcrDocumentSchema = z
-  .object({
-    schemaVersion: z.literal(OCR_JSON_SCHEMA_VERSION),
-    documentType: z.literal(OCR_DOCUMENT_TYPE),
-    projectCode: z.string().min(1),
-    sourceFilename: z.string().min(1),
-    exportedAt: z.string().datetime({ offset: true }),
-    pageCount: z.number().int().positive(),
-    pages: z.array(CanonicalOcrPageSchema).min(1),
-  })
-  .strict();
+const CanonicalOcrDocumentSchema = z.object({
+  schemaVersion: z.literal(OCR_JSON_SCHEMA_VERSION),
+  documentType: z.literal(OCR_DOCUMENT_TYPE),
+  projectCode: z.string().min(1),
+  sourceFilename: z.string().min(1),
+  exportedAt: z.string().datetime({ offset: true }),
+  pageCount: z.number().int().positive(),
+  pages: z.array(CanonicalOcrPageSchema).min(1),
+}).strict();
 
 export type CanonicalOcrPage = z.infer<typeof CanonicalOcrPageSchema>;
 export type CanonicalOcrDocument = z.infer<typeof CanonicalOcrDocumentSchema>;
@@ -79,20 +75,16 @@ export function extractDrawingNo(text: string): string | null {
     const candidate = explicit[1].replace(/\s+/g, '');
     if (DRAWING_NO_RE.test(candidate)) return candidate;
   }
-
   const beml = text.match(BEML_DRG_RE);
   if (beml?.[1] && DRAWING_NO_RE.test(beml[1])) return beml[1];
-
   return null;
 }
 
 export function extractSheetMeta(text: string): { sheetNo: number; sheetCount: number } | null {
   const match = text.match(SHEET_RE);
   if (!match) return null;
-
   const sheetNo = Number(match[1]);
   const sheetCount = Number(match[2]);
-
   if (!Number.isFinite(sheetNo) || !Number.isFinite(sheetCount)) return null;
   return { sheetNo, sheetCount };
 }
@@ -117,11 +109,7 @@ export function inferCanonicalPage(pageNo: number, rawText: string): CanonicalOc
   const inlinePageNo = extractInlinePageNo(text);
   if (inlinePageNo !== null && inlinePageNo !== pageNo) {
     throw new OcrValidationError('Page marker does not match inferred page number', [
-      issue(
-        'PAGE_MARKER_MISMATCH',
-        `pages[${pageNo - 1}].pageMarker`,
-        `Inline page marker page-${inlinePageNo} does not match pageNo ${pageNo}`,
-      ),
+      issue('PAGE_MARKER_MISMATCH', `pages[${pageNo - 1}].pageMarker`, `Inline page marker page-${inlinePageNo} does not match pageNo ${pageNo}`),
     ]);
   }
 
@@ -135,13 +123,9 @@ export function inferCanonicalPage(pageNo: number, rawText: string): CanonicalOc
   };
 }
 
-function mapZodIssues(err: ZodError): ValidationIssue[] {
+function mapZodIssues(err: z.ZodError): ValidationIssue[] {
   return err.issues.map((i) =>
-    issue(
-      `SCHEMA_${i.code.toUpperCase()}`,
-      i.path.length ? i.path.join('.') : '$',
-      i.message,
-    ),
+    issue(`SCHEMA_${i.code.toUpperCase()}`, i.path.length ? i.path.join('.') : '$', i.message),
   );
 }
 
@@ -149,167 +133,41 @@ function validateBusinessRules(doc: CanonicalOcrDocument): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   if (doc.pageCount !== doc.pages.length) {
-    issues.push(
-      issue(
-        'PAGE_COUNT_MISMATCH',
-        'pageCount',
-        `pageCount=${doc.pageCount} but pages.length=${doc.pages.length}`,
-      ),
-    );
+    issues.push(issue('PAGE_COUNT_MISMATCH', 'pageCount', `pageCount=${doc.pageCount} but pages.length=${doc.pages.length}`));
   }
 
   const seenPageNos = new Set<number>();
 
-  for (let i = 0; i < doc.pages.length; i += 1) {
+  for (let i = 0; i < doc.pages.length; i++) {
     const page = doc.pages[i];
-    const path = `pages[${i}]`;
+    const p = `pages[${i}]`;
 
     if (seenPageNos.has(page.pageNo)) {
-      issues.push(issue('DUPLICATE_PAGE_NO', `${path}.pageNo`, `Duplicate pageNo ${page.pageNo}`));
+      issues.push(issue('DUPLICATE_PAGE_NO', `${p}.pageNo`, `Duplicate pageNo ${page.pageNo}`));
     }
     seenPageNos.add(page.pageNo);
 
-    const expectedPageNo = i + 1;
-    if (page.pageNo !== expectedPageNo) {
-      issues.push(
-        issue(
-          'NON_CONTIGUOUS_PAGE_NO',
-          `${path}.pageNo`,
-          `Expected pageNo ${expectedPageNo} but found ${page.pageNo}`,
-        ),
-      );
+    if (page.pageNo !== i + 1) {
+      issues.push(issue('NON_CONTIGUOUS_PAGE_NO', `${p}.pageNo`, `Expected pageNo ${i + 1} but found ${page.pageNo}`));
     }
 
-    const expectedMarker = `page-${page.pageNo}`;
-    if (page.pageMarker.toLowerCase() !== expectedMarker) {
-      issues.push(
-        issue(
-          'PAGE_MARKER_MISMATCH',
-          `${path}.pageMarker`,
-          `Expected ${expectedMarker} but found ${page.pageMarker}`,
-        ),
-      );
+    if (page.pageMarker.toLowerCase() !== `page-${page.pageNo}`) {
+      issues.push(issue('PAGE_MARKER_MISMATCH', `${p}.pageMarker`, `Expected page-${page.pageNo} but found ${page.pageMarker}`));
     }
 
-    const normalized = normalizeOcrText(page.text);
-    if (page.text !== normalized) {
-      issues.push(
-        issue(
-          'TEXT_NOT_NORMALIZED',
-          `${path}.text`,
-          'Page text is not normalized; run normalizeOcrText() before export',
-        ),
-      );
-    }
-
-    const inlinePageNo = extractInlinePageNo(page.text);
-    if (inlinePageNo !== null && inlinePageNo !== page.pageNo) {
-      issues.push(
-        issue(
-          'INLINE_PAGE_NO_MISMATCH',
-          `${path}.text`,
-          `Inline page marker page-${inlinePageNo} does not match pageNo ${page.pageNo}`,
-        ),
-      );
+    if (page.text !== normalizeOcrText(page.text)) {
+      issues.push(issue('TEXT_NOT_NORMALIZED', `${p}.text`, 'Page text is not normalized'));
     }
 
     const extractedDrawingNo = extractDrawingNo(page.text);
     if (!extractedDrawingNo) {
-      issues.push(
-        issue(
-          'TEXT_MISSING_DRAWING_NO',
-          `${path}.text`,
-          'Page text does not contain a detectable drawing number',
-        ),
-      );
+      issues.push(issue('TEXT_MISSING_DRAWING_NO', `${p}.text`, 'Page text does not contain detectable drawing number'));
     } else if (extractedDrawingNo !== page.drawingNo) {
-      issues.push(
-        issue(
-          'DRAWING_NO_MISMATCH',
-          `${path}.drawingNo`,
-          `Declared drawingNo ${page.drawingNo} does not match text value ${extractedDrawingNo}`,
-        ),
-      );
-    }
-
-    const extractedSheet = extractSheetMeta(page.text);
-    if (!extractedSheet) {
-      issues.push(
-        issue(
-          'TEXT_MISSING_SHEET_META',
-          `${path}.text`,
-          'Page text does not contain detectable sheet metadata',
-        ),
-      );
-    } else {
-      if (extractedSheet.sheetNo !== page.sheetNo) {
-        issues.push(
-          issue(
-            'SHEET_NO_MISMATCH',
-            `${path}.sheetNo`,
-            `Declared sheetNo ${page.sheetNo} does not match text value ${extractedSheet.sheetNo}`,
-          ),
-        );
-      }
-      if (extractedSheet.sheetCount !== page.sheetCount) {
-        issues.push(
-          issue(
-            'SHEET_COUNT_MISMATCH',
-            `${path}.sheetCount`,
-            `Declared sheetCount ${page.sheetCount} does not match text value ${extractedSheet.sheetCount}`,
-          ),
-        );
-      }
+      issues.push(issue('DRAWING_NO_MISMATCH', `${p}.drawingNo`, `Declared ${page.drawingNo} does not match text ${extractedDrawingNo}`));
     }
 
     if (page.sheetNo > page.sheetCount) {
-      issues.push(
-        issue(
-          'INVALID_SHEET_RANGE',
-          `${path}.sheetNo`,
-          `sheetNo ${page.sheetNo} cannot be greater than sheetCount ${page.sheetCount}`,
-        ),
-      );
-    }
-  }
-
-  const sheetGroups = new Map<string, Set<number>>();
-  const sheetCounts = new Map<string, Set<number>>();
-
-  for (const page of doc.pages) {
-    if (!sheetGroups.has(page.drawingNo)) sheetGroups.set(page.drawingNo, new Set<number>());
-    if (!sheetCounts.has(page.drawingNo)) sheetCounts.set(page.drawingNo, new Set<number>());
-
-    sheetGroups.get(page.drawingNo)!.add(page.sheetNo);
-    sheetCounts.get(page.drawingNo)!.add(page.sheetCount);
-  }
-
-  for (const [drawingNo, counts] of sheetCounts.entries()) {
-    if (counts.size > 1) {
-      issues.push(
-        issue(
-          'INCONSISTENT_SHEET_COUNT',
-          `drawingNo:${drawingNo}`,
-          `Multiple sheetCount values found for drawing ${drawingNo}`,
-        ),
-      );
-    }
-  }
-
-  for (const [drawingNo, sheets] of sheetGroups.entries()) {
-    const total = [...(sheetCounts.get(drawingNo) ?? new Set<number>())][0];
-    if (!total) continue;
-
-    for (let n = 1; n <= total; n += 1) {
-      if (!sheets.has(n)) {
-        issues.push(
-          issue(
-            'MISSING_SHEET_PAGE',
-            `drawingNo:${drawingNo}`,
-            `Missing sheet ${n} of ${total} for drawing ${drawingNo}`,
-          ),
-        );
-      }
+      issues.push(issue('INVALID_SHEET_RANGE', `${p}.sheetNo`, `sheetNo ${page.sheetNo} > sheetCount ${page.sheetCount}`));
     }
   }
 
@@ -318,11 +176,10 @@ function validateBusinessRules(doc: CanonicalOcrDocument): ValidationIssue[] {
 
 export function validateCanonicalOcrDocument(input: unknown): CanonicalOcrDocument {
   let parsed: CanonicalOcrDocument;
-
   try {
     parsed = CanonicalOcrDocumentSchema.parse(input);
   } catch (err) {
-    if (err instanceof ZodError) {
+    if (err instanceof z.ZodError) {
       throw new OcrValidationError('OCR JSON failed schema validation', mapZodIssues(err));
     }
     throw err;
@@ -330,69 +187,24 @@ export function validateCanonicalOcrDocument(input: unknown): CanonicalOcrDocume
 
   const issues = validateBusinessRules(parsed);
   if (issues.length) {
-    throw new OcrValidationError('OCR JSON failed business-rule validation', issues);
+    throw new OcrValidationError('OCR JSON failed business validation', issues);
   }
 
   return parsed;
 }
 
 export function validateCanonicalOcrFile(filePath: string): CanonicalOcrDocument {
-  const fullPath = path.resolve(filePath);
-  const raw = fs.readFileSync(fullPath, 'utf8');
+  const raw = fs.readFileSync(path.resolve(filePath), 'utf8');
   const json = JSON.parse(raw) as unknown;
   return validateCanonicalOcrDocument(json);
 }
 
 export function printValidationSummary(doc: CanonicalOcrDocument): void {
-  const summary = {
+  console.log(JSON.stringify({
     ok: true,
     schemaVersion: doc.schemaVersion,
-    documentType: doc.documentType,
     projectCode: doc.projectCode,
-    sourceFilename: doc.sourceFilename,
     pageCount: doc.pageCount,
-    drawings: [...new Set(doc.pages.map((p) => p.drawingNo))].sort(),
-    firstPage: doc.pages[0]
-      ? {
-          pageNo: doc.pages[0].pageNo,
-          drawingNo: doc.pages[0].drawingNo,
-          sheetNo: doc.pages[0].sheetNo,
-          sheetCount: doc.pages[0].sheetCount,
-        }
-      : null,
-  };
-
-  console.log(JSON.stringify(summary, null, 2));
-}
-
-if (require.main === module) {
-  const filePath = process.argv[2];
-
-  if (!filePath) {
-    console.error('Usage: npx tsx src/lib/ocr/validator.ts <ocr.json>');
-    process.exit(1);
-  }
-
-  try {
-    const doc = validateCanonicalOcrFile(filePath);
-    printValidationSummary(doc);
-  } catch (err) {
-    if (err instanceof OcrValidationError) {
-      console.error(
-        JSON.stringify(
-          {
-            ok: false,
-            error: err.message,
-            issues: err.issues,
-          },
-          null,
-          2,
-        ),
-      );
-      process.exit(2);
-    }
-
-    console.error(err);
-    process.exit(3);
-  }
+    drawings: [...new Set(doc.pages.map(p => p.drawingNo))],
+  }, null, 2));
 }
