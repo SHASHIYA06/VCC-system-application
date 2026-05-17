@@ -200,7 +200,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateSchematicPath(wire, drawings) {
+function generateSchematicPath(wire: any, drawings: any[]) {
   const path = [];
   if (wire.sourceEquipment) {
     path.push({ type: 'equipment', name: wire.sourceEquipment });
@@ -218,7 +218,7 @@ function generateSchematicPath(wire, drawings) {
   return path;
 }
 
-function generateSchematicNodes(wire, drawings) {
+function generateSchematicNodes(wire: any, drawings: any[]) {
   const nodes = [];
   const seen = new Set();
   
@@ -247,7 +247,7 @@ function generateSchematicNodes(wire, drawings) {
   return nodes;
 }
 
-function generateSchematicConnections(wire, drawings) {
+function generateSchematicConnections(wire: any, drawings: any[]) {
   const connections = [];
   
   connections.push({ from: 'wire', to: 'wire', type: 'self' });
