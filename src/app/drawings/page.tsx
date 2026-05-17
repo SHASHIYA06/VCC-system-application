@@ -58,8 +58,8 @@ function DrawingsContent() {
         const res = await fetch(`/api/drawings?${params.toString()}`);
         const data = await res.json();
         
-        if (data.data) {
-          setDrawings(data.data);
+        if (data.drawings) {
+          setDrawings(data.drawings);
         } else if (data.error) {
           setError(data.error.message || data.error);
         }

@@ -160,8 +160,31 @@ export async function POST() {
   try {
     console.log('=== Starting Complete VCC Full Seed ===\n');
 
-    const project = await prisma.project.findFirst();
-    if (!project) return NextResponse.json({ error: 'No project found' }, { status: 400 });
+    let project = await prisma.project.findFirst();
+    if (!project) {
+      project = await prisma.project.create({
+        data: { projectCode: 'KMRCL_RS3R', projectName: 'KMRCL RS3R Metro', description: 'Kolkata Metro RS3R Vehicle Control Circuit' }
+      });
+      console.log(`Created project: ${project.projectName}\n`);
+    }
+
+    const carTypes = await prisma.carType.findMany();
+    const carMap = new Map(carTypes.map(c => [c.code, c.id]));
+    if (carMap.size === 0) {
+      console.log('Creating car types...');
+      await prisma.carType.createMany({
+        data: [
+          { code: 'DMC', name: 'Driving Motor Car', description: 'DMC - Driving Motor Car with cab' },
+          { code: 'TC', name: 'Trailer Car', description: 'TC - Trailer Car without traction' },
+          { code: 'MC', name: 'Motor Car', description: 'MC - Motor Car without cab' },
+        ]
+      });
+      const newCarTypes = await prisma.carType.findMany();
+      carMap.set('DMC', newCarTypes.find(c => c.code === 'DMC')?.id || '');
+      carMap.set('TC', newCarTypes.find(c => c.code === 'TC')?.id || '');
+      carMap.set('MC', newCarTypes.find(c => c.code === 'MC')?.id || '');
+    }
+
     console.log(`Project: ${project.projectName}\n`);
 
     console.log('Step 1: Setting up systems...');
