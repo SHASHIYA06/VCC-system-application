@@ -156,13 +156,14 @@ export async function POST() {
     console.log('\nStep 2: Creating Drawings (Schematic + PIN)...');
     let dwgCount = 0;
     for (const d of [...SCHEMATIC_DRAWINGS, ...PIN_DRAWINGS]) {
-      const sysId = sysMap.get(d.system);
+      const dany = d as any;
+      const sysId = sysMap.get(dany.system);
       if (!sysId) continue;
-      const revision = (d as any).connectors ? '0' : 'A';
+      const revision = dany.connectors ? '0' : 'A';
       await prisma.drawing.upsert({
-        where: { projectId_drawingNo_revision: { projectId: project.id, drawingNo: d.drawingNo, revision } },
-        update: { title: d.title, totalSheets: d.sheets, systemId: sysId },
-        create: { projectId: project.id, systemId: sysId, drawingNo: d.drawingNo, title: d.title, totalSheets: d.sheets, revision, status: 'ACTIVE', sourceFileId: d.file || null, remarks: d.connectors ? `PIN_ASSIGNMENT|${d.file}` : 'SCHEMATIC' }
+        where: { projectId_drawingNo_revision: { projectId: project.id, drawingNo: dany.drawingNo, revision } },
+        update: { title: dany.title, totalSheets: dany.sheets, systemId: sysId },
+        create: { projectId: project.id, systemId: sysId, drawingNo: dany.drawingNo, title: dany.title, totalSheets: dany.sheets, revision, status: 'ACTIVE', sourceFileId: dany.file || null, remarks: dany.connectors ? `PIN_ASSIGNMENT|${dany.file || ''}` : 'SCHEMATIC' }
       });
       dwgCount++;
     }
