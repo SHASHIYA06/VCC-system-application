@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const { system_code, drawing_no, page = 1, limit = 20 } = validationResult.data;
+  const { system_code, drawing_no, page = 1, limit = 100 } = validationResult.data;
   const skip = (page - 1) * limit;
 
   try {

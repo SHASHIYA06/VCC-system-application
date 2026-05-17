@@ -42,6 +42,14 @@ interface TrainLineData {
   pinNo?: string;
 }
 
+interface ConnectorData {
+  id: string;
+  code: string;
+  pinCount: number;
+  description?: string;
+  carType?: string;
+}
+
 export default function DrawingDetailPage() {
   const params = useParams();
   const drawingId = params.id as string;
@@ -49,6 +57,7 @@ export default function DrawingDetailPage() {
   const [drawing, setDrawing] = useState<DrawingData | null>(null);
   const [pins, setPins] = useState<PinData[]>([]);
   const [trainLines, setTrainLines] = useState<TrainLineData[]>([]);
+  const [connectors, setConnectors] = useState<ConnectorData[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'info' | 'pins' | 'trainlines' | 'schematic'>('info');
@@ -64,6 +73,7 @@ export default function DrawingDetailPage() {
           setDrawing(data.drawing);
           setPins(data.pins || []);
           setTrainLines(data.trainLines || []);
+          setConnectors(data.connectors || []);
           setCurrentPage(1);
         }
       } catch (error) {
@@ -536,28 +546,93 @@ export default function DrawingDetailPage() {
       )}
 
       {viewMode === 'schematic' && (
-        <div className="glass-card p-12 text-center">
-          <Layers className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">Schematic View</h3>
-          <p className="text-slate-400 mb-4">PDF viewer integration available</p>
-          {drawing.sourceFile && (
-            <div className="flex items-center justify-center gap-4">
-              <a
-                href={`/DOCUMENTS/${drawing.sourceFile}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors"
-              >
-                <Download className="h-4 w-4" />
-                Open Full PDF
-              </a>
-              <Link
-                href={`/admin/import?file=${encodeURIComponent(drawing.sourceFile)}`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-              >
-                <FileText className="h-4 w-4" />
-                Import Data
-              </Link>
+        <div className="space-y-6">
+          {drawing.sourceFile ? (
+            <div className="glass-card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">Schematic View</h3>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={`/DOCUMENTS/${drawing.sourceFile}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors"
+                  >
+                    <Download className="h-4 w-4" />
+                    Open Full PDF
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Layers className="h-6 w-6 text-cyan-400" />
+                <h3 className="text-lg font-semibold text-white">Circuit Schematic Data</h3>
+              </div>
+              
+              {connectors.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-slate-400 uppercase mb-3">Connectors ({connectors.length})</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {connectors.map(conn => (
+                      <div key={conn.id} className="p-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-mono text-cyan-400 font-bold">{conn.code}</span>
+                          <span className="text-xs text-slate-500">{conn.pinCount} pins</span>
+                        </div>
+                        <div className="text-xs text-slate-400">{conn.description || conn.carType}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {trainLines.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-400 uppercase mb-3">Train Lines ({trainLines.length})</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-700/50">
+                          <th className="px-3 py-2 text-left text-slate-400 font-medium">Group</th>
+                          <th className="px-3 py-2 text-left text-slate-400 font-medium">Signal Name</th>
+                          <th className="px-3 py-2 text-left text-slate-400 font-medium">Wire No</th>
+                          <th className="px-3 py-2 text-left text-slate-400 font-medium">Connector</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-700/30">
+                        {trainLines.slice(0, 50).map(tl => (
+                          <tr key={tl.id} className="hover:bg-slate-800/30">
+                            <td className="px-3 py-2">
+                              <span className="px-2 py-0.5 rounded bg-slate-700/50 text-slate-300 text-xs">{tl.lineGroup}</span>
+                            </td>
+                            <td className="px-3 py-2 text-white">{tl.itemName}</td>
+                            <td className="px-3 py-2">
+                              {tl.wireNo ? (
+                                <Link href={`/wires/${tl.wireNo}`} className="text-cyan-400 hover:text-cyan-300 font-mono">
+                                  {tl.wireNo}
+                                </Link>
+                              ) : '-'}
+                            </td>
+                            <td className="px-3 py-2 text-slate-400 font-mono">{tl.connectorCode || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {trainLines.length > 50 && (
+                    <p className="text-sm text-slate-500 mt-2">Showing 50 of {trainLines.length} trainlines</p>
+                  )}
+                </div>
+              )}
+              
+              {connectors.length === 0 && trainLines.length === 0 && (
+                <p className="text-slate-400 text-center py-8">
+                  No circuit data available for this drawing. 
+                  <Link href="/admin/import" className="text-cyan-400 ml-2">Import data from PDF</Link>
+                </p>
+              )}
             </div>
           )}
         </div>

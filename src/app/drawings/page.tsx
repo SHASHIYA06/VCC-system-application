@@ -53,6 +53,7 @@ function DrawingsContent() {
         setLoading(true);
         const params = new URLSearchParams();
         if (filterSystem) params.append('system_code', filterSystem);
+        params.append('limit', '200');
         
         const res = await fetch(`/api/drawings?${params.toString()}`);
         const data = await res.json();
@@ -60,7 +61,7 @@ function DrawingsContent() {
         if (data.data) {
           setDrawings(data.data);
         } else if (data.error) {
-          setError(data.error);
+          setError(data.error.message || data.error);
         }
       } catch (err) {
         console.error('Failed to fetch drawings:', err);

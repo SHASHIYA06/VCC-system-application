@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get('search') || searchParams.get('q');
   const voltageClass = searchParams.get('voltage');
   const wireType = searchParams.get('type');
-  const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 500);
+  const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
   const offset = parseInt(searchParams.get('offset') || '0');
 
   try {

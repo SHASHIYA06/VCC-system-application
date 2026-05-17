@@ -84,7 +84,7 @@ export default function WiresPage() {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
-  const limit = 50;
+  const limit = 200;
 
   useEffect(() => {
     async function fetchWires() {
