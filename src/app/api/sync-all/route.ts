@@ -115,83 +115,16 @@ export async function POST() {
       const carId = carMap.get(eq.carType);
       const sysId = sysMap.get(eq.systemCode);
       
-      const existing = await prisma.equipment.findFirst({ where: { equipmentCode: eq.equipmentCode } });
+      const existing = await prisma.device.findFirst({ where: { tagNo: eq.equipmentCode } });
       if (existing) {
-        await prisma.equipment.update({ 
+        await prisma.device.update({ 
           where: { id: existing.id }, 
-          data: { carTypeId: carId, systemId: sysId, locationHint: eq.location } 
-        });
-      } else {
-        await prisma.equipment.create({
-          data: {
-            projectId: project.id,
-            equipmentCode: eq.equipmentCode,
-            equipmentName: eq.equipmentName,
-            equipmentType: 'MODULE',
-            locationHint: eq.location,
-            carTypeId: carId,
-            systemId: sysId
-          }
+          data: { systemId: sysId } 
         });
       }
     }
-    console.log(`Equipment: ${await prisma.equipment.count()}\n`);
+    console.log(`Devices: ${await prisma.device.count()}\n`);
 
-    console.log('Step 4: Creating connectors with pins for each equipment...');
-    const connectorData = [
-      { equipmentCode: 'LTEB1', connectors: [{ code: 'CN1', type: '74P', pins: 74 }, { code: 'CN2', type: '74P', pins: 74 }, { code: 'CN3', type: '11P', pins: 11 }] },
-      { equipmentCode: 'LTEB2', connectors: [{ code: 'CN1', type: '74P', pins: 74 }, { code: 'CN2', type: '74P', pins: 74 }] },
-      { equipmentCode: 'VVVF1', connectors: [{ code: 'X1', type: 'CONTROL', pins: 50 }, { code: 'CN1', type: 'POWER', pins: 3 }] },
-      { equipmentCode: 'BCU1', connectors: [{ code: 'X1', type: '37P', pins: 37 }, { code: 'X2', type: '23P', pins: 23 }] },
-      { equipmentCode: 'TCMS_RIO1', connectors: [{ code: 'CN1', type: '40P', pins: 40 }, { code: 'CN2', type: '40P', pins: 40 }, { code: 'CN3', type: 'IO', pins: 4 }] },
-      { equipmentCode: 'ETH_SW1', connectors: [{ code: 'PORT1', type: 'M12', pins: 4 }, { code: 'PORT2', type: 'M12', pins: 4 }, { code: 'PORT3', type: 'M12', pins: 4 }, { code: 'PORT4', type: 'M12', pins: 4 }, { code: 'PORT5', type: 'M12', pins: 4 }, { code: 'PORT6', type: 'M12', pins: 4 }] },
-      { equipmentCode: 'APS1', connectors: [{ code: 'CN1', type: '37P', pins: 37 }, { code: 'CN2', type: '20P', pins: 20 }, { code: 'CN3', type: '8P', pins: 8 }] },
-      { equipmentCode: 'CAB_PANEL', connectors: [{ code: 'TB1', type: 'TERMINAL', pins: 20 }, { code: 'TB2', type: 'TERMINAL', pins: 20 }, { code: 'J1', type: '74P', pins: 74 }] },
-      { equipmentCode: 'DCU1', connectors: [{ code: 'X1', type: 'POWER', pins: 5 }, { code: 'X2', type: 'CONTROL', pins: 12 }, { code: 'X3', type: 'LOOP', pins: 10 }] },
-      { equipmentCode: 'VAC1', connectors: [{ code: 'X1', type: 'POWER', pins: 5 }, { code: 'X2', type: 'CONTROL', pins: 12 }, { code: 'X3', type: 'TCMS', pins: 10 }] },
-    ];
-
-    const equipment = await prisma.equipment.findMany();
-    const equipMap = new Map(equipment.map(e => [e.equipmentCode, e]));
-
-    const drawings = await prisma.drawing.findMany({ take: 50 });
-    const defaultDrawing = drawings[0];
-
-    for (const eqData of connectorData) {
-      const eq = equipMap.get(eqData.equipmentCode);
-      if (!eq) continue;
-
-      for (const conn of eqData.connectors) {
-        const existing = await prisma.connector.findFirst({
-          where: { drawingId: defaultDrawing?.id, connectorCode: conn.code }
-        });
-        
-        if (!existing && defaultDrawing) {
-          const newConn = await prisma.connector.create({
-            data: {
-              drawingId: defaultDrawing.id,
-              connectorCode: conn.code,
-              connectorTypeCode: conn.type,
-              pinCount: conn.pins,
-              equipmentId: eq.id,
-              description: `${conn.code} connector for ${eq.equipmentName}`
-            }
-          });
-
-          for (let i = 1; i <= Math.min(conn.pins, 20); i++) {
-            await prisma.connectorPin.create({
-              data: {
-                connectorId: newConn.id,
-                pinNo: String(i),
-                pinLabel: `P${i}`,
-                signalName: `${conn.code}-SIG-${i}`,
-                wireNo: String(1000 + Math.floor(Math.random() * 8000))
-              }
-            });
-          }
-        }
-      }
-    }
     console.log(`Connectors: ${await prisma.connector.count()}\n`);
     console.log(`Pins: ${await prisma.connectorPin.count()}\n`);
 
@@ -200,7 +133,7 @@ export async function POST() {
       drawings: await prisma.drawing.count(),
       trainlines: await prisma.trainLine.count(),
       wires: await prisma.wire.count(),
-      equipment: await prisma.equipment.count(),
+      devices: await prisma.device.count(),
       connectors: await prisma.connector.count(),
       pins: await prisma.connectorPin.count(),
     };

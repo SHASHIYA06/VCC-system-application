@@ -70,7 +70,7 @@ const TMS_CONNECTORS = [
   { connectorCode: 'CCTV', connectorTypeCode: 'CAMERA', description: 'CCTV Camera', carType: 'ALL' },
 ];
 
-const WIRES = [];
+const WIRES: { wireNo: string; description: string; systemCode?: string; signalName: string; voltageClass: string; wireSize: string; wireColor: string }[] = [];
 for (let i = 1000; i <= 9999; i++) {
   let systemCode = 'GEN';
   if (i >= 1000 && i < 2000) systemCode = 'GEN';
@@ -247,7 +247,6 @@ export async function POST() {
               pinNo: String(i),
               signalName: `SIG-${conn.connectorCode}-${i}`,
               wireNo: String(1000 + i),
-              description: `${conn.connectorCode} Pin ${i}`,
             }
           });
           pinsAdded++;
