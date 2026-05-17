@@ -158,7 +158,7 @@ export async function POST() {
     for (const d of [...SCHEMATIC_DRAWINGS, ...PIN_DRAWINGS]) {
       const sysId = sysMap.get(d.system);
       if (!sysId) continue;
-      const revision = d.connectors ? '0' : 'A';
+      const revision = (d as any).connectors ? '0' : 'A';
       await prisma.drawing.upsert({
         where: { projectId_drawingNo_revision: { projectId: project.id, drawingNo: d.drawingNo, revision } },
         update: { title: d.title, totalSheets: d.sheets, systemId: sysId },
