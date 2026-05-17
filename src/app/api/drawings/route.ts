@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
-import { createApiResponse } from '@/lib/schemas';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -27,14 +25,17 @@ export async function GET(request: NextRequest) {
   const skip = (page - 1) * limit;
 
   try {
-    const where: Record<string, unknown> = {};
+    const where: any = {};
     
     if (system_code) {
-      where.system = { code: system_code };
+      const system = await prisma.system.findFirst({ where: { code: system_code } });
+      if (system) {
+        where.systemId = system.id;
+      }
     }
     
     if (drawing_no) {
-      where.drawingNo = { contains: drawing_no, mode: Prisma.QueryMode.insensitive };
+      where.drawingNo = { contains: drawing_no };
     }
 
     const [docs, total] = await Promise.all([
@@ -51,8 +52,8 @@ export async function GET(request: NextRequest) {
       prisma.drawing.count({ where }),
     ]);
 
-    return NextResponse.json(createApiResponse(
-      docs.map(d => ({
+    return NextResponse.json({
+      drawings: docs.map(d => ({
         id: d.id,
         drawingNo: d.drawingNo,
         title: d.title,
@@ -63,12 +64,12 @@ export async function GET(request: NextRequest) {
         connectorCount: d._count.connectors,
         trainlineCount: d._count.trainLines,
       })),
-      { total, page, limit }
-    ));
+      pagination: { total, page, limit, hasMore: skip + docs.length < total }
+    });
   } catch (error) {
     console.error('Error fetching drawings:', error);
     return NextResponse.json(
-      { error: { message: 'Failed to fetch drawings', code: 'DB_ERROR' } },
+      { error: 'Failed to fetch drawings', details: String(error) },
       { status: 500 }
     );
   }
