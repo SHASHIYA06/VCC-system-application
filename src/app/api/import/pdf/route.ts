@@ -60,9 +60,11 @@ export async function POST() {
         }
       } else {
         const system = await prisma.system.findFirst({ where: { code: pdf.subsystem } });
+        const project = await prisma.project.findFirst();
+        
         const newDoc = await prisma.drawing.create({
           data: {
-            projectId: 'default',
+            projectId: project?.id || '4f109d68-dc71-4caf-bd9e-b30fb61d4f4f',
             drawingNo: pdf.drawingNo,
             title: `${pdf.carType} ${pdf.subsystem} PIN Drawing`,
             sourceFileId: pdf.file,
