@@ -236,10 +236,31 @@ export default function DashboardPage() {
   return (
     <div className="animated-bg min-h-screen p-6 grid-pattern">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold gradient-text">VCC Dashboard</h1>
-        <p className="mt-2 text-slate-400">
-          Complete system overview - KMRCL RS3R VCC Wiring Database
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold gradient-text">VCC Dashboard</h1>
+            <p className="mt-2 text-slate-400">
+              Complete system overview - KMRCL RS3R VCC Wiring Database
+            </p>
+          </div>
+          <button 
+            onClick={seedDatabase}
+            disabled={seeding}
+            className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-slate-600 disabled:to-slate-700 text-white rounded-lg font-medium flex items-center gap-2 shadow-lg"
+          >
+            {seeding ? (
+              <>
+                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                Loading Data...
+              </>
+            ) : (
+              <>
+                <Database className="h-5 w-5" />
+                Load VCC Data
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Drawing Number Search */}
