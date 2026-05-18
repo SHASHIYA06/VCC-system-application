@@ -19,30 +19,35 @@ const SYSTEMS = [
   { code: 'HV', name: 'High Voltage Equipment', category: 'Power', sortOrder: 15 },
 ];
 
-const ALL_DRAWINGS = [
-  // VCC Description Document
-  { drawingNo: 'VCC-001', title: 'VCC System Description', sheets: 54, system: 'GEN', file: 'VCC DESCRIPTION 13.12.2017.pdf', type: 'REFERENCE', connectors: [] },
+const ALL_DOCUMENTS = [
+  // ====== VCC DESCRIPTION ======
+  { drawingNo: 'VCC-001', title: 'VCC System Description and Conventions', sheets: 54, system: 'GEN', file: 'VCC DESCRIPTION 13.12.2017.pdf', type: 'REFERENCE', connectors: [] },
   
-  // Schematic Drawings (from KMRCL VCC Drawings OCR)
+  // ====== KMRCL VCC DRAWINGS (Schematics) ======
   { drawingNo: '942-58099', title: 'Drawing List - KMRCL RS3R VCC', sheets: 127, system: 'GEN', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
   { drawingNo: '942-58103', title: 'Train Lines Control (1/4)', sheets: 4, system: 'TRL', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
   { drawingNo: '942-58104', title: 'Train Lines Signal', sheets: 1, system: 'TRL', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
+  { drawingNo: '942-58105', title: 'Low Tension Power Train Line', sheets: 1, system: 'TRL', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
   { drawingNo: '942-58107', title: 'Controlling Cab', sheets: 1, system: 'CAB', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
   { drawingNo: '942-58119', title: 'Speed Control', sheets: 1, system: 'TRAC', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
+  { drawingNo: '942-58120', title: 'VVVF Control', sheets: 1, system: 'TRAC', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
   { drawingNo: '942-58124', title: 'Brake Loop', sheets: 1, system: 'BRAKE', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
   { drawingNo: '942-58130', title: 'APS - Auxiliary Power Supply', sheets: 1, system: 'APS', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
   { drawingNo: '942-58137', title: 'Saloon Door Supply Voltage', sheets: 1, system: 'DOOR', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
+  { drawingNo: '942-58143', title: 'Cab VAC - Air Conditioning', sheets: 1, system: 'VAC', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
   { drawingNo: '942-58146', title: 'TMS Interface 1 to 4', sheets: 4, system: 'TMS', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
-  
-  // CAB PIN Drawings - DMC
+  { drawingNo: '942-58147', title: 'PIS/TIS - Passenger Information System', sheets: 2, system: 'COMMS', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
+  { drawingNo: '942-58154', title: 'CCTV - Closed Circuit Television', sheets: 1, system: 'COMMS', file: 'KMRCL VCC Drawings_OCR.pdf', type: 'SCHEMATIC', connectors: [] },
+
+  // ====== CAB_PIN DRAWINGS (DMC Cab) ======
   { drawingNo: '942-38104', title: 'Operating Panel Pin Assignment (CN1-CN5, TB1-TB2, J1-J2)', sheets: 48, system: 'CAB', file: 'CAB_PIN DRAWINGS 2.pdf', type: 'PIN_ASSIGNMENT', carType: 'DMC', connectors: ['CN1', 'CN2', 'CN3', 'CN4', 'CN5', 'TB1', 'TB2', 'J1', 'J2'] },
   { drawingNo: '942-38105', title: 'MCB Panel Pin Assignment', sheets: 1, system: 'CAB', file: 'CAB_PIN DRAWINGS 2.pdf', type: 'PIN_ASSIGNMENT', carType: 'DMC', connectors: ['MB1', 'MB2', 'MB3', 'F1', 'F2', 'F3'] },
   { drawingNo: '942-38117', title: 'Cab VAC Pin Assignment', sheets: 1, system: 'VAC', file: 'CAB_PIN DRAWINGS 2.pdf', type: 'PIN_ASSIGNMENT', carType: 'DMC', connectors: ['VAC_CN1', 'VAC_CN2'] },
-  
-  // DMC Ceiling
+
+  // ====== DMC_CEILING (DMC Car Ceiling) ======
   { drawingNo: '942-38310', title: 'BCU Pin Assignment - DM Car', sheets: 28, system: 'BRAKE', file: 'DMC_CEILING.pdf', type: 'PIN_ASSIGNMENT', carType: 'DMC', connectors: ['BCU_CN1', 'BCU_CN2', 'BCU_CN3'] },
-  
-  // DMC Underframe
+
+  // ====== DMC UF_PIN DRAWINGS (DMC Underframe) ======
   { drawingNo: '942-38305', title: 'LTEB Pin Assignment - DMC (X1-X4 Intercar Jumpers)', sheets: 26, system: 'LTEB', file: 'DMC UF_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'DMC', connectors: ['CN1', 'CN2', 'CN3', 'X1', 'X2', 'X3', 'X4'] },
   { drawingNo: '942-38306', title: 'VVVF Inverter Pin Assignment - DMC', sheets: 2, system: 'TRAC', file: 'DMC UF_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'DMC', connectors: ['CN1', 'CN2', 'CN3', 'CN4'] },
   { drawingNo: '942-38307', title: 'Collector Shoe Junction Box - DMC', sheets: 1, system: 'HV', file: 'DMC UF_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'DMC', connectors: ['CSJB1', 'CSJB2'] },
@@ -50,8 +55,8 @@ const ALL_DRAWINGS = [
   { drawingNo: '942-38312', title: 'LTJB Pin Assignment - DM Car', sheets: 3, system: 'LTJB', file: 'DMC UF_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'DMC', connectors: ['LTJB1', 'LTJB2'] },
   { drawingNo: '942-38319', title: 'HSCB Pin Assignment - DMC', sheets: 1, system: 'HV', file: 'DMC UF_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'DMC', connectors: ['HSCB1'] },
   { drawingNo: '942-38320', title: 'TM Connector Pin Assignment - DMC', sheets: 1, system: 'TRAC', file: 'DMC UF_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'DMC', connectors: ['TM1'] },
-  
-  // TC Ceiling
+
+  // ====== TC_CEILING PIN DRAWINGS (TC Car Ceiling) ======
   { drawingNo: '942-38402', title: 'EDB Panel Pin Assignment - TC', sheets: 27, system: 'EDB', file: 'TC_CEILING PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'TC', connectors: ['CN1', 'CN2', 'CN3'] },
   { drawingNo: '942-38403', title: 'Passenger Door Pin Assignment - TC', sheets: 1, system: 'DOOR', file: 'TC_CEILING PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'TC', connectors: ['DCU_TC1', 'DCU_TC2'] },
   { drawingNo: '942-38404', title: 'Saloon Lights Pin Assignment - TC', sheets: 1, system: 'LIGHT', file: 'TC_CEILING PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'TC', connectors: ['LIGHT_CN1'] },
@@ -59,15 +64,15 @@ const ALL_DRAWINGS = [
   { drawingNo: '942-38406', title: 'Ethernet Switch CCTV - TC', sheets: 1, system: 'COMMS', file: 'TC_CEILING PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'TC', connectors: ['ETH_SW_TC'] },
   { drawingNo: '942-38407', title: 'Saloon VAC Pin Assignment - TC', sheets: 1, system: 'VAC', file: 'TC_CEILING PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'TC', connectors: ['VAC_TC1', 'VAC_TC2'] },
   { drawingNo: '942-38409', title: 'TCMS RIO Pin Assignment - TC', sheets: 27, system: 'TMS', file: 'TC_CEILING PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'TC', connectors: ['TCMS_RIO_TC', 'CN1', 'CN2'] },
-  
-  // TC Underframe
+
+  // ====== TC _UF PIN DRAWINGS (TC Underframe) ======
   { drawingNo: '942-38508', title: 'Pressure Switch Box - T Car', sheets: 21, system: 'BRAKE', file: 'TC _UF PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'TC', connectors: ['PS_TC1', 'PS_TC2'] },
   { drawingNo: '942-38512', title: 'APS Pin Assignment - T Car', sheets: 2, system: 'APS', file: 'TC _UF PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'TC', connectors: ['APS_CN1', 'APS_CN2', 'APS_CN3'] },
   { drawingNo: '942-38514', title: 'Shore Supply Box - T Car', sheets: 1, system: 'APS', file: 'TC _UF PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'TC', connectors: ['SSB_CN1'] },
   { drawingNo: '942-38516', title: 'Battery Box Pin Assignment - T Car', sheets: 1, system: 'APS', file: 'TC _UF PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'TC', connectors: ['BATT_CN1', 'BATT_CN2'] },
   { drawingNo: '942-38519', title: 'BCU Pin Assignment - T Car', sheets: 1, system: 'BRAKE', file: 'TC _UF PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'TC', connectors: ['BCU_TC'] },
-  
-  // MC Ceiling
+
+  // ====== MC_CEILING_PIN DRAWINGS (MC Car Ceiling) ======
   { drawingNo: '942-38603', title: 'Passenger Door Pin Assignment - M Car', sheets: 58, system: 'DOOR', file: 'MC_CEILING_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'MC', connectors: ['DCU_MC1', 'DCU_MC2', 'DCU_MC3', 'DCU_MC4'] },
   { drawingNo: '942-38604', title: 'Saloon Lights Pin Assignment - M Car', sheets: 1, system: 'LIGHT', file: 'MC_CEILING_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'MC', connectors: ['LIGHT_MC1'] },
   { drawingNo: '942-38606', title: 'TCMS RIO Pin Assignment - M Car', sheets: 58, system: 'TMS', file: 'MC_CEILING_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'MC', connectors: ['TCMS_RIO_MC', 'CN1', 'CN2'] },
@@ -76,43 +81,11 @@ const ALL_DRAWINGS = [
   { drawingNo: '942-38609', title: 'AAU Pin Assignment - M Car', sheets: 1, system: 'COMMS', file: 'MC_CEILING_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'MC', connectors: ['AAU_MC1'] },
   { drawingNo: '942-38610', title: 'EDB Panel Pin Assignment - M Car', sheets: 1, system: 'EDB', file: 'MC_CEILING_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'MC', connectors: ['EDB_MC1', 'EDB_MC2'] },
   { drawingNo: '942-38612', title: 'TCMS Communication Node-1 - M Car', sheets: 1, system: 'TMS', file: 'MC_CEILING_PIN DRAWINGS.pdf', type: 'PIN_ASSIGNMENT', carType: 'MC', connectors: ['TCMS_NODE1'] },
-  
-  // MC Underframe
+
+  // ====== MC_UF (MC Underframe) ======
   { drawingNo: '942-38602', title: 'Saloon VAC Pin Assignment - M Car', sheets: 27, system: 'VAC', file: 'MC_UF.pdf', type: 'PIN_ASSIGNMENT', carType: 'MC', connectors: ['VAC_MC1', 'VAC_MC2'] },
   { drawingNo: '942-38605', title: 'BECU Pin Assignment - M Car', sheets: 1, system: 'BRAKE', file: 'MC_UF.pdf', type: 'PIN_ASSIGNMENT', carType: 'MC', connectors: ['BECU_MC'] },
 ];
-
-const TRAINLINES = [
-  { wireNo: '1032', itemName: 'RESET', lineGroup: 'Control' },
-  { wireNo: '1050', itemName: 'SHUT DOWN', lineGroup: 'Control' },
-  { wireNo: '1205', itemName: 'LINE VOLTAGE', lineGroup: 'Power' },
-  { wireNo: '1207', itemName: 'VVF FAULT', lineGroup: 'Status' },
-  { wireNo: '1209', itemName: 'HSCB TRIP', lineGroup: 'Status' },
-  { wireNo: '3003', itemName: 'FORWARD', lineGroup: 'Traction' },
-  { wireNo: '3004', itemName: 'REVERSE', lineGroup: 'Traction' },
-  { wireNo: '3005', itemName: 'POWERING1', lineGroup: 'Traction' },
-  { wireNo: '3006', itemName: 'POWERING2', lineGroup: 'Traction' },
-  { wireNo: '3010', itemName: 'BRAKING', lineGroup: 'Traction' },
-  { wireNo: '3011', itemName: 'FULL SERVICE BRAKE', lineGroup: 'Brake' },
-  { wireNo: '4024', itemName: 'BRAKE LOOP', lineGroup: 'Brake' },
-  { wireNo: '4062', itemName: 'EM BRAKE LOOP NORMAL', lineGroup: 'Brake' },
-  { wireNo: '4122', itemName: 'PARKING BRAKE APPLIED', lineGroup: 'Brake' },
-  { wireNo: '5000', itemName: 'SHORE SUPPLY CONTACT', lineGroup: 'Power' },
-  { wireNo: '6009', itemName: 'DOOR OPEN LEFT', lineGroup: 'Door' },
-  { wireNo: '6014', itemName: 'DOOR CLOSE LEFT', lineGroup: 'Door' },
-  { wireNo: '6046', itemName: 'DOOR OPEN RIGHT', lineGroup: 'Door' },
-  { wireNo: '6051', itemName: 'DOOR CLOSE RIGHT', lineGroup: 'Door' },
-  { wireNo: '6112', itemName: 'ZERO SPEED', lineGroup: 'Status' },
-  { wireNo: '7001', itemName: 'CAB VAC IN SSK', lineGroup: 'VAC' },
-  { wireNo: '7050', itemName: 'SALOON VAC1', lineGroup: 'VAC' },
-  { wireNo: '9214', itemName: 'ATP MODE', lineGroup: 'Control' },
-];
-
-const CIRCUITS = Array.from({ length: 300 }, (_, i) => ({
-  circuitCode: `C${String(i + 1).padStart(3, '0')}`,
-  circuitName: `Circuit ${i + 1}`,
-  category: ['Power', 'Traction', 'Brake', 'Door', 'HVAC', 'TCMS', 'TrainLine', 'HV', 'Comms', 'Lighting'][i % 10]
-}));
 
 const EQUIPMENT = [
   { code: 'LTEB1', name: 'Low Tension Equipment Box 1', carType: 'DMC', system: 'LTEB' },
@@ -137,9 +110,39 @@ const EQUIPMENT = [
   { code: 'CAB_PANEL', name: 'Cab Operating Panel', carType: 'DMC', system: 'CAB' },
 ];
 
+const TRAINLINES = [
+  { wireNo: '1032', itemName: 'RESET', lineGroup: 'Control' },
+  { wireNo: '1050', itemName: 'SHUT DOWN', lineGroup: 'Control' },
+  { wireNo: '1205', itemName: 'LINE VOLTAGE', lineGroup: 'Power' },
+  { wireNo: '1207', itemName: 'VVF FAULT', lineGroup: 'Status' },
+  { wireNo: '1209', itemName: 'HSCB TRIP', lineGroup: 'Status' },
+  { wireNo: '3003', itemName: 'FORWARD', lineGroup: 'Traction' },
+  { wireNo: '3004', itemName: 'REVERSE', lineGroup: 'Traction' },
+  { wireNo: '3005', itemName: 'POWERING1', lineGroup: 'Traction' },
+  { wireNo: '3006', itemName: 'POWERING2', lineGroup: 'Traction' },
+  { wireNo: '3010', itemName: 'BRAKING', lineGroup: 'Traction' },
+  { wireNo: '3011', itemName: 'FULL SERVICE BRAKE', lineGroup: 'Brake' },
+  { wireNo: '4024', itemName: 'BRAKE LOOP', lineGroup: 'Brake' },
+  { wireNo: '4062', itemName: 'EM BRAKE LOOP NORMAL', lineGroup: 'Brake' },
+  { wireNo: '4122', itemName: 'PARKING BRAKE APPLIED', lineGroup: 'Brake' },
+  { wireNo: '5000', itemName: 'SHORE SUPPLY CONTACT', lineGroup: 'Power' },
+  { wireNo: '6009', itemName: 'DOOR OPEN LEFT', lineGroup: 'Door' },
+  { wireNo: '6014', itemName: 'DOOR CLOSE LEFT', lineGroup: 'Door' },
+  { wireNo: '6046', itemName: 'DOOR OPEN RIGHT', lineGroup: 'Door' },
+  { wireNo: '6051', itemName: 'DOOR CLOSE RIGHT', lineGroup: 'Door' },
+  { wireNo: '7001', itemName: 'CAB VAC IN SSK', lineGroup: 'VAC' },
+  { wireNo: '7050', itemName: 'SALOON VAC1', lineGroup: 'VAC' },
+];
+
+const CIRCUITS = Array.from({ length: 300 }, (_, i) => ({
+  circuitCode: `C${String(i + 1).padStart(3, '0')}`,
+  circuitName: `Circuit ${i + 1}`,
+  category: ['Power', 'Traction', 'Brake', 'Door', 'HVAC', 'TCMS', 'TrainLine', 'HV', 'Comms', 'Lighting'][i % 10]
+}));
+
 export async function POST() {
   try {
-    console.log('=== COMPREHENSIVE VCC SEED - ALL DOCUMENTS ===\n');
+    console.log('=== COMPLETE VCC SEED - ALL DOCUMENTS ===\n');
 
     let project = await prisma.project.findFirst();
     if (!project) {
@@ -155,14 +158,16 @@ export async function POST() {
     const sysMap = new Map(systems.map(s => [s.code, s.id]));
     console.log(`✓ ${systems.length} Systems`);
 
-    console.log('\nStep 2: Creating ALL Drawings from Documents...');
+    console.log('\nStep 2: Creating ALL Drawings from ALL Documents...');
     let dwgCount = 0;
-    for (const d of ALL_DRAWINGS) {
+    for (const d of ALL_DOCUMENTS) {
       const sysId = sysMap.get(d.system);
       if (!sysId) continue;
       
       const revision = d.type === 'PIN_ASSIGNMENT' ? '0' : 'A';
-      const remarks = d.type === 'PIN_ASSIGNMENT' ? `PIN_ASSIGNMENT|${d.file}|${d.carType || 'ALL'}|${(d.connectors || []).join(',')}` : `SCHEMATIC|${d.file}`;
+      const remarks = d.type === 'PIN_ASSIGNMENT' 
+        ? `PIN_ASSIGNMENT|${d.file}|${d.carType || 'ALL'}|${(d.connectors || []).join(',')}`
+        : (d.type === 'REFERENCE' ? `REFERENCE|${d.file}` : `SCHEMATIC|${d.file}`);
       
       await prisma.drawing.upsert({
         where: { projectId_drawingNo_revision: { projectId: project.id, drawingNo: d.drawingNo, revision } },
@@ -171,7 +176,7 @@ export async function POST() {
       });
       dwgCount++;
     }
-    console.log(`✓ ${dwgCount} Drawings (including all PIN drawings from all PDF files)`);
+    console.log(`✓ ${dwgCount} Drawings created from ALL PDF documents`);
 
     console.log('\nStep 3: Creating Equipment...');
     const drawings = await prisma.drawing.findMany();
@@ -244,10 +249,10 @@ export async function POST() {
     let pinsCreated = 0;
     
     const pinDrawings = drawings.filter(d => d.remarks?.includes('PIN_ASSIGNMENT'));
-    console.log(`  Found ${pinDrawings.length} PIN assignment drawings to process`);
+    console.log(`  Found ${pinDrawings.length} PIN assignment drawings`);
     
     for (const drawing of pinDrawings) {
-      const pinDwgConfig = ALL_DRAWINGS.find(p => p.drawingNo === drawing.drawingNo);
+      const pinDwgConfig = ALL_DOCUMENTS.find(p => p.drawingNo === drawing.drawingNo);
       const connectors = pinDwgConfig?.connectors || [];
       
       for (const connCode of connectors) {
@@ -262,11 +267,11 @@ export async function POST() {
               connectorTypeCode: connCode.startsWith('CN') ? '74P' : 'TERMINAL',
               pinCount: pinCount,
               carType: pinDwgConfig?.carType || 'ALL',
-              description: `${connCode} - ${drawing.title}`
+              description: `${connCode} - ${pinDwgConfig?.title || 'Connector'}`
             }
           });
           
-          for (let p = 1; p <= Math.min(pinCount, 40); p++) {
+          for (let p = 1; p <= pinCount; p++) {
             await prisma.connectorPin.create({
               data: {
                 connectorId: conn.id,
@@ -297,13 +302,21 @@ export async function POST() {
 
     console.log('\n=== COMPLETE SEED DONE ===');
     console.log(`Systems: ${stats[0]}`);
-    console.log(`Drawings: ${stats[1]} (Schematic + PIN from ALL PDF files)`);
+    console.log(`Drawings: ${stats[1]} (from ALL 9 PDF files)`);
     console.log(`Wires: ${stats[2]}`);
     console.log(`Equipment: ${stats[3]}`);
     console.log(`Connectors: ${stats[4]}`);
     console.log(`Pins: ${stats[5]}`);
     console.log(`Circuits: ${stats[6]}`);
     console.log(`Trainlines: ${stats[7]}`);
+
+    const documentSummary = ALL_DOCUMENTS.map(d => ({
+      drawingNo: d.drawingNo,
+      title: d.title,
+      file: d.file,
+      type: d.type,
+      connectors: d.connectors?.length || 0
+    }));
 
     return NextResponse.json({ 
       success: true, 
@@ -318,7 +331,7 @@ export async function POST() {
         circuits: stats[6], 
         trainlines: stats[7] 
       },
-      documents: ALL_DRAWINGS.map(d => ({ drawingNo: d.drawingNo, title: d.title, file: d.file, type: d.type, connectors: d.connectors?.length || 0 }))
+      documents: documentSummary
     });
   } catch (error) {
     console.error('Seed error:', error);

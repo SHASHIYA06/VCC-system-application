@@ -148,7 +148,7 @@ export default function DashboardPage() {
     setSeeding(true);
     setError(null);
     try {
-      const response = await fetch('/api/vcc-final-seed', { method: 'POST' });
+      const response = await fetch('/api/vcc-complete-seed', { method: 'POST' });
       const data = await response.json();
       if (response.ok) {
         setSeedResult(data);
