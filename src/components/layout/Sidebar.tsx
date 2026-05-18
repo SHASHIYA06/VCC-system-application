@@ -21,7 +21,9 @@ import {
   Battery,
   Activity,
   Wrench,
-  FileText
+  FileText,
+  Network,
+  Bot
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -58,6 +60,8 @@ const dataNav = [
 ];
 
 const bottomNav = [
+  { name: 'GSD', href: '/gsd', icon: Network },
+  { name: 'AI Assistant', href: '/ai-assistant', icon: Bot },
   { name: 'Learning', href: '/learning', icon: BookOpen },
   { name: 'Troubleshoot', href: '/troubleshooting', icon: Wrench },
   { name: 'Admin', href: '/admin', icon: Settings },
