@@ -1,15 +1,17 @@
 {
-  "mcpServers": {
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
     "playwright": {
-      "command": "npx",
-      "args": [
+      "type": "local",
+      "command": [
+        "npx",
         "@playwright/mcp@latest",
         "--headless",
         "--viewport-size=1920x1080"
       ],
+      "enabled": true,
       "env": {
-        "PLAYWRIGHT_MCP_BROWSER": "chromium",
-        "PLAYWRIGHT_MCP_ALLOWED_HOSTS": "*"
+        "PLAYWRIGHT_MCP_BROWSER": "chromium"
       }
     }
   }

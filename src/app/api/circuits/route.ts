@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching circuits:', error);
     return NextResponse.json(
-      { error: { message: 'Failed to fetch circuits', code: 'DB_ERROR' } },
+      { error: 'Failed to fetch circuits', details: String(error) },
       { status: 500 }
     );
   }

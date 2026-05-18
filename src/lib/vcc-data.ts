@@ -19,6 +19,11 @@ export const TRAINLINE_SYSTEM_MAP: Record<string, string> = {
   '6009': 'DOOR', '6014': 'DOOR', '6046': 'DOOR', '6051': 'DOOR', '6073': 'DOOR', '6076': 'DOOR', '6112': 'DOOR',
   '7001': 'VAC', '7050': 'VAC', '7060': 'VAC', '7070': 'VAC',
   '5000': 'APS', '5030': 'APS', '5031': 'APS', '5064': 'APS',
+  '8001': 'COMMS', '8002': 'COMMS', '8101': 'COMMS', '8102': 'COMMS', '8103': 'COMMS', '8104': 'COMMS',
+  '8201': 'COMMS', '8202': 'COMMS', '8203': 'COMMS', '8204': 'COMMS',
+  '8301': 'COMMS', '8302': 'COMMS', '8303': 'COMMS', '8304': 'COMMS',
+  '8401': 'COMMS', '8402': 'COMMS', '8403': 'COMMS',
+  '8501': 'COMMS', '8502': 'COMMS',
   '1207': 'TRAC', '1209': 'HV', '1215': 'APS',
   '1032': 'TRL', '1040': 'TRL', '1050': 'TRL',
 };

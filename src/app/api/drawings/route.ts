@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     return val === null ? undefined : val;
   };
 
-  let system_code = getParam('system_code');
+  const systemCode = getParam('system_code');
   const drawing_no = getParam('drawing_no');
   const search = getParam('search');
   let page = 1;
@@ -22,14 +22,14 @@ export async function GET(request: NextRequest) {
     page = 1;
     limit = 100;
   }
-  
+
   const skip = (page - 1) * limit;
 
   try {
     const where: any = {};
-    
-    if (system_code) {
-      const system = await prisma.system.findFirst({ where: { code: system_code } });
+
+    if (systemCode) {
+      const system = await prisma.system.findFirst({ where: { code: systemCode } });
       if (system) {
         where.systemId = system.id;
       }
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       meta: {
         totalDrawings: total,
         totalSystems: systemCount,
-        currentSystem: system_code || null,
+        currentSystem: systemCode || null,
       }
     });
   } catch (error) {
