@@ -1,8 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { FileText, Download, Search, Cpu, MapPin, Zap, Settings, Train, DoorOpen, Battery, Radio, Wind, ShieldCheck, Layers, RefreshCw, ChevronRight, FolderOpen } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { 
+  FileText, Download, Search, Cpu, MapPin, Zap, Settings, Train, DoorOpen, 
+  Battery, Radio, Wind, ShieldCheck, Layers, RefreshCw, ChevronRight, 
+  FolderOpen, Eye, ExternalLink, X, Loader2, AlertTriangle, Database
+} from 'lucide-react';
 
 interface DocumentData {
   id: string;
@@ -14,14 +19,16 @@ interface DocumentData {
   pageCount: number;
   description: string;
   sourcePath: string;
+  systemCodes: string[];
+  pdfExists?: boolean;
 }
 
-const CAR_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
-  DMC: { label: 'DMC', color: 'text-blue-400', bg: 'bg-blue-500/20', icon: Zap },
-  TC: { label: 'TC', color: 'text-green-400', bg: 'bg-green-500/20', icon: Train },
-  MC: { label: 'MC', color: 'text-orange-400', bg: 'bg-orange-500/20', icon: Zap },
-  CAB: { label: 'Cab', color: 'text-purple-400', bg: 'bg-purple-500/20', icon: Settings },
-  ALL: { label: 'All', color: 'text-slate-400', bg: 'bg-slate-500/20', icon: FileText },
+const CAR_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  DMC: { label: 'DMC', color: 'text-blue-400', bg: 'bg-blue-500/20' },
+  TC: { label: 'TC', color: 'text-green-400', bg: 'bg-green-500/20' },
+  MC: { label: 'MC', color: 'text-orange-400', bg: 'bg-orange-500/20' },
+  CAB: { label: 'Cab', color: 'text-purple-400', bg: 'bg-purple-500/20' },
+  ALL: { label: 'All', color: 'text-slate-400', bg: 'bg-slate-500/20' },
 };
 
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
@@ -29,13 +36,7 @@ const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg: string
   PIN_DRAWING: { label: 'Pin Drawing', color: 'text-purple-400', bg: 'bg-purple-500/20', icon: MapPin },
   LAYOUT: { label: 'Layout', color: 'text-orange-400', bg: 'bg-orange-500/20', icon: Layers },
   OCR: { label: 'OCR', color: 'text-amber-400', bg: 'bg-amber-500/20', icon: Search },
-};
-
-const LOCATION_CONFIG: Record<string, { label: string; color: string }> = {
-  CEILING: { label: 'Ceiling', color: 'text-cyan-400' },
-  UNDERFRAME: { label: 'Underframe', color: 'text-amber-400' },
-  CAB: { label: 'Cab', color: 'text-purple-400' },
-  ALL: { label: 'All Areas', color: 'text-slate-400' },
+  SCHEMATIC: { label: 'Schematic', color: 'text-green-400', bg: 'bg-green-500/20', icon: Zap },
 };
 
 const SYSTEM_LINKS: Record<string, { name: string; color: string; href: string }[]> = {
@@ -82,25 +83,37 @@ const SYSTEM_LINKS: Record<string, { name: string; color: string; href: string }
 };
 
 const DOCUMENTS_DATA: DocumentData[] = [
-  { id: 'doc-1', filename: 'VCC DESCRIPTION 13.12.2017.pdf', title: 'VCC System Description', category: 'REFERENCE', carType: 'ALL', location: 'ALL', pageCount: 54, description: 'Complete VCC system description - trainline reference (1000-9000 series), connector details, equipment layout across all cars. Contains cross-connection information, wiring conventions, and system architecture.', sourcePath: '/DOCUMENTS/VCC DESCRIPTION 13.12.2017.pdf' },
-  { id: 'doc-2', filename: 'CAB_PIN DRAWINGS.pdf', title: 'Cab Pin Drawings - Part 1', category: 'PIN_DRAWING', carType: 'CAB', location: 'CAB', pageCount: 48, description: 'Driver cab connector pin assignments - operating panel CN1-CN5, master controller, indicator lamps, horn control, wiper control, lights control.', sourcePath: '/DOCUMENTS/CAB_PIN DRAWINGS.pdf' },
-  { id: 'doc-3', filename: 'CAB_PIN DRAWINGS 2.pdf', title: 'Cab Pin Drawings - Part 2', category: 'PIN_DRAWING', carType: 'CAB', location: 'CAB', pageCount: 48, description: 'Extended cab pin assignments - radio interface, CCTV monitor, PIS display, additional spare pins.', sourcePath: '/DOCUMENTS/CAB_PIN DRAWINGS 2.pdf' },
-  { id: 'doc-4', filename: 'DMC_CEILING.pdf', title: 'DMC Car Ceiling Layout', category: 'LAYOUT', carType: 'DMC', location: 'CEILING', pageCount: 28, description: 'DMC car ceiling equipment layout - TCMS_RIO1 (40-pin connector), DCU1-DCU4 (door control), EDB1-EDB4 (electrical distribution), CCTV controller.', sourcePath: '/DOCUMENTS/DMC_CEILING.pdf' },
-  { id: 'doc-5', filename: 'DMC UF_PIN DRAWINGS.pdf', title: 'DMC Underframe Pin Drawings', category: 'PIN_DRAWING', carType: 'DMC', location: 'UNDERFRAME', pageCount: 26, description: 'DMC underframe connector pin assignments - VVVF (CN1-CN4), BCU1 (brake control), LTEB1 (X1-X4 intercar jumpers - 74-pin each), HSCB.', sourcePath: '/DOCUMENTS/DMC UF_PIN DRAWINGS.pdf' },
-  { id: 'doc-6', filename: 'TC_CEILING PIN DRAWINGS.pdf', title: 'TC Car Ceiling Pin Drawings', category: 'PIN_DRAWING', carType: 'TC', location: 'CEILING', pageCount: 27, description: 'TC car ceiling connector pin assignments - TCMS_RIO2 (40-pin), VAC1-VAC2 (HVAC), PIS controller, PA amplifier.', sourcePath: '/DOCUMENTS/TC_CEILING PIN DRAWINGS.pdf' },
-  { id: 'doc-7', filename: 'TC _UF PIN DRAWINGS.pdf', title: 'TC Underframe Pin Drawings', category: 'PIN_DRAWING', carType: 'TC', location: 'UNDERFRAME', pageCount: 21, description: 'TC underframe connector pin assignments - APS1 (auxiliary power), SIV1 (static inverter), BATT1 (battery), SSB1 (shore supply box).', sourcePath: '/DOCUMENTS/TC _UF PIN DRAWINGS.pdf' },
-  { id: 'doc-8', filename: 'MC_CEILING_PIN DRAWINGS.pdf', title: 'MC Car Ceiling Pin Drawings', category: 'PIN_DRAWING', carType: 'MC', location: 'CEILING', pageCount: 58, description: 'MC car ceiling connector pin assignments - TCMS_RIO1, CCTV cameras (CAM1-CAM16), TFT displays (TFT1-TFT8), DVAS, PIS displays.', sourcePath: '/DOCUMENTS/MC_CEILING_PIN DRAWINGS.pdf' },
-  { id: 'doc-9', filename: 'MC_UF.pdf', title: 'MC Underframe Layout', category: 'LAYOUT', carType: 'MC', location: 'UNDERFRAME', pageCount: 27, description: 'MC car underframe equipment layout - VVVF2, BCU3, BECU1 (brake electronic), LTEB3, traction motors M1-M4.', sourcePath: '/DOCUMENTS/MC_UF.pdf' },
-  { id: 'doc-10', filename: 'KMRCL VCC Drawings_OCR.pdf', title: 'KMRCL VCC Drawings OCR', category: 'OCR', carType: 'ALL', location: 'ALL', pageCount: 10, description: 'OCR extracted VCC drawings - connector pin tables, wire connection lists, trainline cross reference, inter-car jumper details.', sourcePath: '/DOCUMENTS/KMRCL VCC Drawings_OCR.pdf' },
+  { id: 'doc-1', filename: 'VCC DESCRIPTION 13.12.2017.pdf', title: 'VCC System Description', category: 'REFERENCE', carType: 'ALL', location: 'ALL', pageCount: 54, description: 'Complete VCC system description - trainline reference (1000-9000 series), connector details, equipment layout across all cars. Contains cross-connection information, wiring conventions, and system architecture.', sourcePath: '/DOCUMENTS/VCC DESCRIPTION 13.12.2017.pdf', systemCodes: ['TRL', 'TRAC', 'BRAKE', 'TMS', 'DOOR', 'APS', 'VAC', 'COMMS'] },
+  { id: 'doc-2', filename: 'CAB_PIN DRAWINGS.pdf', title: 'Cab Pin Drawings - Part 1', category: 'PIN_DRAWING', carType: 'CAB', location: 'CAB', pageCount: 48, description: 'Driver cab connector pin assignments - operating panel CN1-CN5, master controller, indicator lamps, horn control, wiper control, lights control.', sourcePath: '/DOCUMENTS/CAB_PIN DRAWINGS.pdf', systemCodes: ['CAB', 'COMMS'] },
+  { id: 'doc-3', filename: 'CAB_PIN DRAWINGS 2.pdf', title: 'Cab Pin Drawings - Part 2', category: 'PIN_DRAWING', carType: 'CAB', location: 'CAB', pageCount: 48, description: 'Extended cab pin assignments - radio interface, CCTV monitor, PIS display, additional spare pins.', sourcePath: '/DOCUMENTS/CAB_PIN DRAWINGS 2.pdf', systemCodes: ['CAB', 'COMMS'] },
+  { id: 'doc-4', filename: 'DMC_CEILING.pdf', title: 'DMC Car Ceiling Layout', category: 'LAYOUT', carType: 'DMC', location: 'CEILING', pageCount: 28, description: 'DMC car ceiling equipment layout - TCMS_RIO1 (40-pin connector), DCU1-DCU4 (door control), EDB1-EDB4 (electrical distribution), CCTV controller.', sourcePath: '/DOCUMENTS/DMC_CEILING.pdf', systemCodes: ['TMS', 'DOOR', 'COMMS'] },
+  { id: 'doc-5', filename: 'DMC UF_PIN DRAWINGS.pdf', title: 'DMC Underframe Pin Drawings', category: 'PIN_DRAWING', carType: 'DMC', location: 'UNDERFRAME', pageCount: 26, description: 'DMC underframe connector pin assignments - VVVF (CN1-CN4), BCU1 (brake control), LTEB1 (X1-X4 intercar jumpers - 74-pin each), HSCB.', sourcePath: '/DOCUMENTS/DMC UF_PIN DRAWINGS.pdf', systemCodes: ['TRAC', 'BRAKE', 'TRL', 'HV'] },
+  { id: 'doc-6', filename: 'TC_CEILING PIN DRAWINGS.pdf', title: 'TC Car Ceiling Pin Drawings', category: 'PIN_DRAWING', carType: 'TC', location: 'CEILING', pageCount: 27, description: 'TC car ceiling connector pin assignments - TCMS_RIO2 (40-pin), VAC1-VAC2 (HVAC), PIS controller, PA amplifier.', sourcePath: '/DOCUMENTS/TC_CEILING PIN DRAWINGS.pdf', systemCodes: ['TMS', 'VAC', 'COMMS'] },
+  { id: 'doc-7', filename: 'TC _UF PIN DRAWINGS.pdf', title: 'TC Underframe Pin Drawings', category: 'PIN_DRAWING', carType: 'TC', location: 'UNDERFRAME', pageCount: 21, description: 'TC underframe connector pin assignments - APS1 (auxiliary power), SIV1 (static inverter), BATT1 (battery), SSB1 (shore supply box).', sourcePath: '/DOCUMENTS/TC _UF PIN DRAWINGS.pdf', systemCodes: ['APS'] },
+  { id: 'doc-8', filename: 'MC_CEILING_PIN DRAWINGS.pdf', title: 'MC Car Ceiling Pin Drawings', category: 'PIN_DRAWING', carType: 'MC', location: 'CEILING', pageCount: 58, description: 'MC car ceiling connector pin assignments - TCMS_RIO1, CCTV cameras (CAM1-CAM16), TFT displays (TFT1-TFT8), DVAS, PIS displays.', sourcePath: '/DOCUMENTS/MC_CEILING_PIN DRAWINGS.pdf', systemCodes: ['TMS', 'COMMS'] },
+  { id: 'doc-9', filename: 'MC_UF.pdf', title: 'MC Underframe Layout', category: 'LAYOUT', carType: 'MC', location: 'UNDERFRAME', pageCount: 27, description: 'MC car underframe equipment layout - VVVF2, BCU3, BECU1 (brake electronic), LTEB3, traction motors M1-M4.', sourcePath: '/DOCUMENTS/MC_UF.pdf', systemCodes: ['TRAC', 'BRAKE'] },
+  { id: 'doc-10', filename: 'KMRCL VCC Drawings_OCR.pdf', title: 'KMRCL VCC Drawings OCR', category: 'OCR', carType: 'ALL', location: 'ALL', pageCount: 10, description: 'OCR extracted VCC drawings - connector pin tables, wire connection lists, trainline cross reference, inter-car jumper details.', sourcePath: '/DOCUMENTS/KMRCL VCC Drawings_OCR.pdf', systemCodes: ['GEN'] },
 ];
 
-export default function DocumentsPage() {
+function DocumentsContent() {
+  const searchParams = useSearchParams();
+  const docId = searchParams.get('doc');
+  
   const [documents, setDocuments] = useState<DocumentData[]>(DOCUMENTS_DATA);
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [filterCarType, setFilterCarType] = useState<string | null>(null);
   const [filterLocation, setFilterLocation] = useState<string | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<DocumentData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+
+  useEffect(() => {
+    if (docId) {
+      const doc = documents.find(d => d.id === docId);
+      if (doc) setSelectedDoc(doc);
+    }
+  }, [docId]);
 
   const filteredDocuments = documents.filter(doc => {
     const matchSearch = !search || 
@@ -120,8 +133,17 @@ export default function DocumentsPage() {
         return systems;
       }
     }
-    return [];
+    return doc.systemCodes?.map(code => ({
+      name: code,
+      color: 'text-slate-400',
+      href: `/systems/${code}`,
+    })) || [];
   };
+
+  function openPdfViewer(doc: DocumentData) {
+    setSelectedDoc(doc);
+    setShowPdfViewer(true);
+  }
 
   return (
     <div className="animated-bg min-h-screen p-6 grid-pattern">
@@ -133,9 +155,20 @@ export default function DocumentsPage() {
         <p className="mt-2 text-slate-400">
           Complete library of VCC technical documents - {documents.length} documents with wiring, pin assignments, and system connections
         </p>
+        <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
+          <span className="flex items-center gap-1">
+            <FileText className="h-4 w-4" />
+            {documents.length} Documents
+          </span>
+          <span className="text-cyan-400">
+            {documents.reduce((acc, d) => acc + d.pageCount, 0)} Total Pages
+          </span>
+          <span className="text-green-400">
+            10 PDFs Available
+          </span>
+        </div>
       </div>
 
-      {/* Search and Filters */}
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -170,12 +203,10 @@ export default function DocumentsPage() {
         </select>
       </div>
 
-      {/* Document Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredDocuments.map(doc => {
           const carConfig = CAR_TYPE_CONFIG[doc.carType] || CAR_TYPE_CONFIG['ALL'];
           const catConfig = CATEGORY_CONFIG[doc.category] || CATEGORY_CONFIG['REFERENCE'];
-          const locConfig = LOCATION_CONFIG[doc.location] || LOCATION_CONFIG['ALL'];
           const CatIcon = catConfig.icon;
           const relatedSystems = getRelatedSystems(doc);
 
@@ -205,9 +236,6 @@ export default function DocumentsPage() {
                 <div>
                   <span className="font-medium">Pages:</span> {doc.pageCount}
                 </div>
-                <div className={locConfig.color}>
-                  <span className="font-medium">Location:</span> {locConfig.label}
-                </div>
               </div>
 
               {relatedSystems.length > 0 && (
@@ -229,18 +257,28 @@ export default function DocumentsPage() {
               )}
 
               <div className="flex gap-2 mt-4">
-                <Link 
-                  href={`/drawings?doc=${doc.id}`}
-                  className="flex-1 text-center px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm"
+                <button 
+                  onClick={() => openPdfViewer(doc)}
+                  className="flex-1 text-center px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm flex items-center justify-center gap-2"
                 >
-                  View Details
-                </Link>
-                <Link 
+                  <Eye className="h-4 w-4" />
+                  View PDF
+                </button>
+                <a 
                   href={`/api/documents/serve/${encodeURIComponent(doc.filename)}`}
                   target="_blank"
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm flex items-center gap-2"
                 >
                   <Download className="h-4 w-4" />
+                  Download
+                </a>
+                <Link 
+                  href={`/drawings?doc=${doc.id}`}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm flex items-center gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Drawings
                 </Link>
               </div>
             </div>
@@ -255,7 +293,6 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* Summary Statistics */}
       <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="glass-card p-4 text-center">
           <div className="text-2xl font-bold text-cyan-400">{documents.length}</div>
@@ -278,6 +315,45 @@ export default function DocumentsPage() {
           <div className="text-sm text-slate-500">Car Types</div>
         </div>
       </div>
+
+      <div className="mt-8 glass-card p-6">
+        <h3 className="text-lg font-bold text-white mb-4">Document Hierarchy</h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-4 p-3 bg-slate-800/30 rounded-lg">
+            <FileText className="h-6 w-6 text-cyan-400" />
+            <div>
+              <div className="font-bold text-white">VCC DESCRIPTION 13.12.2017.pdf</div>
+              <div className="text-sm text-slate-400">Master reference document - 54 pages covering all systems</div>
+            </div>
+          </div>
+          <div className="ml-8 space-y-2">
+            <div className="flex items-center gap-4 p-2 bg-blue-500/10 rounded-lg">
+              <MapPin className="h-5 w-5 text-blue-400" />
+              <div className="text-sm text-slate-300">Cab Pin Drawings (2 files)</div>
+            </div>
+            <div className="flex items-center gap-4 p-2 bg-orange-500/10 rounded-lg">
+              <Layers className="h-5 w-5 text-orange-400" />
+              <div className="text-sm text-slate-300">Car Layout Drawings (3 files)</div>
+            </div>
+            <div className="flex items-center gap-4 p-2 bg-purple-500/10 rounded-lg">
+              <MapPin className="h-5 w-5 text-purple-400" />
+              <div className="text-sm text-slate-300">Pin Assignment Drawings (5 files)</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  );
+}
+
+export default function DocumentsPage() {
+  return (
+    <Suspense fallback={
+      <div className="animated-bg min-h-screen p-6 grid-pattern flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-cyan-400 animate-spin" />
+      </div>
+    }>
+      <DocumentsContent />
+    </Suspense>
   );
 }

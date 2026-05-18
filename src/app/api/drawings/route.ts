@@ -10,12 +10,13 @@ export async function GET(request: NextRequest) {
   };
 
   let system_code = getParam('system_code');
-  let drawing_no = getParam('drawing_no');
+  const drawing_no = getParam('drawing_no');
+  const search = getParam('search');
   let page = 1;
   let limit = 100;
 
   try {
-    if (searchParams.get('page')) page = parseInt(searchParams.get('page')!) || 1;
+    if (searchParams.get('page')) page = Math.max(1, parseInt(searchParams.get('page')!) || 1);
     if (searchParams.get('limit')) limit = Math.min(parseInt(searchParams.get('limit')!) || 100, 500);
   } catch (e) {
     page = 1;
@@ -38,19 +39,47 @@ export async function GET(request: NextRequest) {
       where.drawingNo = { contains: drawing_no };
     }
 
-    const [docs, total] = await Promise.all([
+    if (search) {
+      where.OR = [
+        { drawingNo: { contains: search, mode: 'insensitive' } },
+        { title: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [docs, total, systemCount] = await Promise.all([
       prisma.drawing.findMany({
         where,
         include: { 
           system: true,
-          _count: { select: { connectors: true, trainLines: true } }
+          _count: { select: { connectors: true, trainLines: true, devices: true, pages: true } }
         },
         orderBy: { drawingNo: 'asc' },
         skip,
         take: limit,
       }),
       prisma.drawing.count({ where }),
+      prisma.system.count(),
     ]);
+
+    const groupedBySystem = docs.reduce((acc, d) => {
+      const sysCode = d.system?.code || 'GEN';
+      if (!acc[sysCode]) acc[sysCode] = [];
+      acc[sysCode].push({
+        id: d.id,
+        drawingNo: d.drawingNo,
+        title: d.title,
+        revision: d.revision,
+        totalSheets: d.totalSheets,
+        system: d.system ? { code: d.system.code, name: d.system.name } : null,
+        remarks: d.remarks,
+        connectorCount: d._count.connectors,
+        trainlineCount: d._count.trainLines,
+        deviceCount: d._count.devices,
+        pageCount: d._count.pages,
+        _count: d._count,
+      });
+      return acc;
+    }, {} as Record<string, any[]>);
 
     return NextResponse.json({
       drawings: docs.map(d => ({
@@ -63,8 +92,23 @@ export async function GET(request: NextRequest) {
         remarks: d.remarks,
         connectorCount: d._count.connectors,
         trainlineCount: d._count.trainLines,
+        deviceCount: d._count.devices,
       })),
-      pagination: { total, page, limit, hasMore: skip + docs.length < total }
+      groupedBySystem,
+      pagination: { 
+        total, 
+        page, 
+        limit, 
+        totalPages: Math.ceil(total / limit),
+        hasMore: skip + docs.length < total,
+        hasPrev: page > 1,
+        hasNext: skip + docs.length < total,
+      },
+      meta: {
+        totalDrawings: total,
+        totalSystems: systemCount,
+        currentSystem: system_code || null,
+      }
     });
   } catch (error) {
     console.error('Error fetching drawings:', error);

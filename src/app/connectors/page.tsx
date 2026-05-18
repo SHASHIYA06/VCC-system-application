@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Cable, Search, ArrowRight, ChevronDown, Box, Cpu, RefreshCw } from 'lucide-react';
+import { Cable, Search, ArrowRight, ChevronDown, Box, Cpu, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
 
 const FALLBACK_CONNECTORS = [
-  { id: 'cn-v1-1', connectorCode: 'V1-CN1', connectorType: 'VVVF', pinCount: 20, description: 'VVVF main connector - propulsion commands', equipmentCode: 'V1', equipmentName: 'VVVF Inverter 1', carCode: 'DMC', systemCode: 'TRAC', drawing: '942-58120',
+  { id: 'cn-v1-1', connectorCode: 'V1-CN1', connectorType: 'VVVF', pinCount: 20, description: 'VVVF main connector - propulsion commands', equipmentCode: 'V1', equipmentName: 'VVVF Inverter 1', carCode: 'DMC', systemCode: 'TRAC', drawingNo: '942-58120',
     pins: [
       { pinNo: '12', signalName: 'FORWARD_CMD', wireNo: '3003', endpointLabel: 'Forward command' },
       { pinNo: '13', signalName: 'REVERSE_CMD', wireNo: '3004', endpointLabel: 'Reverse command' },
@@ -14,7 +14,7 @@ const FALLBACK_CONNECTORS = [
       { pinNo: '16', signalName: 'BRAKE_CMD', wireNo: '3010', endpointLabel: 'Braking command' },
     ]
   },
-  { id: 'cn-rio1-1', connectorCode: 'TCMS_RIO1-CN1', connectorType: 'TCMS_RIO', pinCount: 40, description: 'TCMS RIO main connector - all digital I/O', equipmentCode: 'TCMS_RIO1', equipmentName: 'TCMS Remote IO Unit 1', carCode: 'MC', systemCode: 'TMS', drawing: '942-38610',
+  { id: 'cn-rio1-1', connectorCode: 'TCMS_RIO1-CN1', connectorType: 'TCMS_RIO', pinCount: 40, description: 'TCMS RIO main connector - all digital I/O', equipmentCode: 'TCMS_RIO1', equipmentName: 'TCMS Remote IO Unit 1', carCode: 'MC', systemCode: 'TMS', drawingNo: '942-38610',
     pins: [
       { pinNo: 'J7', signalName: 'DOOR_OPEN_L', wireNo: '6009', endpointLabel: 'Left door open' },
       { pinNo: 'J8', signalName: 'DOOR_OPEN_R', wireNo: '6046', endpointLabel: 'Right door open' },
@@ -23,14 +23,14 @@ const FALLBACK_CONNECTORS = [
       { pinNo: 'K4', signalName: 'PB_APPLIED', wireNo: '4122', endpointLabel: 'Parking brake applied' },
     ]
   },
-  { id: 'cn-rio2-1', connectorCode: 'TCMS_RIO2-CN1', connectorType: 'TCMS_RIO', pinCount: 40, description: 'TCMS RIO2 connector - APS and battery monitoring', equipmentCode: 'TCMS_RIO2', equipmentName: 'TCMS Remote IO Unit 2', carCode: 'TC', systemCode: 'TMS', drawing: '942-38409',
+  { id: 'cn-rio2-1', connectorCode: 'TCMS_RIO2-CN1', connectorType: 'TCMS_RIO', pinCount: 40, description: 'TCMS RIO2 connector - APS and battery monitoring', equipmentCode: 'TCMS_RIO2', equipmentName: 'TCMS Remote IO Unit 2', carCode: 'TC', systemCode: 'TMS', drawingNo: '942-38409',
     pins: [
       { pinNo: 'F2', signalName: 'CAB_VAC_FAULT', wireNo: '7001', endpointLabel: 'Cab VAC fault' },
       { pinNo: 'G3', signalName: 'APS_FAULT', wireNo: '1215', endpointLabel: 'APS fault' },
       { pinNo: 'G4', signalName: 'BAT_UNDER_VOLT', wireNo: '5064', endpointLabel: 'Battery under-voltage' },
     ]
   },
-  { id: 'cn-dcu1-1', connectorCode: 'DCU1-CN1', connectorType: 'DOOR', pinCount: 16, description: 'Door control unit main connector', equipmentCode: 'DCU1', equipmentName: 'Door Control Unit 1', carCode: 'MC', systemCode: 'DOOR', drawing: '942-58138',
+  { id: 'cn-dcu1-1', connectorCode: 'DCU1-CN1', connectorType: 'DOOR', pinCount: 16, description: 'Door control unit main connector', equipmentCode: 'DCU1', equipmentName: 'Door Control Unit 1', carCode: 'MC', systemCode: 'DOOR', drawingNo: '942-58138',
     pins: [
       { pinNo: '3', signalName: 'DOOR_OPEN_L', wireNo: '6009', endpointLabel: 'Left door open command' },
       { pinNo: '4', signalName: 'DOOR_OPEN_R', wireNo: '6046', endpointLabel: 'Right door open command' },
@@ -38,14 +38,14 @@ const FALLBACK_CONNECTORS = [
       { pinNo: '6', signalName: 'DOOR_CLOSE_R', wireNo: '6051', endpointLabel: 'Right door close command' },
     ]
   },
-  { id: 'cn-aps1-1', connectorCode: 'APS1-CN1', connectorType: 'APS', pinCount: 24, description: 'APS main power connector', equipmentCode: 'APS1', equipmentName: 'Auxiliary Power Supply', carCode: 'TC', systemCode: 'APS', drawing: '942-58130',
+  { id: 'cn-aps1-1', connectorCode: 'APS1-CN1', connectorType: 'APS', pinCount: 24, description: 'APS main power connector', equipmentCode: 'APS1', equipmentName: 'Auxiliary Power Supply', carCode: 'TC', systemCode: 'APS', drawingNo: '942-58130',
     pins: [
       { pinNo: '1', signalName: 'AUX_ON', wireNo: '1040', endpointLabel: 'Auxiliary on command' },
       { pinNo: '2', signalName: 'SHUTDOWN', wireNo: '1050', endpointLabel: 'Shutdown command' },
       { pinNo: '5', signalName: 'AUX_FAULT', wireNo: '1215', endpointLabel: 'Auxiliary fault output' },
     ]
   },
-  { id: 'cn-x1-dmc', connectorCode: 'X1', connectorType: 'INTERCAR', pinCount: 74, description: '74-pin inter-car control jumper - all control signals', equipmentCode: 'LTEB1', equipmentName: 'Low Tension Equipment Box', carCode: 'DMC', systemCode: 'TRL', drawing: '942-38409',
+  { id: 'cn-x1-dmc', connectorCode: 'X1', connectorType: 'INTERCAR', pinCount: 74, description: '74-pin inter-car control jumper - all control signals', equipmentCode: 'LTEB1', equipmentName: 'Low Tension Equipment Box', carCode: 'DMC', systemCode: 'TRL', drawingNo: '942-38409',
     pins: [
       { pinNo: '17', signalName: 'FORWARD', wireNo: '3003', endpointLabel: 'Forward command' },
       { pinNo: '18', signalName: 'REVERSE', wireNo: '3004', endpointLabel: 'Reverse command' },
@@ -63,13 +63,29 @@ const SYSTEM_COLORS: Record<string, { color: string; bg: string }> = {
   VAC: { color: 'text-cyan-400', bg: 'bg-cyan-500/20' },
   APS: { color: 'text-green-400', bg: 'bg-green-500/20' },
   TRL: { color: 'text-blue-400', bg: 'bg-blue-500/20' },
+  GEN: { color: 'text-slate-400', bg: 'bg-slate-500/20' },
+  CAB: { color: 'text-violet-400', bg: 'bg-violet-500/20' },
 };
 
 const CAR_COLORS: Record<string, { color: string; bg: string }> = {
   DMC: { color: 'text-blue-400', bg: 'bg-blue-500/20' },
   TC: { color: 'text-green-400', bg: 'bg-green-500/20' },
   MC: { color: 'text-orange-400', bg: 'bg-orange-500/20' },
+  ALL: { color: 'text-slate-400', bg: 'bg-slate-500/20' },
 };
+
+interface PinData {
+  pinNo: string;
+  pinLabel?: string | null;
+  wireNo?: string | null;
+  signalName?: string | null;
+  conductorClassCode?: string | null;
+  voltageText?: string | null;
+  terminalFrom?: string | null;
+  terminalTo?: string | null;
+  note?: string | null;
+  endpointLabel?: string | null;
+}
 
 interface ConnectorData {
   id: string;
@@ -77,18 +93,13 @@ interface ConnectorData {
   connectorType: string | null;
   pinCount?: number;
   description?: string;
-  deviceId?: string | null;
-  equipmentCode?: string;
-  equipmentName?: string;
-  carCode?: string;
+  carType?: string | null;
   systemCode?: string;
-  drawing?: string;
-  pins?: Array<{
-    pinNo: string;
-    signalName: string | null;
-    wireNo: string | null;
-    endpointLabel: string | null;
-  }>;
+  drawingNo?: string;
+  system?: { code: string; name: string } | null;
+  drawing?: { id: string; drawingNo: string; title: string; revision: string } | null;
+  pins: PinData[];
+  _count?: { pins: number; wireEndpoints: number };
 }
 
 export default function ConnectorsPage() {
@@ -99,59 +110,74 @@ export default function ConnectorsPage() {
   const [connectors, setConnectors] = useState<ConnectorData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     async function fetchConnectors() {
       try {
-        const response = await fetch('/api/connectors');
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (systemFilter !== 'all') params.set('system_code', systemFilter);
+        if (carFilter !== 'all') params.set('car_type', carFilter);
+        if (search) params.set('connector_code', search);
+        params.set('limit', '200');
+
+        const response = await fetch(`/api/connectors?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
         
-        const mapped = (data.connectors || []).map((c: any) => ({
+        const mapped: ConnectorData[] = (data.connectors || []).map((c: any) => ({
           id: c.id,
           connectorCode: c.connectorCode,
           connectorType: c.connectorType,
-          pinCount: c.pins?.length || 0,
-          description: `${c.connectorCode} connector`,
-          deviceId: c.deviceId,
-          equipmentCode: c.device?.name || '',
-          equipmentName: c.device?.name || '',
-          carCode: c.device?.carType || '',
-          systemCode: c.device?.system?.code || '',
-          drawing: '',
-          pins: c.pins?.map((p: any) => ({
+          pinCount: c.pinCount || c._count?.pins || 0,
+          description: c.description || `${c.connectorCode} connector`,
+          carType: c.carType,
+          systemCode: c.system?.code || '',
+          system: c.system || null,
+          drawing: c.drawing || null,
+          drawingNo: c.drawing?.drawingNo || '',
+          pins: (c.pins || []).map((p: any) => ({
             pinNo: p.pinNo,
-            signalName: p.signalName,
+            pinLabel: p.pinLabel,
             wireNo: p.wireNo,
-            endpointLabel: p.endpointLabel,
-          })) || [],
+            signalName: p.signalName,
+            conductorClassCode: p.conductorClassCode,
+            voltageText: p.voltageText,
+            terminalFrom: p.terminalFrom,
+            terminalTo: p.terminalTo,
+            note: p.note,
+            endpointLabel: p.endpointLabel || `${c.connectorCode}:${p.pinNo} - ${p.signalName || 'N/A'}`,
+          })),
+          _count: c._count,
         }));
+        
+        setTotalCount(data.total || data.count || 0);
         
         if (mapped.length > 0) {
           setConnectors(mapped);
+          setError(null);
         } else {
           setConnectors(FALLBACK_CONNECTORS);
-          setError('Using offline data - database may be unavailable');
+          setError('Database empty - showing sample data. Click "Load VCC Data" on dashboard first.');
         }
       } catch (err) {
         console.error('Connector fetch error:', err);
         setConnectors(FALLBACK_CONNECTORS);
-        setError('Using offline data - database may be unavailable');
+        setError('Database unavailable - showing sample data. Click "Load VCC Data" on dashboard first.');
       } finally {
         setLoading(false);
       }
     }
     fetchConnectors();
-  }, []);
+  }, [carFilter, systemFilter]);
 
   const filtered = connectors.filter(cn => {
     const matchSearch = search === '' ||
       cn.connectorCode.toLowerCase().includes(search.toLowerCase()) ||
-      (cn.equipmentCode || '').toLowerCase().includes(search.toLowerCase()) ||
-      (cn.description || '').toLowerCase().includes(search.toLowerCase());
-    const matchCar = carFilter === 'all' || cn.carCode === carFilter;
-    const matchSystem = systemFilter === 'all' || cn.systemCode === systemFilter;
-    return matchSearch && matchCar && matchSystem;
+      (cn.description || '').toLowerCase().includes(search.toLowerCase()) ||
+      (cn.drawingNo || '').toLowerCase().includes(search.toLowerCase());
+    return matchSearch;
   });
 
   if (loading) {
@@ -170,12 +196,15 @@ export default function ConnectorsPage() {
           All connectors, inter-car jumpers, and pin assignments
         </p>
         <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
-          <span>{connectors.length} connectors</span>
+          <span className="text-cyan-400 font-bold">{totalCount > 0 ? totalCount : connectors.length} connectors in database</span>
           <span>4 jumper types (X1-X4)</span>
           <span>DMC, TC, MC</span>
         </div>
         {error && (
-          <div className="mt-2 text-amber-400 text-sm">{error}</div>
+          <div className="mt-2 text-amber-400 text-sm flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            {error}
+          </div>
         )}
       </div>
 
@@ -221,6 +250,7 @@ export default function ConnectorsPage() {
           <option value="DMC">DMC</option>
           <option value="TC">TC</option>
           <option value="MC">MC</option>
+          <option value="ALL">ALL</option>
         </select>
         <select value={systemFilter} onChange={(e) => setSystemFilter(e.target.value)}
           className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">
@@ -230,14 +260,16 @@ export default function ConnectorsPage() {
           <option value="DOOR">Door</option>
           <option value="APS">APS</option>
           <option value="TRL">Trainlines</option>
+          <option value="CAB">Cab</option>
+          <option value="BRAKE">Brake</option>
         </select>
       </div>
 
       {/* Connector List */}
       <div className="space-y-3">
         {filtered.map(cn => {
-          const sysInfo = SYSTEM_COLORS[cn.systemCode || 'TRL'] || SYSTEM_COLORS['TRL'];
-          const carInfo = CAR_COLORS[cn.carCode || 'DMC'] || CAR_COLORS['DMC'];
+          const sysInfo = SYSTEM_COLORS[cn.systemCode || cn.system?.code || 'GEN'] || SYSTEM_COLORS['GEN'];
+          const carInfo = CAR_COLORS[cn.carType || 'ALL'] || CAR_COLORS['ALL'];
           const isExpanded = expandedId === cn.id;
 
           return (
@@ -252,9 +284,9 @@ export default function ConnectorsPage() {
                     <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${cn.connectorType === 'INTERCAR' ? 'bg-blue-500/20 text-blue-400' : cn.connectorType === 'POWER' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-500/20 text-slate-400'}`}>
                       {cn.connectorType || 'Standard'}
                     </span>
-                    {cn.carCode && (
+                    {cn.carType && cn.carType !== 'ALL' && (
                       <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${carInfo.color} ${carInfo.bg}`}>
-                        {cn.carCode}
+                        {cn.carType}
                       </span>
                     )}
                     {cn.systemCode && (
@@ -267,9 +299,14 @@ export default function ConnectorsPage() {
                     )}
                   </div>
                   <p className="mt-1 text-sm text-slate-400 truncate">{cn.description || 'Connector'}</p>
-                  {cn.equipmentCode && (
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {cn.equipmentCode} {cn.drawing && ` - Drawing: ${cn.drawing}`}
+                  {cn.drawingNo && (
+                    <p className="mt-0.5 text-xs text-slate-500 flex items-center gap-2">
+                      <span>Drawing: {cn.drawingNo}</span>
+                      {cn.drawing?.id && (
+                        <Link href={`/drawings/${cn.drawing.id}`} className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+                          View <ExternalLink className="h-3 w-3" />
+                        </Link>
+                      )}
                     </p>
                   )}
                 </div>
@@ -288,7 +325,7 @@ export default function ConnectorsPage() {
                         <th className="px-5 py-2 text-left text-xs font-semibold text-slate-500">Signal</th>
                         <th className="px-5 py-2 text-left text-xs font-semibold text-slate-500">Wire</th>
                         <th className="px-5 py-2 text-left text-xs font-semibold text-slate-500">Description</th>
-                        <th className="px-5 py-2 right text-xs font-semibold text-slate-500">Action</th>
+                        <th className="px-5 py-2 text-right text-xs font-semibold text-slate-500">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
@@ -302,7 +339,7 @@ export default function ConnectorsPage() {
                           </td>
                           <td className="px-5 py-2">
                             {pin.wireNo ? (
-                              <Link href={`/wires/${pin.wireNo}`}
+                              <Link href={`/wires?wire=${encodeURIComponent(pin.wireNo)}`}
                                 className="inline-flex items-center px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 text-xs font-mono hover:bg-cyan-500/20">
                                 {pin.wireNo}
                               </Link>
@@ -315,7 +352,7 @@ export default function ConnectorsPage() {
                           </td>
                           <td className="px-5 py-2 text-right">
                             {pin.wireNo && (
-                              <Link href={`/trainlines/${pin.wireNo}`}
+                              <Link href={`/trainlines?wire=${encodeURIComponent(pin.wireNo)}`}
                                 className="text-xs text-cyan-400 hover:text-cyan-300">
                                 Trainline
                               </Link>

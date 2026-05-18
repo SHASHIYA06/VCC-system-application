@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const [
       systemCount,
@@ -13,8 +13,9 @@ export async function GET(request: NextRequest) {
       trainLineCount,
       signalCount,
       circuitCount,
-      deviceBySystem,
-      wireByVoltage,
+      documentCount,
+      systemStats,
+      documentStats,
     ] = await Promise.all([
       prisma.system.count(),
       prisma.wire.count(),
@@ -25,21 +26,13 @@ export async function GET(request: NextRequest) {
       prisma.trainLine.count(),
       prisma.signal.count(),
       prisma.circuit.count(),
-      prisma.device.groupBy({
-        by: ['systemId'],
-        _count: true,
+      prisma.sourceFile.count(),
+      prisma.system.findMany({
+        include: { _count: { select: { drawings: true, devices: true } } },
+        orderBy: { sortOrder: 'asc' },
       }),
-      prisma.wire.groupBy({
-        by: ['voltageClass'],
-        _count: true,
-      }),
+      prisma.sourceFile.groupBy({ by: ['status'], _count: true }),
     ]);
-
-    const systemStats = await prisma.system.findMany({
-      include: {
-        _count: { select: { drawings: true, devices: true } },
-      },
-    });
 
     const drawingStats = await prisma.drawing.groupBy({
       by: ['systemId'],
@@ -47,9 +40,28 @@ export async function GET(request: NextRequest) {
     });
 
     const drawingsPerSystem = drawingStats.reduce((acc, item) => {
-      acc[item.systemId || 'Unknown'] = item._count;
+      if (item.systemId) {
+        acc[item.systemId] = item._count;
+      }
       return acc;
     }, {} as Record<string, number>);
+
+    const deviceBySystem = await prisma.device.groupBy({
+      by: ['systemId'],
+      _count: true,
+    });
+
+    const devicesPerSystem = deviceBySystem.reduce((acc, item) => {
+      if (item.systemId) {
+        acc[item.systemId] = item._count;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    const wireByVoltage = await prisma.wire.groupBy({
+      by: ['voltageClass'],
+      _count: true,
+    });
 
     return NextResponse.json({
       overview: {
@@ -62,12 +74,16 @@ export async function GET(request: NextRequest) {
         trainLines: trainLineCount,
         signals: signalCount,
         circuits: circuitCount,
-        totalConnections: pinCount * 2,
+        documents: documentCount,
+        totalConnections: pinCount,
       },
-      bySystem: deviceBySystem.reduce((acc, item) => {
-        acc[item.systemId || 'Unknown'] = item._count;
-        return acc;
-      }, {} as Record<string, number>),
+      bySystem: Object.fromEntries(
+        systemStats.map(s => [s.code, { 
+          drawings: s._count.drawings, 
+          devices: s._count.devices,
+          total: s._count.drawings + s._count.devices 
+        }])
+      ),
       byVoltageClass: wireByVoltage.reduce((acc, item) => {
         acc[item.voltageClass || 'Unknown'] = item._count;
         return acc;
@@ -77,18 +93,23 @@ export async function GET(request: NextRequest) {
         name: s.name,
         description: s.description,
         category: s.category,
+        sortOrder: s.sortOrder,
         drawingCount: s._count.drawings,
         deviceCount: s._count.devices,
       })),
       health: {
         connectorsWithPins: connectorCount > 0 ? Math.round((pinCount / connectorCount) * 100) / 100 : 0,
         averagePinsPerConnector: connectorCount > 0 ? Math.round((pinCount / connectorCount) * 100) / 100 : 0,
-        trainLineCoverage: trainLineCount > 0 ? `${Math.round((trainLineCount / 100) * 100)}%` : '0%',
-        signalCoverage: signalCount > 0 ? `${Math.round((signalCount / 100) * 100)}%` : '0%',
+        trainLineCoverage: trainLineCount > 0 ? `${Math.min(100, Math.round((trainLineCount / 60) * 100))}%` : '0%',
+        wireToPinRatio: pinCount > 0 && wireCount > 0 ? Math.round((pinCount / wireCount) * 100) / 100 : 0,
       },
+      documentStats: documentStats.map(d => ({
+        status: d.status,
+        count: d._count,
+      })),
     });
   } catch (error) {
     console.error('Error fetching stats:', error);
-    return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch stats', details: String(error) }, { status: 500 });
   }
 }
