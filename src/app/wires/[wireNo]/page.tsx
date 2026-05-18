@@ -16,7 +16,7 @@ export default async function WireDetailsPage({ params }: { params: { wireNo: st
   };
   
   // Mock endpoints for the wire tracing graph
-  let traceNodes = [
+  const traceNodes = [
     { type: 'equipment', code: 'DMC-BCU', name: 'Brake Control Unit' },
     { type: 'connector', code: 'CN1', name: 'Pin 14' },
     { type: 'wire', code: wire.wire_no, name: wire.signal_name },

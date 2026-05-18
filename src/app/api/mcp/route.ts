@@ -83,7 +83,7 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
     }
 
     case 'get_drawings': {
-      let sql = 'SELECT d.*, s.code as system_code, c.code as car_type_code FROM drawings d LEFT JOIN systems s ON d.system_id = s.id LEFT JOIN car_types c ON d.car_type_id = c.id ORDER BY d.drawing_no';
+      const sql = 'SELECT d.*, s.code as system_code, c.code as car_type_code FROM drawings d LEFT JOIN systems s ON d.system_id = s.id LEFT JOIN car_types c ON d.car_type_id = c.id ORDER BY d.drawing_no';
       const drawings = await query<Drawing>(sql);
       let filtered = drawings;
       if (params.system_code) {
@@ -96,7 +96,7 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
     }
 
     case 'get_equipment': {
-      let sql = 'SELECT e.*, s.code as system_code, c.code as car_type_code FROM equipment e LEFT JOIN systems s ON e.system_id = s.id LEFT JOIN car_types c ON e.car_type_id = c.id ORDER BY e.equipment_code';
+      const sql = 'SELECT e.*, s.code as system_code, c.code as car_type_code FROM equipment e LEFT JOIN systems s ON e.system_id = s.id LEFT JOIN car_types c ON e.car_type_id = c.id ORDER BY e.equipment_code';
       const equipment = await query<Equipment>(sql);
       let filtered = equipment;
       if (params.system_code) {
