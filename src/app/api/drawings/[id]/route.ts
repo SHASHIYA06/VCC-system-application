@@ -64,9 +64,12 @@ export async function GET(
       pinNo: tl.pinNo,
     }));
 
-    const remarksParts = (drawing.remarks || '').split('|');
-    const carType = remarksParts[0] || 'ALL';
-    const subsystem = remarksParts[1] || drawing.system?.code || 'GEN';
+    const remarks = drawing.remarks || '';
+    const isPinAssignment = remarks.includes('PIN_ASSIGNMENT');
+    const isReference = remarks.includes('REFERENCE');
+    const remarksParts = remarks.split('|');
+    const carType = remarksParts[2] || (isPinAssignment ? drawing.system?.code : 'ALL') || 'ALL';
+    const subsystem = drawing.system?.code || 'GEN';
 
     const drawingTypeMap: Record<string, string> = {
       GEN: 'DRAWING_LIST',
@@ -75,10 +78,12 @@ export async function GET(
       HV: 'SCHEMATIC',
       BRAKE: 'SCHEMATIC',
       DOOR: 'SCHEMATIC',
-      TMS: 'PIN_ASSIGNMENT',
+      TMS: isPinAssignment ? 'PIN_ASSIGNMENT' : 'SCHEMATIC',
       COMMS: 'SCHEMATIC',
       APS: 'SCHEMATIC',
     };
+
+    const finalDrawingType = isPinAssignment ? 'PIN_ASSIGNMENT' : (isReference ? 'REFERENCE' : drawingTypeMap[drawing.system?.code || 'GEN'] || 'SCHEMATIC');
 
     return NextResponse.json({
       drawing: {
@@ -87,7 +92,7 @@ export async function GET(
         title: drawing.title,
         carType: carType,
         subsystem: subsystem,
-        drawingType: drawingTypeMap[drawing.system?.code || 'GEN'] || 'SCHEMATIC',
+        drawingType: finalDrawingType,
         currentRevision: drawing.revision || 'A',
         pageCount: drawing.totalSheets,
         notes: drawing.remarks || '',
