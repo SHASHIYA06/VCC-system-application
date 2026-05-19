@@ -42,10 +42,10 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
-    const relatedWires = await getRelatedWires(drawing, drawing.drawingNo);
+    const relatedWires = await getRelatedWires(drawing.id, drawing.drawingNo);
     const relatedTrainlines = await getRelatedTrainlines(drawing.id);
     const relatedEquipment = await getRelatedEquipment(drawing.id);
-    const relatedConnectors = await getRelatedConnectors(drawing);
+    const relatedConnectors = await getRelatedConnectors(drawing.id);
 
     return NextResponse.json({
       drawing: {
@@ -73,53 +73,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function getRelatedWires(drawing: any, drawingNo: string) {
-  let wires: any[] = [];
-  
-  const byRemarks = await prisma.wire.findMany({
+async function getRelatedWires(drawingId: string, drawingNo: string) {
+  const wires = await prisma.wire.findMany({
     where: {
       OR: [
         { remarks: { contains: drawingNo } },
         { description: { contains: drawingNo } },
       ],
     },
-    take: 30,
+    take: 50,
     orderBy: { wireNo: 'asc' },
   });
-  
-  if (byRemarks.length > 0) {
-    wires = byRemarks;
-  } else if (drawing.sourceFileId) {
-    const relatedDrawings = await prisma.drawing.findMany({
-      where: { sourceFileId: drawing.sourceFileId },
-      select: { id: true }
-    });
-    
-    const drawingIds = relatedDrawings.map(d => d.id);
-    
-    if (drawingIds.length > 0) {
-      const connectors = await prisma.connector.findMany({
-        where: { drawingId: { in: drawingIds } },
-        select: { connectorCode: true }
-      });
-      
-      const connectorCodes = connectors.map(c => c.connectorCode);
-      
-      if (connectorCodes.length > 0) {
-        wires = await prisma.wire.findMany({
-          where: {
-            OR: [
-              { sourceConnector: { in: connectorCodes } },
-              { destConnector: { in: connectorCodes } },
-            ],
-          },
-          take: 50,
-          orderBy: { wireNo: 'asc' },
-        });
-      }
-    }
-  }
-  
   return wires.map(w => ({
     wireNo: w.wireNo,
     signalName: w.signalName,
@@ -157,43 +121,20 @@ async function getRelatedEquipment(drawingId: string) {
   }));
 }
 
-async function getRelatedConnectors(drawing: any) {
-  let connectors: any[] = [];
-  
-  const directConnectors = await prisma.connector.findMany({
-    where: { drawingId: drawing.id },
+async function getRelatedConnectors(drawingId: string) {
+  const connectors = await prisma.connector.findMany({
+    where: { drawingId },
     include: { pins: true, _count: { select: { pins: true } } },
-    take: 30,
+    take: 50,
     orderBy: { connectorCode: 'asc' },
   });
-
-  if (directConnectors.length > 0) {
-    connectors = directConnectors;
-  } else if (drawing.sourceFileId) {
-    const relatedDrawings = await prisma.drawing.findMany({
-      where: { sourceFileId: drawing.sourceFileId },
-      select: { id: true }
-    });
-    
-    const drawingIds = relatedDrawings.map(d => d.id);
-    
-    if (drawingIds.length > 0) {
-      connectors = await prisma.connector.findMany({
-        where: { drawingId: { in: drawingIds } },
-        include: { pins: true, _count: { select: { pins: true } } },
-        take: 50,
-        orderBy: { connectorCode: 'asc' },
-      });
-    }
-  }
-
-  return connectors.map((c: any) => ({
+  return connectors.map(c => ({
     connectorCode: c.connectorCode,
     connectorType: c.connectorTypeCode,
     description: c.description,
     carType: c.carType,
     pinCount: c._count.pins,
-    pins: c.pins.map((p: any) => ({
+    pins: c.pins.map(p => ({
       pinNo: p.pinNo,
       signalName: p.signalName,
       wireNo: p.wireNo,
