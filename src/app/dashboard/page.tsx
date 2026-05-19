@@ -208,7 +208,7 @@ export default function DashboardPage() {
             carType,
             subsystem,
             drawingType: data.drawing.systemCode || 'SCHEMATIC',
-            pageCount: data.pageCount || 0,
+            pageCount: data.drawing.pageCount || 0,
             relatedWires: data.relatedWires || [],
             relatedEquipment: data.relatedEquipment || []
           });
@@ -328,7 +328,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Link href={`/drawings/${drawingResult.id}`} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-medium">
+                    <Link href={`/drawings/${drawingResult.drawingNo}`} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-medium">
                       View Drawing
                     </Link>
                     <button onClick={() => { setDrawingResult(null); setDrawingSearch(''); }} className="p-2 text-slate-400 hover:text-white">

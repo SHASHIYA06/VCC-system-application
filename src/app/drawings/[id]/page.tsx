@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   FileText, Search, ArrowLeft, ArrowRight, Cpu, MapPin, Cable, 
@@ -71,9 +71,11 @@ const SYSTEM_COLORS: Record<string, { color: string; bg: string }> = {
 };
 
 function DrawingDetailContent() {
+  const params = useParams();
   const searchParams = useSearchParams();
-  const docId = searchParams.get('doc');
-  const dwgNo = searchParams.get('dwg');
+  const routeId = typeof params.id === 'string' ? params.id : null;
+  const docId = searchParams.get('doc') || routeId;
+  const dwgNo = searchParams.get('dwg') || routeId;
   
   const [drawing, setDrawing] = useState<DrawingData | null>(null);
   const [connectors, setConnectors] = useState<ConnectorData[]>([]);
