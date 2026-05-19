@@ -6,8 +6,18 @@ import Link from 'next/link';
 import { 
   FileText, Search, ArrowLeft, ArrowRight, Cpu, MapPin, Cable, 
   Box, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Loader2,
-  AlertTriangle, Layers, Zap, Settings
+  AlertTriangle, Layers, Zap, Settings, Eye
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const PdfViewer = dynamic(() => import('@/components/pdf/PdfViewer'), { 
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center">
+      <Loader2 className="h-12 w-12 text-cyan-400 animate-spin" />
+    </div>
+  )
+});
 
 interface DrawingData {
   id: string;
@@ -90,12 +100,39 @@ function DrawingDetailContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfPage, setPdfPage] = useState(1);
 
   useEffect(() => {
     if (docId || dwgNo) {
       fetchDrawing();
     }
   }, [docId, dwgNo]);
+
+  useEffect(() => {
+    if (drawing?.sourceFile) {
+      fetchPdfPageNumber();
+    }
+  }, [drawing]);
+
+  async function fetchPdfPageNumber() {
+    if (!drawing?.sourceFile || !drawing?.drawingNo) return;
+    try {
+      const res = await fetch(`/api/drawings/pdf-mapping?drawing_no=${encodeURIComponent(drawing.drawingNo)}&source_file=${encodeURIComponent(drawing.sourceFile)}`);
+      const data = await res.json();
+      if (data.pdfPageNo) {
+        setPdfPage(data.pdfPageNo);
+      }
+    } catch (err) {
+      console.error('Failed to fetch PDF page:', err);
+    }
+  }
+
+  function openPdfViewer() {
+    if (drawing?.sourceFile) {
+      setShowPdfViewer(true);
+    }
+  }
 
   useEffect(() => {
     if (searchQuery.length > 2) {
@@ -244,11 +281,11 @@ function DrawingDetailContent() {
               </div>
               <div className="flex flex-col gap-2">
                 {drawing.sourceFile ? (
-                  <Link href={`/DOCUMENTS/${drawing.sourceFile}`} target="_blank"
+                  <button onClick={openPdfViewer}
                     className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg">
-                    <FileText className="h-4 w-4" />
-                    View PDF
-                  </Link>
+                    <Eye className="h-4 w-4" />
+                    View PDF (Page {pdfPage})
+                  </button>
                 ) : (
                   <div className="text-sm text-slate-500">No PDF attached</div>
                 )}
@@ -436,6 +473,15 @@ function DrawingDetailContent() {
             </div>
           )}
         </>
+      )}
+
+      {showPdfViewer && drawing?.sourceFile && (
+        <PdfViewer
+          src={`/DOCUMENTS/${drawing.sourceFile}`}
+          initialPage={pdfPage}
+          title={`${drawing.drawingNo} - ${drawing.title}`}
+          onClose={() => setShowPdfViewer(false)}
+        />
       )}
     </div>
   );
