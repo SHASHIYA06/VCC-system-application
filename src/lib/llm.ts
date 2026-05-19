@@ -102,11 +102,14 @@ export async function callLLM(
   const { provider = 'openrouter', model, system, temperature = 0.3, maxTokens = 2048 } = options;
   
   const config = getProviderConfig(provider);
+  console.log(`[LLM] Provider: ${provider}, Config:`, config);
+  
   if (!config) {
     return { content: '', model: provider, error: `Provider ${provider} not found` };
   }
   
   const selectedModel = model || config.defaultModel;
+  console.log(`[LLM] Using model: ${selectedModel}`);
   
   if (!config.apiKey || config.apiKey === `YOUR_${provider.toUpperCase()}_KEY`) {
     return { content: '', model: selectedModel, error: `API key not configured for ${provider}` };
@@ -224,9 +227,12 @@ export async function callLLMWithFallback(
 ): Promise<LLMResponse> {
   const providers = options.preferredProviders || ['openrouter', 'openai', 'anthropic', 'gemini', 'nvidia'];
   
+  console.log('Trying LLM providers:', providers);
+  
   for (const provider of providers) {
     const result = await callLLM(prompt, { ...options, provider });
     if (!result.error && result.content) {
+      console.log(`Success with provider: ${provider}`);
       return result;
     }
     console.warn(`LLM call failed for ${provider}:`, result.error);
@@ -235,7 +241,7 @@ export async function callLLMWithFallback(
   return {
     content: '',
     model: 'none',
-    error: 'All LLM providers failed',
+    error: 'All LLM providers failed. Please check API keys in .env.local',
   };
 }
 

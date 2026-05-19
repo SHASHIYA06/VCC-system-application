@@ -55,6 +55,7 @@ const dataNav = [
   { name: 'Equipment', href: '/equipment', icon: Cpu },
   { name: 'Pins', href: '/pins', icon: Cable },
   { name: 'System Tree', href: '/systems/tree', icon: Map },
+  { name: 'Car Tree', href: '/cars/tree', icon: Car },
   { name: 'Wire Trace', href: '/wires/trace', icon: Cable },
   { name: 'VCC Reference', href: '/vcc-reference', icon: FileText },
 ];

@@ -1,6 +1,113 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { callLLM, callLLMWithFallback } from '@/lib/llm';
+import { callLLM, callLLMWithFallback, getAvailableProviders } from '@/lib/llm';
 import { prisma } from '@/lib/prisma';
+
+async function getQuickAnswer(query: string, prismaClient: any): Promise<string | null> {
+  const q = query.toLowerCase().trim();
+  
+  if (q === 'list connectors' || q === 'show connectors' || q === 'all connectors') {
+    const connectors = await prismaClient.connector.findMany({
+      take: 20,
+      orderBy: { connectorCode: 'asc' },
+    });
+    if (connectors.length > 0) {
+      return `## All Connectors (${connectors.length} found)\n\n` +
+        connectors.map((c: any) => 
+          `- **${c.connectorCode}**: ${c.connectorTypeCode || 'N/A'} (${c.carType || 'N/A'})`
+        ).join('\n');
+    }
+    return null;
+  }
+  
+  if (q === 'list wires' || q === 'show wires' || q === 'all wires') {
+    const wires = await prismaClient.wire.findMany({
+      take: 20,
+      orderBy: { wireNo: 'asc' },
+    });
+    if (wires.length > 0) {
+      return `## All Wires (showing first 20)\n\n` +
+        wires.map((w: any) => 
+          `- **${w.wireNo}**: ${w.signalName || 'N/A'} (${w.voltageClass || 'N/A'})`
+        ).join('\n');
+    }
+    return null;
+  }
+  
+  if (q === 'list drawings' || q === 'show drawings' || q === 'all drawings') {
+    const drawings = await prismaClient.drawing.findMany({
+      take: 20,
+      orderBy: { drawingNo: 'asc' },
+    });
+    if (drawings.length > 0) {
+      return `## All Drawings (${drawings.length} found)\n\n` +
+        drawings.map((d: any) => 
+          `- **${d.drawingNo}**: ${d.title}`
+        ).join('\n');
+    }
+    return null;
+  }
+  
+  if (q === 'list trainlines' || q === 'show trainlines' || q === 'all trainlines') {
+    const trainlines = await prismaClient.trainLine.findMany({
+      take: 20,
+      orderBy: { wireNo: 'asc' },
+    });
+    if (trainlines.length > 0) {
+      return `## All Trainlines (${trainlines.length} found)\n\n` +
+        trainlines.map((t: any) => 
+          `- **${t.wireNo}**: ${t.itemName} (${t.lineGroup})`
+        ).join('\n');
+    }
+    return null;
+  }
+  
+  if (q === 'systems' || q === 'list systems' || q === 'all systems') {
+    const systems = await prismaClient.system.findMany({
+      orderBy: { sortOrder: 'asc' },
+    });
+    if (systems.length > 0) {
+      return `## VCC Systems\n\n` +
+        systems.map((s: any) => 
+          `- **${s.code}**: ${s.name || 'N/A'} - ${s.description?.slice(0, 50) || ''}`
+        ).join('\n');
+    }
+    return null;
+  }
+  
+  return null;
+}
+
+export async function GET() {
+  const availableProviders = getAvailableProviders();
+  
+  return NextResponse.json({
+    name: 'VCC Personal AI Infrastructure',
+    version: '1.0.0',
+    capabilities: [
+      'expert_consultation',
+      'circuit_analysis',
+      'troubleshooting',
+      'training',
+      'documentation_generation',
+    ],
+    availableProviders: availableProviders.map(p => p.name),
+    configuredProviders: availableProviders.map(p => ({
+      name: p.name,
+      defaultModel: p.defaultModel,
+    })),
+    database: {
+      systems: '25+',
+      drawings: '564+',
+      wires: '19000+',
+      circuits: '1141+',
+      connectors: '400+',
+      trainlines: '978+',
+    },
+    endpoints: {
+      POST: '/api/ai-assistant - Ask AI questions about VCC system',
+    },
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,6 +161,22 @@ export async function POST(request: NextRequest) {
       dbData = { systems, drawings, wires, connectors, trainLines };
     }
 
+    const quickAnswer = await getQuickAnswer(query, prisma);
+    if (quickAnswer) {
+      return NextResponse.json({
+        success: true,
+        response: quickAnswer,
+        type: 'quick_answer',
+        context: {
+          systemsFound: dbData.systems?.length || 0,
+          drawingsFound: dbData.drawings?.length || 0,
+          wiresFound: dbData.wires?.length || 0,
+          connectorsFound: dbData.connectors?.length || 0,
+          trainLinesFound: dbData.trainLines?.length || 0,
+        },
+      });
+    }
+
     const systemPrompt = `You are a VCC (Vehicle Control Circuit) Expert AI Assistant for KMRCL RS3R Metro Trains.
     
 You have access to a comprehensive database containing:
@@ -74,18 +197,32 @@ ${JSON.stringify(dbData, null, 2)}
 
 Provide accurate, detailed, and actionable responses. Use technical terminology appropriately.`;
 
-    const llmResponse = await callLLMWithFallback(query, {
-      system: systemPrompt,
-      temperature: 0.3,
-      maxTokens: 2000,
-      preferredProviders: ['openrouter', 'nvidia', 'gemini', 'openai'],
-    });
+    let llmResponse;
+    try {
+      llmResponse = await callLLMWithFallback(query, {
+        system: systemPrompt,
+        temperature: 0.3,
+        maxTokens: 2000,
+        preferredProviders: ['openrouter', 'nvidia', 'gemini', 'openai'],
+      });
+    } catch (llmError) {
+      console.error('LLM call error:', llmError);
+    }
 
-    if (llmResponse.error) {
+    if (!llmResponse || llmResponse.error) {
+      const fallbackResponse = generateFallbackResponse(query, dbData);
       return NextResponse.json({
-        success: false,
-        error: llmResponse.error,
-        fallback: generateFallbackResponse(query, dbData),
+        success: true,
+        response: fallbackResponse,
+        type: 'database_fallback',
+        note: 'Showing database results (AI service unavailable)',
+        context: {
+          systemsFound: dbData.systems?.length || 0,
+          drawingsFound: dbData.drawings?.length || 0,
+          wiresFound: dbData.wires?.length || 0,
+          connectorsFound: dbData.connectors?.length || 0,
+          trainLinesFound: dbData.trainLines?.length || 0,
+        },
       });
     }
 
@@ -112,8 +249,39 @@ Provide accurate, detailed, and actionable responses. Use technical terminology 
   }
 }
 
+function hasDatabaseData(dbData: any): boolean {
+  return (dbData.wires?.length > 0) || 
+         (dbData.drawings?.length > 0) || 
+         (dbData.trainLines?.length > 0) ||
+         (dbData.connectors?.length > 0) ||
+         (dbData.systems?.length > 0);
+}
+
 function generateFallbackResponse(query: string, dbData: any): string {
-  let response = `## Analysis for: ${query}\n\n`;
+  const hasData = hasDatabaseData(dbData);
+  
+  let response = `## VCC Query Results for: "${query}"\n\n`;
+  
+  if (!hasData) {
+    response += `### Available Commands\n` +
+      `- **"list connectors"** - Show all connectors\n` +
+      `- **"list wires"** - Show all wires\n` +
+      `- **"list drawings"** - Show all drawings\n` +
+      `- **"list trainlines"** - Show all trainlines\n` +
+      `- **"systems"** - Show all VCC systems\n` +
+      `- **"wire ####"** - Lookup specific wire (e.g., "wire 3003")\n` +
+      `- **"connector XXX"** - Lookup connector\n` +
+      `- **"drawing ###-#####"** - Lookup drawing\n\n`;
+    
+    response += `### Database Statistics\n` +
+      `- Systems: 25\n` +
+      `- Drawings: 564\n` +
+      `- Wires: 19,016\n` +
+      `- Connectors: 413\n` +
+      `- Trainlines: 978\n`;
+    
+    return response;
+  }
 
   if (dbData.wires?.length > 0) {
     response += `### Matching Wires (${dbData.wires.length}):\n`;
@@ -158,30 +326,4 @@ function extractSources(dbData: any): Array<{ type: string; id: string; label: s
   dbData.systems?.forEach((s: any) => sources.push({ type: 'system', id: s.id, label: s.code }));
 
   return sources.slice(0, 20);
-}
-
-export async function GET() {
-  return NextResponse.json({
-    name: 'VCC Personal AI Infrastructure',
-    version: '1.0.0',
-    capabilities: [
-      'expert_consultation',
-      'circuit_analysis',
-      'troubleshooting',
-      'training',
-      'documentation_generation',
-    ],
-    availableProviders: ['openrouter', 'nvidia', 'gemini', 'openai'],
-    database: {
-      systems: '25+',
-      drawings: '564+',
-      wires: '19000+',
-      circuits: '1141+',
-      connectors: '400+',
-      trainlines: '978+',
-    },
-    endpoints: {
-      POST: '/api/ai-assistant - Ask AI questions about VCC system',
-    },
-  });
 }

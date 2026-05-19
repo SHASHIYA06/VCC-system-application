@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import {
   Train, ShieldCheck, Zap, Wind, Radio, Battery, Settings, DoorOpen,
   Activity, Box, Lightbulb, Link2, Search, ChevronRight, Layers,
-  Cpu, Cable, FileText, AlertTriangle, CheckCircle, Clock, Eye, X, Database
+  Cpu, Cable, FileText, AlertTriangle, CheckCircle, Clock, Eye, X, Database, Map
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -342,9 +342,9 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Stats Overview */}
+      {/* Stats Overview - Clickable */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-        <div className="glass-card p-4">
+        <Link href="/systems" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/20 rounded-lg">
               <Settings className="h-5 w-5 text-blue-400" />
@@ -354,9 +354,9 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-400">Systems</p>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="glass-card p-4">
+        <Link href="/wires" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-cyan-500/20 rounded-lg">
               <Cable className="h-5 w-5 text-cyan-400" />
@@ -366,9 +366,9 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-400">Wires</p>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="glass-card p-4">
+        <Link href="/drawings" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-500/20 rounded-lg">
               <FileText className="h-5 w-5 text-purple-400" />
@@ -378,9 +378,9 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-400">Drawings</p>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="glass-card p-4">
+        <Link href="/equipment" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-orange-500/20 rounded-lg">
               <Box className="h-5 w-5 text-orange-400" />
@@ -390,9 +390,9 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-400">Equipment</p>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="glass-card p-4">
+        <Link href="/connectors" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-500/20 rounded-lg">
               <Link2 className="h-5 w-5 text-green-400" />
@@ -402,9 +402,9 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-400">Connectors</p>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="glass-card p-4">
+        <Link href="/pins" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-500/20 rounded-lg">
               <Layers className="h-5 w-5 text-amber-400" />
@@ -414,7 +414,62 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-400">Pins</p>
             </div>
           </div>
-        </div>
+        </Link>
+      </div>
+
+      {/* Quick Data Access - Click to view all lists */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <Link href="/pins" className="glass-card p-4 hover:bg-cyan-900/30 transition-all group border border-cyan-500/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Layers className="h-5 w-5 text-amber-400" />
+                <span className="text-amber-400 font-semibold">Pins</span>
+              </div>
+              <p className="text-xs text-slate-400">View all pin assignments</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+          </div>
+        </Link>
+
+        <Link href="/drawings" className="glass-card p-4 hover:bg-purple-900/30 transition-all group border border-purple-500/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <FileText className="h-5 w-5 text-purple-400" />
+                <span className="text-purple-400 font-semibold">Drawings</span>
+              </div>
+              <p className="text-xs text-slate-400">View all schematics</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-purple-400 transition-colors" />
+          </div>
+        </Link>
+
+        <Link href="/connectors" className="glass-card p-4 hover:bg-green-900/30 transition-all group border border-green-500/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Link2 className="h-5 w-5 text-green-400" />
+                <span className="text-green-400 font-semibold">Connectors</span>
+              </div>
+              <p className="text-xs text-slate-400">View all connectors</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-green-400 transition-colors" />
+          </div>
+        </Link>
+
+        <Link href="/wires" className="glass-card p-4 hover:bg-cyan-900/30 transition-all group border border-cyan-500/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Cable className="h-5 w-5 text-cyan-400" />
+                <span className="text-cyan-400 font-semibold">Wiring</span>
+              </div>
+              <p className="text-xs text-slate-400">View all wires</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+          </div>
+        </Link>
       </div>
 
       {/* System Cards */}
@@ -456,8 +511,8 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Links */}
-      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Link href="/trainlines" className="glass-card p-4 hover:bg-slate-800/50 transition-colors">
+      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <Link href="/trainlines" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <Train className="h-8 w-8 text-blue-400" />
             <div>
@@ -467,32 +522,52 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/equipment" className="glass-card p-4 hover:bg-slate-800/50 transition-colors">
+        <Link href="/cars" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <Box className="h-8 w-8 text-orange-400" />
             <div>
-              <p className="font-semibold text-white">Equipment</p>
-              <p className="text-xs text-slate-400">Browse equipment</p>
+              <p className="font-semibold text-white">Cars</p>
+              <p className="text-xs text-slate-400">DMC, TC, MC</p>
             </div>
           </div>
         </Link>
 
-        <Link href="/drawings" className="glass-card p-4 hover:bg-slate-800/50 transition-colors">
+        <Link href="/documents" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
-            <FileText className="h-8 w-8 text-purple-400" />
+            <FileText className="h-8 w-8 text-cyan-400" />
             <div>
-              <p className="font-semibold text-white">Drawings</p>
-              <p className="text-xs text-slate-400">View drawings</p>
+              <p className="font-semibold text-white">Documents</p>
+              <p className="text-xs text-slate-400">All PDFs</p>
             </div>
           </div>
         </Link>
 
-        <Link href="/search" className="glass-card p-4 hover:bg-slate-800/50 transition-colors">
+        <Link href="/systems/tree" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
-            <Search className="h-8 w-8 text-green-400" />
+            <Map className="h-8 w-8 text-purple-400" />
             <div>
-              <p className="font-semibold text-white">Search</p>
-              <p className="text-xs text-slate-400">Global search</p>
+              <p className="font-semibold text-white">System Tree</p>
+              <p className="text-xs text-slate-400">Hierarchy view</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/wires/trace" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+          <div className="flex items-center gap-3">
+            <Cable className="h-8 w-8 text-green-400" />
+            <div>
+              <p className="font-semibold text-white">Wire Trace</p>
+              <p className="text-xs text-slate-400">Path tracing</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/search" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+          <div className="flex items-center gap-3">
+            <Search className="h-8 w-8 text-amber-400" />
+            <div>
+              <p className="font-semibold text-white">Global Search</p>
+              <p className="text-xs text-slate-400">Find anything</p>
             </div>
           </div>
         </Link>

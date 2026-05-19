@@ -242,13 +242,20 @@ function DrawingDetailContent() {
                 <h2 className="text-xl text-white font-semibold">{drawing.title}</h2>
                 <p className="text-sm text-slate-400 mt-1">{drawing.systemName || drawing.systemCode}</p>
               </div>
-              {drawing.sourceFile && (
-                <Link href={`/DOCUMENTS/${drawing.sourceFile}`} target="_blank"
-                  className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg">
-                  <FileText className="h-4 w-4" />
-                  View PDF
+              <div className="flex flex-col gap-2">
+                {drawing.sourceFile ? (
+                  <Link href={`/DOCUMENTS/${drawing.sourceFile}`} target="_blank"
+                    className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg">
+                    <FileText className="h-4 w-4" />
+                    View PDF
+                  </Link>
+                ) : (
+                  <div className="text-sm text-slate-500">No PDF attached</div>
+                )}
+                <Link href="/documents" className="text-xs text-cyan-400 hover:text-cyan-300 text-center">
+                  Browse all documents
                 </Link>
-              )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -256,18 +263,18 @@ function DrawingDetailContent() {
                 <div className="text-slate-400">Sheets</div>
                 <div className="text-white font-bold">{drawing.totalSheets}</div>
               </div>
-              <div className="p-3 bg-slate-800/30 rounded-lg">
+              <Link href="/connectors" className="p-3 bg-slate-800/30 rounded-lg hover:bg-slate-700/30 transition-colors">
                 <div className="text-slate-400">Connectors</div>
-                <div className="text-white font-bold">{drawing._count?.connectors || connectors.length}</div>
-              </div>
-              <div className="p-3 bg-slate-800/30 rounded-lg">
+                <div className="text-cyan-400 font-bold">{drawing._count?.connectors || connectors.length}</div>
+              </Link>
+              <Link href="/trainlines" className="p-3 bg-slate-800/30 rounded-lg hover:bg-slate-700/30 transition-colors">
                 <div className="text-slate-400">Trainlines</div>
-                <div className="text-white font-bold">{drawing._count?.trainLines || trainlines.length}</div>
-              </div>
-              <div className="p-3 bg-slate-800/30 rounded-lg">
+                <div className="text-cyan-400 font-bold">{drawing._count?.trainLines || trainlines.length}</div>
+              </Link>
+              <Link href="/equipment" className="p-3 bg-slate-800/30 rounded-lg hover:bg-slate-700/30 transition-colors">
                 <div className="text-slate-400">Equipment</div>
-                <div className="text-white font-bold">{drawing._count?.devices || equipment.length}</div>
-              </div>
+                <div className="text-cyan-400 font-bold">{drawing._count?.devices || equipment.length}</div>
+              </Link>
             </div>
           </div>
 

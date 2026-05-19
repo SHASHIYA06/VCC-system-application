@@ -2,37 +2,24 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
-  const start = Date.now();
-  
   try {
-    await prisma.$queryRaw`SELECT 1`;
-    
-    const dbTime = Date.now() - start;
+    // Simple query without any joins
+    const [drawingCount, connectorCount, pinCount] = await Promise.all([
+      prisma.drawing.count(),
+      prisma.connector.count(),
+      prisma.connectorPin.count()
+    ]);
     
     return NextResponse.json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: {
-          status: 'up',
-          latencyMs: dbTime,
-        },
-        api: {
-          status: 'up',
-          version: process.env.npm_package_version || '0.2.0',
-        },
-      },
+      status: 'ok',
+      drawings: drawingCount,
+      connectors: connectorCount,
+      pins: pinCount
     });
   } catch (error) {
-    return NextResponse.json({
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      services: {
-        database: {
-          status: 'down',
-          error: String(error),
-        },
-      },
-    }, { status: 503 });
+    return NextResponse.json({ 
+      status: 'error',
+      error: String(error)
+    }, { status: 500 });
   }
 }

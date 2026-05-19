@@ -1,7 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { Send, Bot, Loader2, MessageSquare, Lightbulb, AlertTriangle, BookOpen } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Send, Bot, Loader2, MessageSquare, Lightbulb, AlertTriangle, BookOpen, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+
+interface APIStatus {
+  name: string;
+  version: string;
+  availableProviders: string[];
+  configuredProviders: { name: string; defaultModel: string }[];
+  database: Record<string, string>;
+  status: 'loading' | 'connected' | 'error';
+  error?: string;
+}
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -19,6 +29,14 @@ const SUGGESTED_QUERIES = [
 ];
 
 export default function AIAssistantPage() {
+  const [apiStatus, setApiStatus] = useState<APIStatus>({
+    name: 'VCC AI',
+    version: '1.0.0',
+    availableProviders: [],
+    configuredProviders: [],
+    database: {},
+    status: 'loading',
+  });
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -38,6 +56,26 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'expert' | 'all'>('expert');
 
+  useEffect(() => {
+    async function checkStatus() {
+      try {
+        const response = await fetch('/api/ai-assistant');
+        const data = await response.json();
+        setApiStatus({
+          ...data,
+          status: 'connected',
+        });
+      } catch (error) {
+        setApiStatus(prev => ({
+          ...prev,
+          status: 'error',
+          error: 'Failed to connect to API',
+        }));
+      }
+    }
+    checkStatus();
+  }, []);
+
   async function sendMessage() {
     if (!query.trim() || loading) return;
 
@@ -55,7 +93,9 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
 
       const data = await response.json();
 
-      if (data.success) {
+      console.log('AI Response:', data);
+
+      if (data.success && data.response) {
         setMessages(prev => [
           ...prev,
           {
@@ -65,11 +105,12 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
           },
         ]);
       } else {
+        const errorMsg = data.error || data.fallback || 'Unknown error';
         setMessages(prev => [
           ...prev,
           {
             role: 'assistant',
-            content: data.fallback || `Error: ${data.error}`,
+            content: `I encountered an issue: ${errorMsg}\n\n**Troubleshooting:**\n- Check API keys are configured in .env.local\n- Try a simpler query like "list connectors" or "show wire 3003"`,
           },
         ]);
       }
@@ -78,7 +119,7 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
         ...prev,
         {
           role: 'assistant',
-          content: 'Sorry, I encountered an error processing your request.',
+          content: 'Sorry, I encountered a connection error. Please check if the server is running and try again.',
         },
       ]);
     } finally {
@@ -98,7 +139,7 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
         </p>
       </div>
 
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-6 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-400">Mode:</span>
           <select
@@ -110,9 +151,30 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
             <option value="all">Full Analysis</option>
           </select>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <span>Providers: OpenRouter, NVIDIA, Gemini, OpenAI</span>
+        
+        {/* API Status Display */}
+        <div className="flex items-center gap-2 text-xs">
+          {apiStatus.status === 'loading' ? (
+            <span className="flex items-center gap-1 text-slate-500">
+              <RefreshCw className="h-3 w-3 animate-spin" /> Checking API...
+            </span>
+          ) : apiStatus.status === 'connected' ? (
+            <span className="flex items-center gap-1 text-green-400">
+              <CheckCircle className="h-3 w-3" />
+              API Connected ({apiStatus.configuredProviders?.length || 0} providers)
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-red-400">
+              <XCircle className="h-3 w-3" /> API Error
+            </span>
+          )}
         </div>
+        
+        {apiStatus.configuredProviders && apiStatus.configuredProviders.length > 0 && (
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span>Providers: {apiStatus.configuredProviders.map(p => p.name).join(', ')}</span>
+          </div>
+        )}
       </div>
 
       {/* Chat Interface */}

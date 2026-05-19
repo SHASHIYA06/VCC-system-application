@@ -280,7 +280,9 @@ export default function ConnectorsPage() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-cyan-400 font-bold text-lg">{cn.connectorCode}</span>
+                    <Link href={`/connectors/${encodeURIComponent(cn.connectorCode)}`} className="font-mono text-cyan-400 font-bold text-lg hover:text-cyan-300">
+                      {cn.connectorCode}
+                    </Link>
                     <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${cn.connectorType === 'INTERCAR' ? 'bg-blue-500/20 text-blue-400' : cn.connectorType === 'POWER' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-500/20 text-slate-400'}`}>
                       {cn.connectorType || 'Standard'}
                     </span>

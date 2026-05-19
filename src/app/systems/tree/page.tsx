@@ -78,10 +78,44 @@ function TreeContent() {
   async function fetchTree() {
     try {
       setLoading(true);
-      const res = await fetch('/api/rag?action=tree');
+      const res = await fetch('/api/system-tree');
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
-      setTreeData(data);
+      
+      // Transform to expected format
+      const transformed = {
+        tree: data.hierarchy.map((sys: any) => ({
+          code: sys.code,
+          name: sys.name,
+          category: sys.category,
+          description: sys.category,
+          stats: {
+            drawings: sys.stats.drawings,
+            devices: sys.stats.devices,
+            connectors: sys.stats.connectors,
+            pins: sys.stats.totalPins
+          },
+          children: {
+            drawings: sys.drawings.pinAssignments.map((d: any) => ({
+              id: d.no,
+              drawingNo: d.no,
+              title: d.title,
+              revision: 'A',
+              sheets: d.sheets,
+              connectors: d.connectors,
+              connectorList: d.connectorList || []
+            })),
+            devices: sys.devices.flatMap((t: any) => t.list),
+            connectors: []
+          }
+        })),
+        metadata: {
+          totalSystems: data.total,
+          generatedAt: new Date().toISOString()
+        }
+      };
+      
+      setTreeData(transformed);
       
       if (initialSystem) {
         setExpandedSystems({ [initialSystem]: true });
