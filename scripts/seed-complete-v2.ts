@@ -109,6 +109,7 @@ async function main() {
           },
         });
         console.log(`  Created trainline: ${tl.wireNo}`);
+      }
     }
   }
   console.log('Trainlines done.\n');
