@@ -97,17 +97,18 @@ async function main() {
     const existing = await prisma.trainLine.findFirst({ where: { wireNo: tl.wireNo } });
     if (!existing) {
       const drawing = await prisma.drawing.findFirst();
-      await prisma.trainLine.create({
-        data: {
-          wireNo: tl.wireNo,
-          itemName: tl.itemName,
-          lineGroup: tl.lineGroup,
-          note: tl.note,
-          carType: tl.carType,
-          drawingId: drawing?.id,
-        },
-      });
-      console.log(`  Created trainline: ${tl.wireNo}`);
+      if (drawing) {
+        await prisma.trainLine.create({
+          data: {
+            wireNo: tl.wireNo,
+            itemName: tl.itemName,
+            lineGroup: tl.lineGroup,
+            note: tl.note,
+            carType: tl.carType,
+            drawingId: drawing.id,
+          },
+        });
+        console.log(`  Created trainline: ${tl.wireNo}`);
     }
   }
   console.log('Trainlines done.\n');
