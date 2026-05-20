@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         where: { id: drawingId },
         include: { pages: true },
       });
-    } else {
+    } else if (drawingNo) {
       drawing = await prisma.drawing.findUnique({
         where: { drawingNo },
         include: { pages: true },
