@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         include: { pages: true },
       });
     } else if (drawingNo) {
-      drawing = await prisma.drawing.findUnique({
+      drawing = await prisma.drawing.findFirst({
         where: { drawingNo },
         include: { pages: true },
       });
