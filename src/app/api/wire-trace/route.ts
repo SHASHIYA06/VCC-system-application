@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
           code: item.drawing.system.code,
           name: item.drawing.system.name,
         } : null,
-        endpoints: item.endpoints.map(e => ({
+        endpoints: item.endpoints.map((e: any) => ({
           endpointId: e.id,
           role: e.endpointRole,
           label: e.endpointLabel,
