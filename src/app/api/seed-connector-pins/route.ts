@@ -93,6 +93,32 @@ const CONNECTOR_PIN_DATA = [
   { drawingNo: '942-58107', connectorCode: 'IND_LAMP', pinCount: 20, carType: 'DMC', system: 'CAB' },
   { drawingNo: '942-58107', connectorCode: 'THROTTLE', pinCount: 8, carType: 'DMC', system: 'CAB' },
   { drawingNo: '942-58107', connectorCode: 'BRAKE_PEDAL', pinCount: 6, carType: 'DMC', system: 'CAB' },
+
+  // DOOR - Saloon Door Supply Voltage (942-58137)
+  { drawingNo: '942-58137', connectorCode: 'DCUA', pinCount: 25, carType: 'ALL', system: 'DOOR' },
+  { drawingNo: '942-58137', connectorCode: 'DCUB', pinCount: 25, carType: 'ALL', system: 'DOOR' },
+  { drawingNo: '942-58137', connectorCode: 'DOS', pinCount: 4, carType: 'ALL', system: 'DOOR' },
+  { drawingNo: '942-58137', connectorCode: 'DCS', pinCount: 4, carType: 'ALL', system: 'DOOR' },
+
+  // DOOR - Door Operation (942-58138)
+  { drawingNo: '942-58138', connectorCode: 'DCUA', pinCount: 25, carType: 'ALL', system: 'DOOR' },
+  { drawingNo: '942-58138', connectorCode: 'DCUB', pinCount: 25, carType: 'ALL', system: 'DOOR' },
+  { drawingNo: '942-58138', connectorCode: 'DOS', pinCount: 4, carType: 'ALL', system: 'DOOR' },
+  { drawingNo: '942-58138', connectorCode: 'DCS', pinCount: 4, carType: 'ALL', system: 'DOOR' },
+
+  // DOOR - Door Proving Loop (942-58139)
+  { drawingNo: '942-58139', connectorCode: 'DCUA', pinCount: 25, carType: 'ALL', system: 'DOOR' },
+  { drawingNo: '942-58139', connectorCode: 'DCUB', pinCount: 25, carType: 'ALL', system: 'DOOR' },
+  { drawingNo: '942-58139', connectorCode: 'DPR', pinCount: 6, carType: 'ALL', system: 'DOOR' },
+
+  // DOOR - Local Door Interlock (942-58140)
+  { drawingNo: '942-58140', connectorCode: 'LCP', pinCount: 20, carType: 'ALL', system: 'DOOR' },
+  { drawingNo: '942-58140', connectorCode: 'DOLR', pinCount: 6, carType: 'ALL', system: 'DOOR' },
+  { drawingNo: '942-58140', connectorCode: 'DORR', pinCount: 6, carType: 'ALL', system: 'DOOR' },
+
+  // DOOR - TCMS Communication (942-58141)
+  { drawingNo: '942-58141', connectorCode: 'DCUA', pinCount: 25, carType: 'ALL', system: 'DOOR' },
+  { drawingNo: '942-58141', connectorCode: 'DCUB', pinCount: 25, carType: 'ALL', system: 'DOOR' },
 ];
 
 const SIGNAL_MAPPING: Record<string, string[]> = {
@@ -106,6 +132,42 @@ const SIGNAL_MAPPING: Record<string, string[]> = {
   'POWER': ['PWR_110V', 'GND', 'GND', 'NC'],
   'CN1': ['DI_00', 'DI_01', 'DI_02', 'DI_03', 'DI_04', 'DI_05', 'DI_06', 'DI_07', 'DO_00', 'DO_01', 'DO_02', 'DO_03'],
   'CN2': ['DI_08', 'DI_09', 'DI_10', 'DI_11', 'DI_12', 'DI_13', 'DI_14', 'DI_15', 'DO_04', 'DO_05', 'DO_06', 'DO_07'],
+
+  // DOOR System - DCUA (Door Control Unit A - 25 pins)
+  'DCUA': [
+    'DCU_PWR', 'DCU_GND', 'DO_CMD_L', 'DO_CMD_R', 'DC_CMD_L', 'DC_CMD_R',
+    'DL_STATUS_L', 'DL_STATUS_R', 'DOLR_IN', 'DOLR_OUT', 'DORR_IN', 'DORR_OUT',
+    'DPR_L', 'DPR_R', 'EDR_L', 'EDR_R', 'TCMS_TX', 'TCMS_RX', 'CAN_H', 'CAN_L',
+    'FDBK_L', 'FDBK_R', 'NC', 'NC', 'NC'
+  ],
+
+  // DOOR System - DCUB (Door Control Unit B - 25 pins)
+  'DCUB': [
+    'DCU_PWR', 'DCU_GND', 'DO_CMD_L', 'DO_CMD_R', 'DC_CMD_L', 'DC_CMD_R',
+    'DL_STATUS_L', 'DL_STATUS_R', 'DOLR_IN', 'DOLR_OUT', 'DORR_IN', 'DORR_OUT',
+    'DPR_L', 'DPR_R', 'EDR_L', 'EDR_R', 'TCMS_TX', 'TCMS_RX', 'CAN_H', 'CAN_L',
+    'FDBK_L', 'FDBK_R', 'NC', 'NC', 'NC'
+  ],
+
+  // DOOR System - DOS (Door Open Sensor - 4 pins)
+  'DOS': ['DOS_SIG_L', 'DOS_SIG_R', 'DOS_GND', 'NC'],
+
+  // DOOR System - DCS (Door Close Sensor - 4 pins)
+  'DCS': ['DCS_SIG_L', 'DCS_SIG_R', 'DCS_GND', 'NC'],
+
+  // DOOR System - DPR (Door Proving Relay - 6 pins)
+  'DPR': ['DPR_COIL', 'DPR_NC', 'DPR_NO', 'DPR_PWR', 'DPR_GND', 'NC'],
+
+  // DOOR System - LCP (Local Control Panel - 20 pins)
+  'LCP': [
+    'LCP_PWR', 'LCP_GND', 'DO_BTN_L', 'DO_BTN_R', 'DC_BTN_L', 'DC_BTN_R',
+    'ED_BTN_L', 'ED_BTN_R', 'IND_L1', 'IND_L2', 'IND_L3', 'IND_L4',
+    'IND_R1', 'IND_R2', 'IND_R3', 'IND_R4', 'NC', 'NC', 'NC', 'NC'
+  ],
+
+  // DOOR System - DOLR/DORR (Door Open/Close Relay - 6 pins)
+  'DOLR': ['DOLR_COIL', 'DOLR_NC', 'DOLR_NO', 'DOLR_PWR', 'DOLR_GND', 'NC'],
+  'DORR': ['DORR_COIL', 'DORR_NC', 'DORR_NO', 'DORR_PWR', 'DORR_GND', 'NC'],
 };
 
 export async function POST(request: NextRequest) {

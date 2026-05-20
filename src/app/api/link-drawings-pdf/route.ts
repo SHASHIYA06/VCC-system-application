@@ -91,9 +91,12 @@ const PDF_MAPPINGS = [
   { drawingPattern: '942-58129', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
 
   // DOOR
+  { drawingPattern: '942-58137', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
   { drawingPattern: '942-58138', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
   { drawingPattern: '942-58139', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
   { drawingPattern: '942-58140', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: '942-58141', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: '942-58142', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
 
   // COMMS
   { drawingPattern: '942-58147', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
@@ -106,6 +109,120 @@ const PDF_MAPPINGS = [
 
   // VCC DESCRIPTION
   { drawingPattern: 'VCC DESCRIPTION', pdf: 'VCC DESCRIPTION 13.12.2017.pdf' },
+
+  // HV - High Voltage System
+  { drawingPattern: '942-38316', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38317', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38319', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38320', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38321', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38323', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'CSJB', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'HTEB', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'Current Collector', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'Main Switch', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'Earth Brush', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+
+  // TRAC - Traction System
+  { drawingPattern: '942-38306', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38601', pdf: 'MC_CEILING_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38604', pdf: 'MC_CEILING_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'VVVF', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'TM Connector', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38706', pdf: 'MC_UF.pdf' },
+
+  // BRAKE System
+  { drawingPattern: '942-38310', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38518', pdf: 'TC _UF PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38605', pdf: 'MC_UF.pdf' },
+  { drawingPattern: 'BECU', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'Pressure Governor', pdf: 'TC _UF PIN DRAWINGS.pdf' },
+  { drawingPattern: 'ASCO EPIC', pdf: 'MC_UF.pdf' },
+
+  // APS - Auxiliary Power System
+  { drawingPattern: '942-38305', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38309', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38705', pdf: 'MC_UF.pdf' },
+  { drawingPattern: '942-38505', pdf: 'TC _UF PIN DRAWINGS.pdf' },
+  { drawingPattern: 'LTEB', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+
+  // VAC - Air Conditioning
+  { drawingPattern: '942-38407', pdf: 'TC_CEILING PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-58144', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: '942-38602', pdf: 'MC_CEILING_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'Saloon VAC', pdf: 'TC_CEILING PIN DRAWINGS.pdf' },
+
+  // TMS System
+  { drawingPattern: '942-38409', pdf: 'DMC_CEILING.pdf' },
+  { drawingPattern: '942-38607', pdf: 'MC_UF.pdf' },
+  { drawingPattern: 'TCMS Terminal', pdf: 'MC_UF.pdf' },
+
+  // LTJB - Low Tension Junction Box
+  { drawingPattern: '942-38506', pdf: 'TC _UF PIN DRAWINGS.pdf' },
+  { drawingPattern: 'LTJB1', pdf: 'TC _UF PIN DRAWINGS.pdf' },
+
+  // EDB - Equipment Distribution Box
+  { drawingPattern: '942-38402', pdf: 'TC_CEILING PIN DRAWINGS.pdf' },
+  { drawingPattern: 'EDB Panel', pdf: 'TC_CEILING PIN DRAWINGS.pdf' },
+
+  // COMMS
+  { drawingPattern: '942-58151', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: 'PA Amplifier', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+
+  // DOOR - Additional door drawings
+  { drawingPattern: '942-38413', pdf: 'TC_CEILING PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38614', pdf: 'MC_CEILING_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'Door Inside', pdf: 'TC_CEILING PIN DRAWINGS.pdf' },
+
+  // BOGIE System
+  { drawingPattern: 'BOGIE', pdf: 'MC_CEILING_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38601', pdf: 'MC_CEILING_PIN DRAWINGS.pdf' },
+
+  // COUPL - Coupler
+  { drawingPattern: 'COUPL', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: 'Coupler', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+
+  // Fallback - use main OCR PDF for anything with 942-387xx or 942-386xx
+  { drawingPattern: '942-387', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: '942-386', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+
+  // APS - Additional
+  { drawingPattern: '942-58130', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: '942-58131', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: '942-58132', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: 'Socket Outlet', pdf: 'TC_CEILING PIN DRAWINGS.pdf' },
+
+  // DOOR - Additional
+  { drawingPattern: '942-58136', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: 'Passenger Door', pdf: 'TC_CEILING PIN DRAWINGS.pdf' },
+
+  // VAC - Additional
+  { drawingPattern: '942-58143', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: 'Cab VAC', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+
+  // TMS - Additional
+  { drawingPattern: '942-58146', pdf: 'KMRCL VCC Drawings_OCR.pdf' },
+  { drawingPattern: '942-38410', pdf: 'DMC_CEILING.pdf' },
+
+  // TRAC - Additional
+  { drawingPattern: '942-38314', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38315', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'Speed Sensor', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+  { drawingPattern: 'Brake Resistor', pdf: 'DMC UF_PIN DRAWINGS.pdf' },
+
+  // BRAKE - Additional
+  { drawingPattern: '942-38519', pdf: 'TC _UF PIN DRAWINGS.pdf' },
+  { drawingPattern: '942-38510', pdf: 'TC _UF PIN DRAWINGS.pdf' },
+  { drawingPattern: 'BCU Pin', pdf: 'TC _UF PIN DRAWINGS.pdf' },
+  { drawingPattern: 'Compressor Motor', pdf: 'TC _UF PIN DRAWINGS.pdf' },
+
+  // LIGHT
+  { drawingPattern: '942-38404', pdf: 'TC_CEILING PIN DRAWINGS.pdf' },
+  { drawingPattern: 'Saloon Lights', pdf: 'TC_CEILING PIN DRAWINGS.pdf' },
+
+  // LTJB - Additional
+  { drawingPattern: '942-38507', pdf: 'TC _UF PIN DRAWINGS.pdf' },
+  { drawingPattern: 'LTJB2', pdf: 'TC _UF PIN DRAWINGS.pdf' },
 ];
 
 export async function POST(request: NextRequest) {
