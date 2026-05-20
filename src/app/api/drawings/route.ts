@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
 
   const systemCode = getParam('system_code');
   const drawing_no = getParam('drawing_no');
+  const wireNo = getParam('wire_no');
+  const connectorCode = getParam('connector_code');
   const search = getParam('search');
   let page = 1;
   let limit = 100;
@@ -44,6 +46,31 @@ export async function GET(request: NextRequest) {
         { drawingNo: { contains: search, mode: 'insensitive' } },
         { title: { contains: search, mode: 'insensitive' } },
       ];
+    }
+
+    // NEW: Support wire-based filtering - returns ALL drawings containing this wire
+    if (wireNo) {
+      // Find drawings that have this wire in trainlines
+      const trainlineDrawings = await prisma.trainLine.findMany({
+        where: { wireNo: { contains: wireNo } },
+        include: { drawing: true },
+      });
+      
+      // Find drawings that have this wire in connector pins
+      const pinDrawings = await prisma.connectorPin.findMany({
+        where: { wireNo: { contains: wireNo } },
+        include: { connector: { include: { drawing: true } } },
+      });
+      
+      // Combine unique drawing IDs
+      const drawingIds = [
+        ...new Set([
+          ...trainlineDrawings.map(tl => tl.drawingId),
+          ...pinDrawings.map(p => p.connector?.drawingId).filter(Boolean),
+        ]),
+      ];
+      
+      where.id = { in: drawingIds };
     }
 
     const [docs, total, systemCount] = await Promise.all([
@@ -108,6 +135,7 @@ export async function GET(request: NextRequest) {
         totalDrawings: total,
         totalSystems: systemCount,
         currentSystem: systemCode || null,
+        wireFilter: wireNo || null,
       }
     });
   } catch (error) {

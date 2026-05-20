@@ -32,7 +32,15 @@ export async function GET(request: NextRequest) {
     const [pins, connectors, cars, systems] = await Promise.all([
       prisma.connectorPin.findMany({
         where,
-        include: { connector: { include: { drawing: { include: { system: true } } } } },
+        include: { 
+          connector: { 
+            include: { 
+              drawing: { 
+                include: { system: true } 
+              } 
+            } 
+          } 
+        },
         orderBy: { pinNo: 'asc' },
         take: limit,
       }),
@@ -51,6 +59,12 @@ export async function GET(request: NextRequest) {
       signal_name: pin.signalName || '-',
       wire: pin.wireNo || '-',
       description: `${pin.connector?.connectorCode || ''} - Pin ${pin.pinNo}`,
+      voltageText: pin.voltageText,
+      terminalFrom: pin.terminalFrom,
+      terminalTo: pin.terminalTo,
+      sourceSheetRef: pin.sourceSheetRef,
+      note: pin.note,
+      conductorClassCode: pin.conductorClassCode,
     }));
 
     return NextResponse.json({

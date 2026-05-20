@@ -38,8 +38,15 @@ export async function GET(request: NextRequest) {
       include: {
         connectorType: true,
         drawing: { include: { system: true } },
-        pins: { orderBy: { pinNo: 'asc' } },
-        wireEndpoints: { include: { wire: true, device: true } },
+        pins: { 
+          orderBy: { pinNo: 'asc' },
+          include: {
+            wireEndpoints: { include: { wire: true, device: true } },
+          },
+        },
+        wireEndpoints: { 
+          include: { wire: true, device: true } 
+        },
       },
       orderBy: { connectorCode: 'asc' },
       take: limit,
@@ -82,6 +89,14 @@ export async function GET(request: NextRequest) {
         sourceSheetRef: p.sourceSheetRef,
         note: p.note,
         endpointLabel: `${conn.connectorCode}:${p.pinNo} - ${p.signalName || 'N/A'}`,
+        wireEndpoints: p.wireEndpoints.map(we => ({
+          wireNo: we.wire?.wireNo,
+          signalName: we.wire?.signalName,
+          deviceTag: we.device?.tagNo,
+          deviceName: we.device?.deviceName,
+          endpointRole: we.endpointRole,
+          endpointLabel: we.endpointLabel,
+        })),
       })),
       wireEndpoints: conn.wireEndpoints.map(we => ({
         wireNo: we.wire?.wireNo,

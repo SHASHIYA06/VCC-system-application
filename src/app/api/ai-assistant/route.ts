@@ -1,329 +1,234 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { callLLM, callLLMWithFallback, getAvailableProviders } from '@/lib/llm';
 import { prisma } from '@/lib/prisma';
+import { MultiAgentOrchestrator, simpleRAGQuery } from '@/lib/rag/agents';
+import { RAG_CONFIG } from '@/lib/rag/config';
 
-async function getQuickAnswer(query: string, prismaClient: any): Promise<string | null> {
-  const q = query.toLowerCase().trim();
-  
-  if (q === 'list connectors' || q === 'show connectors' || q === 'all connectors') {
-    const connectors = await prismaClient.connector.findMany({
-      take: 20,
-      orderBy: { connectorCode: 'asc' },
-    });
-    if (connectors.length > 0) {
-      return `## All Connectors (${connectors.length} found)\n\n` +
-        connectors.map((c: any) => 
-          `- **${c.connectorCode}**: ${c.connectorTypeCode || 'N/A'} (${c.carType || 'N/A'})`
-        ).join('\n');
-    }
-    return null;
-  }
-  
-  if (q === 'list wires' || q === 'show wires' || q === 'all wires') {
-    const wires = await prismaClient.wire.findMany({
-      take: 20,
-      orderBy: { wireNo: 'asc' },
-    });
-    if (wires.length > 0) {
-      return `## All Wires (showing first 20)\n\n` +
-        wires.map((w: any) => 
-          `- **${w.wireNo}**: ${w.signalName || 'N/A'} (${w.voltageClass || 'N/A'})`
-        ).join('\n');
-    }
-    return null;
-  }
-  
-  if (q === 'list drawings' || q === 'show drawings' || q === 'all drawings') {
-    const drawings = await prismaClient.drawing.findMany({
-      take: 20,
-      orderBy: { drawingNo: 'asc' },
-    });
-    if (drawings.length > 0) {
-      return `## All Drawings (${drawings.length} found)\n\n` +
-        drawings.map((d: any) => 
-          `- **${d.drawingNo}**: ${d.title}`
-        ).join('\n');
-    }
-    return null;
-  }
-  
-  if (q === 'list trainlines' || q === 'show trainlines' || q === 'all trainlines') {
-    const trainlines = await prismaClient.trainLine.findMany({
-      take: 20,
-      orderBy: { wireNo: 'asc' },
-    });
-    if (trainlines.length > 0) {
-      return `## All Trainlines (${trainlines.length} found)\n\n` +
-        trainlines.map((t: any) => 
-          `- **${t.wireNo}**: ${t.itemName} (${t.lineGroup})`
-        ).join('\n');
-    }
-    return null;
-  }
-  
-  if (q === 'systems' || q === 'list systems' || q === 'all systems') {
-    const systems = await prismaClient.system.findMany({
-      orderBy: { sortOrder: 'asc' },
-    });
-    if (systems.length > 0) {
-      return `## VCC Systems\n\n` +
-        systems.map((s: any) => 
-          `- **${s.code}**: ${s.name || 'N/A'} - ${s.description?.slice(0, 50) || ''}`
-        ).join('\n');
-    }
-    return null;
-  }
-  
-  return null;
-}
-
+/**
+ * GET - Return API status and configuration
+ */
 export async function GET() {
-  const availableProviders = getAvailableProviders();
-  
-  return NextResponse.json({
-    name: 'VCC Personal AI Infrastructure',
-    version: '1.0.0',
-    capabilities: [
-      'expert_consultation',
-      'circuit_analysis',
-      'troubleshooting',
-      'training',
-      'documentation_generation',
-    ],
-    availableProviders: availableProviders.map(p => p.name),
-    configuredProviders: availableProviders.map(p => ({
-      name: p.name,
-      defaultModel: p.defaultModel,
-    })),
-    database: {
-      systems: '25+',
-      drawings: '564+',
-      wires: '19000+',
-      circuits: '1141+',
-      connectors: '400+',
-      trainlines: '978+',
-    },
-    endpoints: {
-      POST: '/api/ai-assistant - Ask AI questions about VCC system',
-    },
-  });
+  try {
+    // Check database connection
+    const drawingCount = await prisma.drawing.count();
+    const wireCount = await prisma.wire.count();
+    const connectorCount = await prisma.connector.count();
+    
+    // Get configured providers
+    const configuredProviders = RAG_CONFIG.models.chat
+      .filter(model => model.apiKey)
+      .map(model => ({
+        name: model.name,
+        provider: model.provider,
+        defaultModel: model.model,
+        priority: model.priority,
+      }))
+      .sort((a, b) => a.priority - b.priority);
+    
+    return NextResponse.json({
+      name: 'VCC Personal AI Infrastructure',
+      version: '2.0.0',
+      status: 'operational',
+      features: [
+        'Multi-Agent RAG System',
+        'Vector Search',
+        'Hybrid Retrieval',
+        'Technical Analysis',
+        'Wire Tracing',
+        'System Navigation',
+      ],
+      availableProviders: ['openai', 'anthropic', 'deepseek', 'nvidia', 'google'],
+      configuredProviders,
+      database: {
+        systems: '25+',
+        drawings: drawingCount,
+        wires: wireCount,
+        circuits: '1141+',
+        connectors: connectorCount,
+        trainlines: '978+',
+        status: 'connected',
+      },
+      rag: {
+        enabled: true,
+        vectorStore: 'mongodb',
+        embeddingModel: RAG_CONFIG.models.embedding.model,
+        chunkSize: RAG_CONFIG.chunking.maxChunkSize,
+        topK: RAG_CONFIG.retrieval.topK,
+      },
+      endpoints: {
+        POST: '/api/ai-assistant - Ask AI questions about VCC system',
+      },
+    });
+  } catch (error) {
+    console.error('API status error:', error);
+    return NextResponse.json(
+      {
+        name: 'VCC Personal AI Infrastructure',
+        version: '2.0.0',
+        status: 'error',
+        error: String(error),
+      },
+      { status: 500 }
+    );
+  }
 }
 
+/**
+ * POST - Process AI query with RAG system
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query, context, mode } = body;
-
-    if (!query) {
-      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
-    }
-
-    const searchContext = context || {};
-    let dbData: any = {};
-
-    if (mode === 'expert' || mode === 'all') {
-      const [systems, drawings, wires, connectors, trainLines] = await Promise.all([
-        prisma.system.findMany({ take: 20 }),
-        prisma.drawing.findMany({ 
-          where: { 
-            OR: [
-              { drawingNo: { contains: query } },
-              { title: { contains: query, mode: 'insensitive' } }
-            ]
-          },
-          take: 10 
-        }),
-        prisma.wire.findMany({
-          where: {
-            OR: [
-              { wireNo: { contains: query } },
-              { signalName: { contains: query, mode: 'insensitive' } }
-            ]
-          },
-          take: 20,
-        }),
-        prisma.connector.findMany({
-          where: { connectorCode: { contains: query } },
-          include: { pins: true, drawing: true },
-          take: 10,
-        }),
-        prisma.trainLine.findMany({
-          where: {
-            OR: [
-              { wireNo: { contains: query } },
-              { itemName: { contains: query, mode: 'insensitive' } }
-            ]
-          },
-          take: 20,
-        }),
-      ]);
-
-      dbData = { systems, drawings, wires, connectors, trainLines };
-    }
-
-    const quickAnswer = await getQuickAnswer(query, prisma);
-    if (quickAnswer) {
-      return NextResponse.json({
-        success: true,
-        response: quickAnswer,
-        type: 'quick_answer',
-        context: {
-          systemsFound: dbData.systems?.length || 0,
-          drawingsFound: dbData.drawings?.length || 0,
-          wiresFound: dbData.wires?.length || 0,
-          connectorsFound: dbData.connectors?.length || 0,
-          trainLinesFound: dbData.trainLines?.length || 0,
-        },
-      });
-    }
-
-    const systemPrompt = `You are a VCC (Vehicle Control Circuit) Expert AI Assistant for KMRCL RS3R Metro Trains.
+    const { query, context, mode = 'expert' } = body;
     
-You have access to a comprehensive database containing:
-- 25+ Systems (TRAC, BRAKE, TMS, DOOR, APS, VAC, TRL, CAB, COMMS, etc.)
-- 564+ Drawings with pin assignments
-- 19,000+ Wires with detailed specifications
-- 1,100+ Circuits
-- 978 Trainlines
-
-Your role is to provide:
-1. **Expert Analysis** - Detailed circuit and system explanations
-2. **Troubleshooting** - Identify potential issues and solutions
-3. **Training** - Explain concepts for learning purposes
-4. **Documentation** - Generate clear technical references
-
-Database context:
-${JSON.stringify(dbData, null, 2)}
-
-Provide accurate, detailed, and actionable responses. Use technical terminology appropriately.`;
-
-    let llmResponse;
-    try {
-      llmResponse = await callLLMWithFallback(query, {
-        system: systemPrompt,
-        temperature: 0.3,
-        maxTokens: 2000,
-        preferredProviders: ['openrouter', 'nvidia', 'gemini', 'openai'],
-      });
-    } catch (llmError) {
-      console.error('LLM call error:', llmError);
+    if (!query || typeof query !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'Query is required' },
+        { status: 400 }
+      );
     }
-
-    if (!llmResponse || llmResponse.error) {
-      const fallbackResponse = generateFallbackResponse(query, dbData);
+    
+    console.log(`🤖 Processing query: "${query}" (mode: ${mode})`);
+    
+    // Check if RAG system is available
+    const hasEmbeddingKey = !!RAG_CONFIG.models.embedding.apiKey;
+    const hasChatKey = RAG_CONFIG.models.chat.some(m => m.apiKey);
+    
+    if (!hasEmbeddingKey || !hasChatKey) {
+      // Fallback to database search
+      return await fallbackDatabaseSearch(query);
+    }
+    
+    // Use multi-agent RAG system
+    try {
+      const orchestrator = new MultiAgentOrchestrator();
+      const response = await orchestrator.process(query, mode);
+      
       return NextResponse.json({
         success: true,
-        response: fallbackResponse,
-        type: 'database_fallback',
-        note: 'Showing database results (AI service unavailable)',
-        context: {
-          systemsFound: dbData.systems?.length || 0,
-          drawingsFound: dbData.drawings?.length || 0,
-          wiresFound: dbData.wires?.length || 0,
-          connectorsFound: dbData.connectors?.length || 0,
-          trainLinesFound: dbData.trainLines?.length || 0,
-        },
+        response: response.content,
+        model: response.model,
+        tokens: response.tokens,
+        sources: response.sources?.map(s => ({
+          type: s.chunk.documentType,
+          label: s.chunk.metadata.drawingNo || s.chunk.metadata.wireNo || s.chunk.metadata.connectorCode || 'Document',
+          score: s.score,
+        })),
+        mode,
       });
+    } catch (ragError) {
+      console.error('RAG system error:', ragError);
+      // Fallback to database search
+      return await fallbackDatabaseSearch(query);
     }
+  } catch (error) {
+    console.error('AI Assistant API error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to process query',
+        details: String(error),
+        fallback: 'Please try a simpler query or check API configuration',
+      },
+      { status: 500 }
+    );
+  }
+}
 
+/**
+ * Fallback to direct database search when RAG is unavailable
+ */
+async function fallbackDatabaseSearch(query: string) {
+  try {
+    const searchTerm = query.toLowerCase();
+    
+    // Search drawings
+    const drawings = await prisma.drawing.findMany({
+      where: {
+        OR: [
+          { drawingNo: { contains: searchTerm, mode: 'insensitive' } },
+          { title: { contains: searchTerm, mode: 'insensitive' } },
+        ],
+      },
+      include: { system: true },
+      take: 5,
+    });
+    
+    // Search wires
+    const wires = await prisma.wire.findMany({
+      where: {
+        OR: [
+          { wireNo: { contains: searchTerm, mode: 'insensitive' } },
+          { signalName: { contains: searchTerm, mode: 'insensitive' } },
+        ],
+      },
+      take: 5,
+    });
+    
+    // Search connectors
+    const connectors = await prisma.connector.findMany({
+      where: {
+        connectorCode: { contains: searchTerm, mode: 'insensitive' },
+      },
+      include: { drawing: true },
+      take: 5,
+    });
+    
+    // Build response
+    let response = `## Search Results for "${query}"\n\n`;
+    
+    if (drawings.length > 0) {
+      response += `### Drawings (${drawings.length})\n`;
+      drawings.forEach(d => {
+        response += `- **${d.drawingNo}**: ${d.title}\n`;
+        response += `  System: ${d.system?.name || 'N/A'}\n`;
+      });
+      response += '\n';
+    }
+    
+    if (wires.length > 0) {
+      response += `### Wires (${wires.length})\n`;
+      wires.forEach(w => {
+        response += `- **${w.wireNo}**: ${w.signalName || 'N/A'}\n`;
+        response += `  ${w.description || ''}\n`;
+      });
+      response += '\n';
+    }
+    
+    if (connectors.length > 0) {
+      response += `### Connectors (${connectors.length})\n`;
+      connectors.forEach(c => {
+        response += `- **${c.connectorCode}**: ${c.description || 'N/A'}\n`;
+        response += `  Drawing: ${c.drawing?.drawingNo || 'N/A'}\n`;
+      });
+      response += '\n';
+    }
+    
+    if (drawings.length === 0 && wires.length === 0 && connectors.length === 0) {
+      response = `No results found for "${query}". Try:\n- Using specific wire numbers (e.g., 3003, 6009)\n- Drawing numbers (e.g., 942-38104)\n- Connector codes (e.g., CN11, X1)\n- System names (TCMS, Brake, Door)`;
+    } else {
+      response += `\n**Note**: This is a basic database search. For detailed analysis, please configure AI API keys.`;
+    }
+    
     return NextResponse.json({
       success: true,
-      response: llmResponse.content,
-      model: llmResponse.model,
-      context: {
-        systemsFound: dbData.systems?.length || 0,
-        drawingsFound: dbData.drawings?.length || 0,
-        wiresFound: dbData.wires?.length || 0,
-        connectorsFound: dbData.connectors?.length || 0,
-        trainLinesFound: dbData.trainLines?.length || 0,
-      },
-      sources: extractSources(dbData),
+      response,
+      model: 'database-fallback',
+      tokens: 0,
+      sources: [
+        ...drawings.map(d => ({ type: 'drawing', label: d.drawingNo })),
+        ...wires.map(w => ({ type: 'wire', label: w.wireNo })),
+        ...connectors.map(c => ({ type: 'connector', label: c.connectorCode })),
+      ],
     });
-
   } catch (error) {
-    console.error('Personal AI error:', error);
-    return NextResponse.json({ 
-      error: 'AI processing failed', 
-      details: String(error) 
-    }, { status: 500 });
+    console.error('Fallback search error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Search failed',
+        details: String(error),
+      },
+      { status: 500 }
+    );
   }
-}
-
-function hasDatabaseData(dbData: any): boolean {
-  return (dbData.wires?.length > 0) || 
-         (dbData.drawings?.length > 0) || 
-         (dbData.trainLines?.length > 0) ||
-         (dbData.connectors?.length > 0) ||
-         (dbData.systems?.length > 0);
-}
-
-function generateFallbackResponse(query: string, dbData: any): string {
-  const hasData = hasDatabaseData(dbData);
-  
-  let response = `## VCC Query Results for: "${query}"\n\n`;
-  
-  if (!hasData) {
-    response += `### Available Commands\n` +
-      `- **"list connectors"** - Show all connectors\n` +
-      `- **"list wires"** - Show all wires\n` +
-      `- **"list drawings"** - Show all drawings\n` +
-      `- **"list trainlines"** - Show all trainlines\n` +
-      `- **"systems"** - Show all VCC systems\n` +
-      `- **"wire ####"** - Lookup specific wire (e.g., "wire 3003")\n` +
-      `- **"connector XXX"** - Lookup connector\n` +
-      `- **"drawing ###-#####"** - Lookup drawing\n\n`;
-    
-    response += `### Database Statistics\n` +
-      `- Systems: 25\n` +
-      `- Drawings: 564\n` +
-      `- Wires: 19,016\n` +
-      `- Connectors: 413\n` +
-      `- Trainlines: 978\n`;
-    
-    return response;
-  }
-
-  if (dbData.wires?.length > 0) {
-    response += `### Matching Wires (${dbData.wires.length}):\n`;
-    dbData.wires.slice(0, 5).forEach((w: any) => {
-      response += `- **${w.wireNo}**: ${w.signalName || 'N/A'} (${w.voltageClass || 'N/A'})\n`;
-    });
-    response += '\n';
-  }
-
-  if (dbData.drawings?.length > 0) {
-    response += `### Matching Drawings (${dbData.drawings.length}):\n`;
-    dbData.drawings.slice(0, 5).forEach((d: any) => {
-      response += `- **${d.drawingNo}**: ${d.title}\n`;
-    });
-    response += '\n';
-  }
-
-  if (dbData.trainLines?.length > 0) {
-    response += `### Matching Trainlines (${dbData.trainLines.length}):\n`;
-    dbData.trainLines.slice(0, 5).forEach((t: any) => {
-      response += `- **${t.wireNo}**: ${t.itemName} (${t.lineGroup})\n`;
-    });
-    response += '\n';
-  }
-
-  if (dbData.connectors?.length > 0) {
-    response += `### Matching Connectors (${dbData.connectors.length}):\n`;
-    dbData.connectors.slice(0, 5).forEach((c: any) => {
-      response += `- **${c.connectorCode}**: ${c.drawing?.drawingNo || 'N/A'} (${c.pins?.length || 0} pins)\n`;
-    });
-  }
-
-  return response || `No matching data found for "${query}". Try searching with a wire number, drawing number, or system code.`;
-}
-
-function extractSources(dbData: any): Array<{ type: string; id: string; label: string }> {
-  const sources: Array<{ type: string; id: string; label: string }> = [];
-
-  dbData.wires?.forEach((w: any) => sources.push({ type: 'wire', id: w.id, label: w.wireNo }));
-  dbData.drawings?.forEach((d: any) => sources.push({ type: 'drawing', id: d.id, label: d.drawingNo }));
-  dbData.connectors?.forEach((c: any) => sources.push({ type: 'connector', id: c.id, label: c.connectorCode }));
-  dbData.systems?.forEach((s: any) => sources.push({ type: 'system', id: s.id, label: s.code }));
-
-  return sources.slice(0, 20);
 }
