@@ -172,7 +172,7 @@ async function populatePdfPageMappings() {
           none: {
             extra: {
               path: ['pdfPageNo'],
-              not: null
+              not: 'null' as any
             }
           }
         }
