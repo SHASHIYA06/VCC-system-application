@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
-const PdfViewer = dynamic(() => import('@/components/pdf/PdfViewer'), { 
+const PdfViewerEnhanced = dynamic(() => import('@/components/pdf/PdfViewerEnhanced'), { 
   ssr: false,
   loading: () => (
     <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center">
@@ -102,6 +102,7 @@ function DrawingDetailContent() {
   const [searching, setSearching] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfPage, setPdfPage] = useState(1);
+  const [pdfSearchQuery, setPdfSearchQuery] = useState('');
 
   useEffect(() => {
     if (docId || dwgNo) {
@@ -130,6 +131,14 @@ function DrawingDetailContent() {
 
   function openPdfViewer() {
     if (drawing?.sourceFile) {
+      setPdfSearchQuery('');
+      setShowPdfViewer(true);
+    }
+  }
+
+  function openPdfWithSearch(searchTerm: string) {
+    if (drawing?.sourceFile) {
+      setPdfSearchQuery(searchTerm);
       setShowPdfViewer(true);
     }
   }
@@ -405,6 +414,7 @@ function DrawingDetailContent() {
                     <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400">Voltage</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400">Source</th>
                     <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400">Destination</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-400">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700/30">
@@ -415,11 +425,21 @@ function DrawingDetailContent() {
                       <td className="px-5 py-3 text-slate-400">{wire.voltageClass || '-'}</td>
                       <td className="px-5 py-3 text-slate-400">{wire.sourceEquipment || wire.sourceConnector || '-'}</td>
                       <td className="px-5 py-3 text-slate-400">{wire.destEquipment || wire.destConnector || '-'}</td>
+                      <td className="px-5 py-3">
+                        <button
+                          onClick={() => openPdfWithSearch(wire.wireNo)}
+                          className="flex items-center gap-1 px-3 py-1 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400 rounded text-sm transition-colors"
+                          title={`Search for ${wire.wireNo} in PDF`}
+                        >
+                          <Eye className="h-3 w-3" />
+                          View in PDF
+                        </button>
+                      </td>
                     </tr>
                   ))}
                   {wires.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-12 text-center text-slate-500">No wires found</td>
+                      <td colSpan={6} className="px-5 py-12 text-center text-slate-500">No wires found</td>
                     </tr>
                   )}
                 </tbody>
@@ -476,10 +496,11 @@ function DrawingDetailContent() {
       )}
 
       {showPdfViewer && drawing?.sourceFile && (
-        <PdfViewer
+        <PdfViewerEnhanced
           src={`/DOCUMENTS/${drawing.sourceFile}`}
           initialPage={pdfPage}
           title={`${drawing.drawingNo} - ${drawing.title}`}
+          searchQuery={pdfSearchQuery}
           onClose={() => setShowPdfViewer(false)}
         />
       )}
