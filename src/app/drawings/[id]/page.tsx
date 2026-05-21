@@ -497,7 +497,7 @@ function DrawingDetailContent() {
 
       {showPdfViewer && drawing?.sourceFile && (
         <PdfViewerEnhanced
-          src={`/DOCUMENTS/${drawing.sourceFile}`}
+          src={`/api/pdf/${encodeURIComponent(drawing.sourceFile)}`}
           initialPage={pdfPage}
           title={`${drawing.drawingNo} - ${drawing.title}`}
           searchQuery={pdfSearchQuery}
