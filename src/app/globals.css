@@ -2,6 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CRITICAL FIX: Make all text visible */
+* {
+  color: white !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: white !important;
+  font-weight: bold !important;
+}
+
+p, span, div, a, button, input, label {
+  color: white !important;
+}
+
+/* Make links cyan for visibility */
+a {
+  color: #22d3ee !important;
+}
+
+a:hover {
+  color: #06b6d4 !important;
+}
+
+/* Simple dark background */
+body {
+  background: #0f172a !important;
+  min-height: 100vh;
+}
+
+/* Make cards visible */
+.glass-card, [class*="glass"] {
+  background: rgba(30, 41, 59, 0.9) !important;
+  border: 1px solid rgba(148, 163, 184, 0.3) !important;
+  border-radius: 0.75rem !important;
+  padding: 1rem !important;
+}
+
+/* Make inputs visible */
+input, textarea, select {
+  background: #1e293b !important;
+  border: 1px solid #475569 !important;
+  color: white !important;
+  padding: 0.5rem !important;
+  border-radius: 0.5rem !important;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: 2px solid #06b6d4 !important;
+  border-color: #06b6d4 !important;
+}
+
+/* Make buttons visible */
+button {
+  background: #0891b2 !important;
+  color: white !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 0.5rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+button:hover {
+  background: #06b6d4 !important;
+}
+
+button:disabled {
+  background: #475569 !important;
+  cursor: not-allowed !important;
+}
+
 /* ============================================================================
    VCC System - Enhanced Global Styles
    Modern UI/UX with Tailwind CSS
