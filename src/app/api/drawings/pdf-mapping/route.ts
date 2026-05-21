@@ -132,16 +132,109 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'drawing_no and source_file required' }, { status: 400 });
   }
   
+  // First, try to get page mapping from database
+  try {
+    const drawing = await prisma.drawing.findFirst({
+      where: {
+        OR: [
+          { drawingNo: { equals: drawingNo } },
+          { drawingNo: { contains: drawingNo } }
+        ]
+      },
+      include: {
+        pages: {
+          where: {
+            extra: {
+              path: ['pdfPageNo'],
+              not: null
+            }
+          },
+          orderBy: { pageNo: 'asc' },
+          take: 1
+        }
+      }
+    });
+
+    if (drawing?.pages?.[0]?.extra && typeof drawing.pages[0].extra === 'object') {
+      const extra = drawing.pages[0].extra as any;
+      if (extra.pdfPageNo) {
+        return NextResponse.json({ 
+          pdfPageNo: extra.pdfPageNo, 
+          sourceFile,
+          source: 'database' 
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Database lookup failed:', error);
+  }
+  
+  // Fallback to hardcoded mappings
   const drawingNum = extractDrawingNumber(drawingNo);
   const mapping = PDF_PAGE_MAPPINGS[sourceFile];
   
   if (mapping) {
     for (const [prefix, pageNo] of Object.entries(mapping)) {
       if (drawingNum.startsWith(prefix) || drawingNo.includes(prefix)) {
-        return NextResponse.json({ pdfPageNo: pageNo, sourceFile });
+        return NextResponse.json({ 
+          pdfPageNo: pageNo, 
+          sourceFile,
+          source: 'hardcoded' 
+        });
       }
     }
   }
   
-  return NextResponse.json({ pdfPageNo: 1, sourceFile });
+  // If no mapping found, try to infer from drawing number pattern
+  const inferredPage = inferPageFromDrawingNumber(drawingNo, sourceFile);
+  
+  return NextResponse.json({ 
+    pdfPageNo: inferredPage, 
+    sourceFile,
+    source: 'inferred',
+    warning: 'No exact mapping found, showing inferred page'
+  });
+}
+
+function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): number {
+  // Extract numeric part
+  const numMatch = drawingNo.match(/\d+/);
+  if (!numMatch) return 1;
+  
+  const num = parseInt(numMatch[0]);
+  
+  // For PIN drawings, typically each drawing is 2 pages (drawing + notes)
+  // Try to calculate based on sequence
+  if (sourceFile.includes('PIN')) {
+    // Find the base number for this file
+    if (sourceFile.includes('CAB_PIN DRAWINGS 2')) {
+      // 58124-58147 range, starting at page 1
+      const offset = num - 58124;
+      return offset >= 0 ? (offset * 2) + 1 : 1;
+    } else if (sourceFile.includes('CAB_PIN DRAWINGS')) {
+      // 58100-58123 range, starting at page 1
+      const offset = num - 58100;
+      return offset >= 0 ? (offset * 2) + 1 : 1;
+    } else if (sourceFile.includes('DMC_CEILING')) {
+      const offset = num - 58000;
+      return offset >= 0 ? (offset * 2) + 1 : 1;
+    } else if (sourceFile.includes('DMC UF')) {
+      const offset = num - 58050;
+      return offset >= 0 ? (offset * 2) + 1 : 1;
+    } else if (sourceFile.includes('TC_CEILING')) {
+      const offset = num - 58200;
+      return offset >= 0 ? (offset * 2) + 1 : 1;
+    } else if (sourceFile.includes('TC _UF')) {
+      const offset = num - 58250;
+      return offset >= 0 ? (offset * 2) + 1 : 1;
+    } else if (sourceFile.includes('MC_CEILING')) {
+      const offset = num - 58300;
+      return offset >= 0 ? (offset * 2) + 1 : 1;
+    } else if (sourceFile.includes('MC_UF')) {
+      const offset = num - 58350;
+      return offset >= 0 ? (offset * 2) + 1 : 1;
+    }
+  }
+  
+  return 1;
 }

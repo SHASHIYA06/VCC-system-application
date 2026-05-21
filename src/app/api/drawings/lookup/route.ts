@@ -74,17 +74,59 @@ export async function GET(request: NextRequest) {
 }
 
 async function getRelatedWires(drawingId: string, drawingNo: string) {
-  const wires = await prisma.wire.findMany({
+  // Method 1: Get wires through connector pins on this drawing
+  const connectorsOnDrawing = await prisma.connector.findMany({
+    where: { drawingId },
+    include: {
+      pins: {
+        where: { wireNo: { not: null } },
+        select: { wireNo: true }
+      }
+    }
+  });
+
+  const wireNosFromPins = connectorsOnDrawing
+    .flatMap(c => c.pins.map(p => p.wireNo))
+    .filter((w): w is string => w !== null);
+
+  // Method 2: Get wires through wire endpoints linked to connectors on this drawing
+  const wireEndpoints = await prisma.wireEndpoint.findMany({
+    where: {
+      connector: { drawingId }
+    },
+    include: {
+      wire: true
+    }
+  });
+
+  const wiresFromEndpoints = wireEndpoints.map(we => we.wire);
+
+  // Method 3: Get wires mentioned in drawing remarks/description (fallback)
+  const wiresFromRemarks = await prisma.wire.findMany({
     where: {
       OR: [
         { remarks: { contains: drawingNo } },
         { description: { contains: drawingNo } },
       ],
     },
-    take: 50,
-    orderBy: { wireNo: 'asc' },
+    take: 20,
   });
-  return wires.map(w => ({
+
+  // Method 4: Get wires by wireNo if we have them from pins
+  const wiresFromPinRefs = wireNosFromPins.length > 0 
+    ? await prisma.wire.findMany({
+        where: { wireNo: { in: wireNosFromPins } },
+        take: 50
+      })
+    : [];
+
+  // Combine and deduplicate
+  const allWires = [...wiresFromEndpoints, ...wiresFromRemarks, ...wiresFromPinRefs];
+  const uniqueWires = Array.from(
+    new Map(allWires.map(w => [w.wireNo, w])).values()
+  );
+
+  return uniqueWires.slice(0, 50).map(w => ({
     wireNo: w.wireNo,
     signalName: w.signalName,
     wireColor: w.wireColor,
