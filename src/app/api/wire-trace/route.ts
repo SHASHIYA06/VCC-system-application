@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
             locationTag: e.connector.locationTag,
           } : null,
         })),
-        pins: item.pins.map(p => ({
+        pins: item.pins.map((p: any) => ({
           pinNo: p.pinNo,
           signalName: p.signalName,
           voltageText: p.voltageText,
