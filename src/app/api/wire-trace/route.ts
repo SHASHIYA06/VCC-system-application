@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
           note: item.trainline.note,
         } : null,
       })),
-      trainlines: trainlines.map(tl => ({
+      trainlines: trainlines.map((tl: any) => ({
         wireNo: tl.wireNo,
         itemName: tl.itemName,
         lineGroup: tl.lineGroup,
@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
           title: tl.drawing.title,
         } : null,
       })),
-      connectorPins: connectorPins.map(p => ({
+      connectorPins: connectorPins.map((p: any) => ({
         connectorCode: p.connector?.connectorCode,
         pinNo: p.pinNo,
         signalName: p.signalName,
