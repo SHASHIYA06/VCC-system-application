@@ -171,12 +171,7 @@ async function getPDFPageMapping(drawingNo: string, sourceFile: string): Promise
     where: { drawingNo: { contains: drawingNo } },
     include: {
       pages: {
-        where: {
-          extra: {
-            path: ['pdfPageNo'],
-            not: null
-          }
-        },
+        orderBy: { pageNo: 'asc' },
         take: 1
       }
     }

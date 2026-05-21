@@ -153,15 +153,12 @@ async function getRelatedWires(drawingId: string, drawingNo: string) {
   // Method 5: Search for wires with alphabetic patterns (Y4181a, Y4184, etc.)
   const alphabeticWires = await prisma.wire.findMany({
     where: {
-      wireNo: {
-        // Match patterns like Y4181a, Y4184, etc.
-        OR: [
-          { contains: 'Y4' },
-          { contains: 'W4' },
-          { contains: 'X4' },
-          { contains: 'Z4' },
-        ]
-      }
+      OR: [
+        { wireNo: { contains: 'Y4' } },
+        { wireNo: { contains: 'W4' } },
+        { wireNo: { contains: 'X4' } },
+        { wireNo: { contains: 'Z4' } },
+      ]
     },
     take: 50
   });
