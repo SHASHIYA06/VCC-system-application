@@ -21,24 +21,28 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'fixConnectors') {
-      return await fixConnectorLinks();
+      const result = await fixConnectorLinks();
+      return NextResponse.json(result);
     }
 
     if (action === 'fixWires') {
-      return await fixWireLinks();
+      const result = await fixWireLinks();
+      return NextResponse.json(result);
     }
 
     if (action === 'fixTrainlines') {
-      return await fixTrainlineLinks();
+      const result = await fixTrainlineLinks();
+      return NextResponse.json(result);
     }
 
     if (action === 'fixAll') {
-      const results = {
-        connectors: await fixConnectorLinks(),
-        wires: await fixWireLinks(),
-        trainlines: await fixTrainlineLinks(),
-      };
-      return NextResponse.json({ success: true, results });
+      const connectors = await fixConnectorLinks();
+      const wires = await fixWireLinks();
+      const trainlines = await fixTrainlineLinks();
+      return NextResponse.json({ 
+        success: true, 
+        results: { connectors, wires, trainlines } 
+      });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
