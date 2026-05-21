@@ -143,26 +143,24 @@ export async function GET(request: NextRequest) {
       },
       include: {
         pages: {
-          where: {
-            extra: {
-              path: ['pdfPageNo'],
-              not: null
-            }
-          },
           orderBy: { pageNo: 'asc' },
           take: 1
         }
       }
     });
 
-    if (drawing?.pages?.[0]?.extra && typeof drawing.pages[0].extra === 'object') {
-      const extra = drawing.pages[0].extra as any;
-      if (extra.pdfPageNo) {
-        return NextResponse.json({ 
-          pdfPageNo: extra.pdfPageNo, 
-          sourceFile,
-          source: 'database' 
-        });
+    if (drawing?.pages?.[0]?.extra) {
+      try {
+        const extra = drawing.pages[0].extra as any;
+        if (extra && typeof extra === 'object' && extra.pdfPageNo) {
+          return NextResponse.json({ 
+            pdfPageNo: extra.pdfPageNo, 
+            sourceFile,
+            source: 'database' 
+          });
+        }
+      } catch (e) {
+        // Continue to fallback
       }
     }
   } catch (error) {

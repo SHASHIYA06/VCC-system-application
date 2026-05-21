@@ -11,15 +11,33 @@ export async function GET(request: NextRequest) {
 
   try {
     const normalizedQuery = drawingNo.trim().toUpperCase();
+    
+    // Handle drawings with alphabetic suffixes (e.g., 942-58128D)
+    const baseNumber = normalizedQuery.replace(/[A-Z]+$/, ''); // Remove trailing letters
+    const withoutPrefix = normalizedQuery.replace(/^942[-_]/i, '');
+    const baseWithoutPrefix = withoutPrefix.replace(/[A-Z]+$/, '');
 
     const drawing = await prisma.drawing.findFirst({
       where: {
         OR: [
+          // Exact matches
           { drawingNo: { equals: normalizedQuery } },
           { drawingNo: { equals: normalizedQuery.replace(/-/g, '') } },
+          
+          // Contains matches
           { drawingNo: { contains: normalizedQuery } },
           { drawingNo: { contains: normalizedQuery.replace(/-/g, '') } },
-          { drawingNo: { contains: normalizedQuery.replace('942-', '') } },
+          
+          // Without prefix
+          { drawingNo: { contains: withoutPrefix } },
+          { drawingNo: { contains: withoutPrefix.replace(/-/g, '') } },
+          
+          // Base number matches (for alphabetic suffixes)
+          { drawingNo: { startsWith: baseNumber } },
+          { drawingNo: { startsWith: baseWithoutPrefix } },
+          
+          // Flexible matching
+          { drawingNo: { contains: baseWithoutPrefix } },
         ],
       },
       include: {
@@ -101,32 +119,66 @@ async function getRelatedWires(drawingId: string, drawingNo: string) {
 
   const wiresFromEndpoints = wireEndpoints.map(we => we.wire);
 
-  // Method 3: Get wires mentioned in drawing remarks/description (fallback)
+  // Method 3: Search for wires with alphabetic prefixes/suffixes (Y4181a, Y4184, etc.)
+  // Extract base drawing number for wire search
+  const drawingNumMatch = drawingNo.match(/\d+/);
+  const baseNum = drawingNumMatch ? drawingNumMatch[0] : '';
+  
   const wiresFromRemarks = await prisma.wire.findMany({
     where: {
       OR: [
         { remarks: { contains: drawingNo } },
         { description: { contains: drawingNo } },
+        { wireNo: { contains: baseNum } }, // Search by base number
+        { signalName: { contains: baseNum } },
       ],
     },
-    take: 20,
+    take: 50,
   });
 
-  // Method 4: Get wires by wireNo if we have them from pins
+  // Method 4: Get wires by wireNo if we have them from pins (handle alphabetic variants)
   const wiresFromPinRefs = wireNosFromPins.length > 0 
     ? await prisma.wire.findMany({
-        where: { wireNo: { in: wireNosFromPins } },
-        take: 50
+        where: { 
+          OR: [
+            { wireNo: { in: wireNosFromPins } },
+            // Also search for wires that start with any of the pin wire numbers
+            ...wireNosFromPins.map(wn => ({ wireNo: { startsWith: wn } }))
+          ]
+        },
+        take: 100
       })
     : [];
 
+  // Method 5: Search for wires with alphabetic patterns (Y4181a, Y4184, etc.)
+  const alphabeticWires = await prisma.wire.findMany({
+    where: {
+      wireNo: {
+        // Match patterns like Y4181a, Y4184, etc.
+        OR: [
+          { contains: 'Y4' },
+          { contains: 'W4' },
+          { contains: 'X4' },
+          { contains: 'Z4' },
+        ]
+      }
+    },
+    take: 50
+  });
+
   // Combine and deduplicate
-  const allWires = [...wiresFromEndpoints, ...wiresFromRemarks, ...wiresFromPinRefs];
+  const allWires = [
+    ...wiresFromEndpoints, 
+    ...wiresFromRemarks, 
+    ...wiresFromPinRefs,
+    ...alphabeticWires
+  ];
+  
   const uniqueWires = Array.from(
     new Map(allWires.map(w => [w.wireNo, w])).values()
   );
 
-  return uniqueWires.slice(0, 50).map(w => ({
+  return uniqueWires.slice(0, 100).map(w => ({
     wireNo: w.wireNo,
     signalName: w.signalName,
     wireColor: w.wireColor,
