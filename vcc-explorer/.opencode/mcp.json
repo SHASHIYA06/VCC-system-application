@@ -1,0 +1,24 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "@playwright/mcp@latest",
+        "--headless",
+        "--viewport-size=1920x1080"
+      ],
+      "enabled": true,
+      "env": {
+        "PLAYWRIGHT_MCP_BROWSER": "chromium"
+      }
+    },
+    "stitch": {
+      "serverUrl": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "AQ.Ab8RN6K-2Vhf-jjp5HpZK6fQZx6Ai0NklimVgwgOwVB4PCVLdw"
+      }
+    }
+  }
+}

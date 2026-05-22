@@ -1,0 +1,602 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum DrawingStatus {
+  ACTIVE
+  ARCHIVED
+  DRAFT
+  DEPRECATED
+}
+
+enum ConnectorScope {
+  INTERCAR
+  POWER
+  COMMUNICATION
+  DEVICE
+  DIAGNOSTIC
+}
+
+model Project {
+  id            String   @id @default(cuid())
+  projectCode   String   @unique
+  projectName   String
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  formations    Formation[]
+  drawings      Drawing[]
+  referenceDrawings ReferenceDrawing[]
+  sourceFiles   SourceFile[]
+}
+
+model Formation {
+  id            String   @id @default(cuid())
+  projectId     String
+  formationCode String
+  formationName String
+  carCount      Int
+  description   String?
+  createdAt     DateTime @default(now())
+
+  project       Project      @relation(fields: [projectId], references: [id])
+  cars          Car[]
+
+  @@unique([projectId, formationCode])
+}
+
+model Car {
+  id            String   @id @default(cuid())
+  formationId   String
+  carPosition   Int
+  carCode       String
+  carType       String
+  carLabel      String?
+  createdAt     DateTime @default(now())
+
+  formation     Formation @relation(fields: [formationId], references: [id])
+
+  @@unique([formationId, carPosition])
+  @@unique([formationId, carCode])
+}
+
+model CarType {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  positions   CarPosition[]
+  drawingApplicability DrawingApplicability[]
+}
+
+model CarPosition {
+  id            String   @id @default(cuid())
+  carTypeId     String
+  formationCode String
+  positionNo    Int
+  createdAt     DateTime @default(now())
+
+  carType       CarType @relation(fields: [carTypeId], references: [id])
+
+  @@unique([formationCode, positionNo])
+}
+
+model System {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  category    String?
+  description String?
+  sortOrder   Int      @default(0)
+
+  drawings    Drawing[]
+  devices     Device[]
+}
+
+model ReferenceDrawing {
+  id            String   @id @default(cuid())
+  projectId     String
+  refNo         String   @unique
+  title         String
+  revision      String   @default("")
+  sourceOrg     String?
+  remarks       String?
+  extra         Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  project       Project @relation(fields: [projectId], references: [id])
+  references    DrawingReference[]
+}
+
+model Drawing {
+  id            String   @id @default(cuid())
+  projectId     String
+  systemId      String?
+  drawingNo     String
+  revision      String   @default("0")
+  title         String
+  totalSheets   Int      @default(1)
+  sourceFileId  String?
+  isReference   Boolean  @default(false)
+  remarks       String?
+  status        DrawingStatus @default(ACTIVE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project       Project  @relation(fields: [projectId], references: [id])
+  system        System?  @relation(fields: [systemId], references: [id])
+
+  pages         DrawingPage[]
+  sheets        DrawingSheet[]
+  devices       Device[]
+  connectors    Connector[]
+  circuits      Circuit[]
+  trainLines    TrainLine[]
+  signals       Signal[]
+  crossConnections CrossConnection[]
+  crossConnectionRules CrossConnectionRule[]
+  notes         DrawingNote[]
+  noteEntities  Note[]
+  applicability DrawingApplicability[]
+  references    DrawingReference[]
+
+  @@unique([projectId, drawingNo, revision])
+  @@index([drawingNo])
+  @@index([systemId])
+}
+
+model DrawingApplicability {
+  id          String   @id @default(cuid())
+  drawingId   String
+  carTypeId   String?
+  applicable  Boolean  @default(true)
+  remark      String?
+
+drawing       Drawing?  @relation(fields: [drawingId], references: [id])
+  carType     CarType? @relation(fields: [carTypeId], references: [id])
+
+  @@unique([drawingId, carTypeId])
+}
+
+model DrawingReference {
+  id            String   @id @default(cuid())
+  drawingId     String
+  referenceId   String
+  relationType  String   @default("REFERENCE")
+  note          String?
+
+drawing       Drawing?  @relation(fields: [drawingId], references: [id])
+  reference     ReferenceDrawing @relation(fields: [referenceId], references: [id])
+
+  @@unique([drawingId, referenceId, relationType])
+}
+
+model DrawingPage {
+  id            String   @id @default(cuid())
+  drawingId     String
+  pageNo        Int
+  pageLabel     String?
+  ocrText       String?
+  rawText       String?
+  parseStatus   String   @default("PENDING")
+  extra         Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+
+  @@unique([drawingId, pageNo])
+}
+
+model DrawingSheet {
+  id            String   @id @default(cuid())
+  drawingId     String
+  sheetNo       Int
+  sheetLabel    String?
+  ocrPageRef    String?
+  extra         Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+  connectors    Connector[]
+  crossConnectionRules CrossConnectionRule[]
+  noteEntities  Note[]
+
+  @@unique([drawingId, sheetNo])
+}
+
+model DrawingNote {
+  id            String   @id @default(cuid())
+  drawingId     String
+  noteCode      String?
+  noteType      String
+  noteText      String
+  sourceSheet   String?
+  extra         Json     @default("{}")
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+}
+
+model Note {
+  id            String   @id @default(cuid())
+  drawingId     String
+  sheetId       String?
+  noteCode      String?
+  noteText      String
+  createdAt     DateTime @default(now())
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+  sheet         DrawingSheet? @relation(fields: [sheetId], references: [id])
+  crossConnectionRules CrossConnectionRule[]
+}
+
+model ConductorClass {
+  code          String   @id
+  description   String
+  voltageDomain String?
+
+  connectorPins ConnectorPin[]
+  circuitEndpoints CircuitEndpoint[]
+  trainLines    TrainLine[]
+}
+
+model ConnectorType {
+  code          String   @id
+  nominalPins   Int?
+  description   String
+  voltageClass  String?
+  remarks       String?
+
+  connectors    Connector[]
+}
+
+model Connector {
+  id            String   @id @default(cuid())
+  drawingId     String
+  sheetId       String?
+  connectorCode String
+  carType       String?
+  instanceLabel String?
+  locationTag   String?
+  sideTag       String?
+  description   String?
+  connectorTypeCode String?
+  pinCount      Int?
+  scope         ConnectorScope?
+  extra         Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+  sheet         DrawingSheet? @relation(fields: [sheetId], references: [id])
+  connectorType ConnectorType? @relation(fields: [connectorTypeCode], references: [code])
+
+  pins          ConnectorPin[]
+  wireEndpoints WireEndpoint[]
+
+  @@unique([drawingId, connectorCode])
+  @@index([drawingId])
+  @@index([connectorCode])
+}
+
+model ConnectorPin {
+  id                  String   @id @default(cuid())
+  connectorId         String
+  pinNo               String
+  pinLabel            String?
+  wireNo              String?
+  signalName          String?
+  conductorClassCode  String?
+  voltageText         String?
+  terminalFrom       String?
+  terminalTo          String?
+  sourceSheetRef     String?
+  note                String?
+  extra               Json     @default("{}")
+
+  connector           Connector @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+  conductorClass      ConductorClass? @relation(fields: [conductorClassCode], references: code)
+  wireEndpoints       WireEndpoint[]
+
+  @@unique([connectorId, pinNo])
+  @@index([wireNo])
+}
+
+model Device {
+  id            String   @id @default(cuid())
+  drawingId     String
+  systemId      String?
+  tagNo         String?
+  deviceName    String
+  deviceType    String?
+  carType       String?
+  locationTag   String?
+  manufacturerRef String?
+  note          String?
+  extra         Json     @default("{}")
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+  system        System?  @relation(fields: [systemId], references: [id])
+  wireEndpoints WireEndpoint[]
+
+  @@index([drawingId])
+  @@index([tagNo])
+  @@index([deviceName])
+  @@index([systemId])
+}
+
+model Circuit {
+  id            String   @id @default(cuid())
+  drawingId     String
+  circuitCode   String?
+  circuitName   String
+  category      String?
+  voltageText   String?
+  protocolText  String?
+  carScope      String?
+  note          String?
+  extra         Json     @default("{}")
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+  endpoints     CircuitEndpoint[]
+
+  @@index([drawingId])
+}
+
+model CircuitEndpoint {
+  id              String   @id @default(cuid())
+  circuitId       String
+  fromDeviceId    String?
+  toDeviceId      String?
+  fromLabel       String?
+  toLabel         String?
+  connectorFrom   String?
+  pinFrom         String?
+  connectorTo     String?
+  pinTo           String?
+  wireNo          String?
+  conductorClassCode String?
+  note            String?
+  extra           Json     @default("{}")
+
+  circuit         Circuit  @relation(fields: [circuitId], references: [id])
+  conductorClass  ConductorClass? @relation(fields: [conductorClassCode], references: code)
+}
+
+model TrainLine {
+  id                  String   @id @default(cuid())
+  drawingId           String
+  lineGroup           String
+  itemName            String
+  wireNo              String?
+  connectorCode       String?
+  pinNo               String?
+  carType             String?
+  sourceSheet         String?
+  note                String?
+  conductorClassCode  String?
+  extra               Json     @default("{}")
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+  conductorClass ConductorClass? @relation(fields: [conductorClassCode], references: code)
+
+  @@index([drawingId])
+  @@index([wireNo])
+}
+
+model Signal {
+  id            String   @id @default(cuid())
+  drawingId     String?
+  signalName    String
+  signalCode    String? @unique
+  protocol      String?
+  voltageText   String?
+  direction     String?
+  medium        String?
+  sourceSheet   String?
+  note          String?
+  signalFamily  String?
+  extra         Json     @default("{}")
+
+  drawing       Drawing?  @relation(fields: [drawingId], references: [id])
+
+  @@index([drawingId])
+}
+
+model CrossConnection {
+  id            String   @id @default(cuid())
+  drawingId     String
+  connectorCode String?
+  pinA          String?
+  pinB          String?
+  wireA         String?
+  wireB         String?
+  note          String
+  ruleType      String?
+  extra         Json     @default("{}")
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+}
+
+model CrossConnectionRule {
+  id            String   @id @default(cuid())
+  drawingId     String
+  sheetId       String?
+  connectorCode String
+  pinA          String?
+  pinB          String?
+  wireA         String?
+  wireB         String?
+  ruleType      String
+  remarks       String?
+  noteId        String?
+  extra         Json     @default("{}")
+
+  drawing       Drawing  @relation(fields: [drawingId], references: [id])
+  sheet         DrawingSheet? @relation(fields: [sheetId], references: [id])
+  note          Note?    @relation(fields: [noteId], references: [id])
+
+  @@index([connectorCode])
+}
+
+model Wire {
+  id              String   @id @default(cuid())
+  wireNo          String   @unique
+  signalName      String?
+  conductorClassCode String?
+  description     String?
+  wireSize        String?
+  wireColor       String?
+  cableSpec       String?
+  shielded        Boolean?
+  voltageClass    String?
+  sourceEquipment String?
+  sourceConnector String?
+  sourcePin       String?
+  destEquipment   String?
+  destConnector   String?
+  destPin         String?
+  remarks         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  endpoints       WireEndpoint[]
+
+  @@index([wireNo])
+  @@index([signalName])
+}
+
+model WireEndpoint {
+  id            String   @id @default(cuid())
+  wireId        String
+  deviceId      String?
+  connectorId   String?
+  pinId         String?
+  endpointRole  String?
+  endpointLabel String?
+  endpointPin   String?
+  sourceFile    String?
+  sourcePage    Int?
+  createdAt     DateTime @default(now())
+
+  wire          Wire     @relation(fields: [wireId], references: [id], onDelete: Cascade)
+  device        Device?  @relation(fields: [deviceId], references: [id])
+  connector     Connector? @relation(fields: [connectorId], references: [id])
+  pin           ConnectorPin? @relation(fields: [pinId], references: [id])
+
+  @@index([wireId])
+  @@index([endpointLabel])
+}
+
+model OcrPage {
+  id              String   @id @default(cuid())
+  sourceFileId    String
+  pageNo          Int
+  sourcePageLabel String?
+  rawText         String
+  cleanedText     String?
+  parseStatus     String   @default("PENDING")
+  extra           Json     @default("{}")
+  createdAt       DateTime @default(now())
+
+  rows            OcrRow[]
+
+  @@unique([sourceFileId, pageNo])
+}
+
+model OcrRow {
+  id            String   @id @default(cuid())
+  ocrPageId     String
+  rowType       String
+  rowKey        String?
+  rowText       String
+  extractedJson Json     @default("{}")
+  normalized    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  ocrPage       OcrPage  @relation(fields: [ocrPageId], references: [id], onDelete: Cascade)
+}
+
+model ImportBatch {
+  id            String   @id @default(cuid())
+  sourceFileId  String
+  batchName     String
+  status        String   @default("COMPLETED")
+  note          String?
+  createdAt     DateTime @default(now())
+}
+
+model ValidationIssue {
+  id          String   @id @default(cuid())
+  severity    String
+  issueType   String
+  sourceTable String?
+  sourceId    String?
+  message     String
+  details     Json?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([severity, resolved])
+}
+
+model SourceFile {
+  id          String   @id @default(cuid())
+  projectId   String
+  filename    String
+  fileType    String?
+  mimeType    String?
+  fileSize    Int?
+  status      String   @default("PENDING")
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project       @relation(fields: [projectId], references: [id])
+  pages       SourcePage[]
+
+  @@index([projectId])
+  @@index([filename])
+}
+
+model SourcePage {
+  id            String   @id @default(cuid())
+  sourceFileId  String
+  pageNo        Int
+  rawText       String?
+  drawingNo     String?
+  sheetNo       Int?
+  sheetCount   Int?
+  metadata      Json?
+  ocrQuality    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sourceFile    SourceFile @relation(fields: [sourceFileId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceFileId, pageNo])
+  @@index([drawingNo])
+  @@index([sourceFileId])
+}
+
+model ParseIssue {
+  id          String   @id @default(cuid())
+  entityType  String
+  entityId    String?
+  severity   String   @default("INFO")
+  issueCode   String
+  issueMessage String
+  evidenceText String?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([severity, resolved])
+  @@index([entityType, entityId])
+}

@@ -3,9 +3,10 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const { path } = await params;
-  const filePath = path.join('/');
+  const { path: pathSegments } = await params;
+  const filePath = pathSegments.join('/');
   const fullPath = join(process.cwd(), 'public', 'DOCUMENTS', filePath);
+
   try {
     const fileBuffer = await readFile(fullPath);
 
