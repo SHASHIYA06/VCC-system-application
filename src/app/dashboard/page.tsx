@@ -574,8 +574,8 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
-      {/* Drawing Number Search */}
-      <div className="mb-8 glass-card-morph float-3d p-6">
+
+      
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Eye className="h-5 w-5 text-cyan-400" />
           Quick Drawing Lookup
