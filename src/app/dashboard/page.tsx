@@ -570,8 +570,8 @@ export default function DashboardPage() {
               </>
             )}
 
-          </button>
-        </div>
+                    </motion.button>
+        </motion.div>
       </div>
 
       {/* Drawing Number Search */}
@@ -884,48 +884,7 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {error && (
-        <div className="mt-8 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <p className="text-red-400">{error}</p>
-          <div className="mt-4 flex gap-3">
-            <button 
-              onClick={seedDatabase}
-              disabled={seeding}
-              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-600 text-white rounded-lg font-medium flex items-center gap-2"
-            >
-              {seeding ? (
-                <>
-                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  Loading VCC Data...
-                </>
-              ) : (
-                <>
-                  <Database className="h-4 w-4" />
-                  Load VCC Data
-                </>
-              )}
-            </button>
-          </div>
-
-          
-
-          {seedResult && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mt-4 p-4 bg-green-500/20 border-2 border-green-500/50 rounded-xl"
-            >
-              <p className="text-green-300 font-bold text-lg mb-3">Data Loaded Successfully!</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-base text-slate-300">
-                <span className="font-semibold">Drawings: {seedResult.stats?.drawings}</span>
-                <span className="font-semibold">Wires: {seedResult.stats?.wires}</span>
-                <span className="font-semibold">Circuits: {seedResult.stats?.circuits}</span>
-                <span className="font-semibold">Equipment: {seedResult.stats?.equipment}</span>
-              </div>
-            </motion.div>
-          )}
-        </motion.div>
-      )}
+      
     </div>
   );
 }
