@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# worktrees (stale git worktree directories)
+vcc-explorer.worktrees/
+vcc-explorer/
