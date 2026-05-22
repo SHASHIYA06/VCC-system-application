@@ -264,7 +264,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Drawing Number Search */}
-      <div className="mb-8 glass-card p-6">
+      <div className="mb-8 glass-card-morph float-3d p-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Eye className="h-5 w-5 text-cyan-400" />
           Quick Drawing Lookup
@@ -344,7 +344,7 @@ export default function DashboardPage() {
 
       {/* Stats Overview - Clickable */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-        <Link href="/systems" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/systems" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/20 rounded-lg">
               <Settings className="h-5 w-5 text-blue-400" />
@@ -356,7 +356,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/wires" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/wires" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-cyan-500/20 rounded-lg">
               <Cable className="h-5 w-5 text-cyan-400" />
@@ -368,7 +368,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/drawings" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/drawings" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-500/20 rounded-lg">
               <FileText className="h-5 w-5 text-purple-400" />
@@ -380,7 +380,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/equipment" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/equipment" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-orange-500/20 rounded-lg">
               <Box className="h-5 w-5 text-orange-400" />
@@ -392,7 +392,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/connectors" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/connectors" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-500/20 rounded-lg">
               <Link2 className="h-5 w-5 text-green-400" />
@@ -404,7 +404,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/pins" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/pins" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-500/20 rounded-lg">
               <Layers className="h-5 w-5 text-amber-400" />
@@ -419,7 +419,7 @@ export default function DashboardPage() {
 
       {/* Quick Data Access - Click to view all lists */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <Link href="/pins" className="glass-card p-4 hover:bg-cyan-900/30 transition-all group border border-cyan-500/20">
+        <Link href="/pins" className="glass-card-morph float-3d p-4 hover:bg-cyan-900/30 transition-all group border border-cyan-500/20">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -432,7 +432,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/drawings" className="glass-card p-4 hover:bg-purple-900/30 transition-all group border border-purple-500/20">
+        <Link href="/drawings" className="glass-card-morph float-3d p-4 hover:bg-purple-900/30 transition-all group border border-purple-500/20">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -445,7 +445,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/connectors" className="glass-card p-4 hover:bg-green-900/30 transition-all group border border-green-500/20">
+        <Link href="/connectors" className="glass-card-morph float-3d p-4 hover:bg-green-900/30 transition-all group border border-green-500/20">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -458,7 +458,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/wires" className="glass-card p-4 hover:bg-cyan-900/30 transition-all group border border-cyan-500/20">
+        <Link href="/wires" className="glass-card-morph float-3d p-4 hover:bg-cyan-900/30 transition-all group border border-cyan-500/20">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -480,7 +480,7 @@ export default function DashboardPage() {
           
           return (
             <Link key={system.code} href={`/systems/${system.code}`}>
-              <div className={`glass-card border ${system.borderColor} overflow-hidden hover:scale-[1.02] transition-transform`}>
+              <div className={`glass-card-morph float-3d border ${system.borderColor} overflow-hidden hover:scale-[1.02] transition-transform`}>
                 <div className={`bg-gradient-to-r ${system.color} p-4`}>
                   <div className="flex items-center gap-3">
                     <system.icon className="h-6 w-6 text-white" />
@@ -512,7 +512,7 @@ export default function DashboardPage() {
 
       {/* Quick Links */}
       <div className="mt-8 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <Link href="/trainlines" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/trainlines" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <Train className="h-8 w-8 text-blue-400" />
             <div>
@@ -522,7 +522,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/cars" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/cars" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <Box className="h-8 w-8 text-orange-400" />
             <div>
@@ -532,7 +532,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/documents" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/documents" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <FileText className="h-8 w-8 text-cyan-400" />
             <div>
@@ -542,7 +542,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/systems/tree" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/systems/tree" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <Map className="h-8 w-8 text-purple-400" />
             <div>
@@ -552,7 +552,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/wires/trace" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/wires/trace" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <Cable className="h-8 w-8 text-green-400" />
             <div>
@@ -562,7 +562,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        <Link href="/search" className="glass-card p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
+        <Link href="/search" className="glass-card-morph float-3d p-4 hover:bg-slate-800/50 transition-all hover:scale-[1.02]">
           <div className="flex items-center gap-3">
             <Search className="h-8 w-8 text-amber-400" />
             <div>
