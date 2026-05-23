@@ -2,18 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CRITICAL FIX: Make all text visible */
+/* CRITICAL FIX: Base styles only, let Tailwind control specific colors */
 * {
-  color: white !important;
+  /* Removed aggressive white override */
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color: white !important;
-  font-weight: bold !important;
+  font-weight: bold;
 }
 
 p, span, div, a, button, input, label {
-  color: white !important;
+  /* Let Tailwind dictate color */
 }
 
 /* Make links cyan for visibility */
