@@ -159,8 +159,40 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, query, wireNo, systemCode, taskType, context } = body;
+    const { action, query, wireNo, systemCode, taskType, context, useMultiAgent } = body;
 
+    // ── New dashboard format: { query, taskType, useMultiAgent } ──────────
+    if (query && !action) {
+      const task = {
+        taskId: `rag-${Date.now()}`,
+        taskType: taskType || 'unified_search',
+        query,
+        context: context || {},
+      };
+
+      if (useMultiAgent) {
+        const result = await multiAgentRAG.executeMultiAgent(task);
+        return NextResponse.json({
+          query,
+          primaryResponse: result.primaryResponse,
+          supportingResponses: result.supportingResponses,
+          unifiedResponse: result.unifiedResponse,
+          allData: result.allData,
+          executionTime: result.executionTime,
+        });
+      } else {
+        const result = await multiAgentRAG.executeTask(task);
+        return NextResponse.json({
+          query,
+          primaryResponse: result,
+          unifiedResponse: result.content,
+          supportingResponses: [],
+          executionTime: result.executionTime,
+        });
+      }
+    }
+
+    // ── Legacy format: { action, query } ─────────────────────────────────
     if (action === 'query' && query) {
       const task = {
         taskId: `rag-${Date.now()}`,
@@ -192,12 +224,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result);
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid action. Provide {query} or {action, query}.' }, { status: 400 });
   } catch (error) {
     console.error('RAG POST error:', error);
-    return NextResponse.json({ error: 'RAG operation failed' }, { status: 500 });
+    return NextResponse.json({ error: 'RAG operation failed', details: String(error) }, { status: 500 });
   }
 }
+
 
 async function generateSystemTree() {
   const systems = await prisma.system.findMany({

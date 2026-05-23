@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { multiAgentRAG } from '@/lib/rag/multiagent';
 import { searchWeb, fetchWebPage, TinyFishClient } from '@/lib/tinyfish';
 
 const TINYFISH_API_KEY = process.env.TINYFISH_API_KEY || 'sk-tinyfish-JAI-1Lk0ZP-FkvhUYsWUaZD4AhpAxlbG';
@@ -38,6 +39,10 @@ const TOOLS = [
   { name: 'get_ocr_page', description: 'Get a specific OCR page by source ID and page number.', inputSchema: { type: 'object', properties: { source_id: { type: 'string' }, page_no: { type: 'number' } } } },
   { name: 'extract_wire_from_ocr', description: 'Extract wire information from OCR text. Parses wire numbers, connections, and components from raw OCR content.', inputSchema: { type: 'object', properties: { text: { type: 'string' } } } },
   { name: 'validate_ocr_text', description: 'Validate OCR text for proper formatting, drawing numbers, and sheet metadata.', inputSchema: { type: 'object', properties: { text: { type: 'string' } } } },
+  // ── AI / RAG Tools ────────────────────────────────────────────────────────
+  { name: 'analyze_drawing', description: 'AI-powered analysis of a drawing using multi-agent RAG. Returns connectors, wires, trainlines, and LLM-synthesized explanation.', inputSchema: { type: 'object', properties: { drawing_no: { type: 'string' }, query: { type: 'string' } }, required: ['drawing_no'] } },
+  { name: 'ai_search', description: 'Multi-agent AI search across all VCC data: wires, connectors, drawings, equipment, trainlines. Uses LangChain-style chain for synthesis.', inputSchema: { type: 'object', properties: { query: { type: 'string' }, task_type: { type: 'string', enum: ['search_wire', 'search_connector', 'search_drawing', 'search_equipment', 'trace_trainline', 'analyze_system', 'explain_wire', 'unified_search'] } }, required: ['query'] } },
+  { name: 'trace_wire_rag', description: 'Trace a wire number using multi-agent RAG — finds it in trainlines, pins, connectors, and drawings across all cars.', inputSchema: { type: 'object', properties: { wire_no: { type: 'string' } }, required: ['wire_no'] } },
 ];
 
 const TRAINLINE_TRACES: Record<number, any> = {
@@ -332,6 +337,93 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         if (!pageMarker) issues.push('No page marker found');
         return { valid: issues.length === 0, drawing_no: drawingNo, sheet_info: sheet ? { sheet_no: sheet[1], sheet_count: sheet[2] } : null, issues };
       }
+      // ── AI / RAG Tools ────────────────────────────────────────────────────────
+      case 'analyze_drawing': {
+        const drawingNo = String(params.drawing_no || '');
+        const query = params.query ? String(params.query) : undefined;
+
+        const drawing = await prisma.drawing.findFirst({
+          where: {
+            OR: [
+              { drawingNo: { equals: drawingNo } },
+              { drawingNo: { contains: drawingNo.replace(/-/g, '') } },
+            ],
+          },
+          include: {
+            system: true,
+            connectors: { take: 20, include: { pins: { take: 10 }, _count: { select: { pins: true } } } },
+            trainLines: { take: 30 },
+            devices: { take: 10 },
+            _count: { select: { connectors: true, trainLines: true, devices: true } },
+          },
+        });
+
+        if (!drawing) return { error: `Drawing ${drawingNo} not found` };
+
+        const ragTask = {
+          taskId: `mcp-drawing-${Date.now()}`,
+          taskType: 'search_drawing' as const,
+          query: query || `Analyze drawing ${drawing.drawingNo}: ${drawing.title}`,
+          context: { drawingNo: drawing.drawingNo, systemCode: drawing.system?.code },
+        };
+
+        const ragResult = await multiAgentRAG.executeMultiAgent(ragTask);
+
+        return {
+          drawing: {
+            drawingNo: drawing.drawingNo,
+            title: drawing.title,
+            revision: drawing.revision,
+            system: { code: drawing.system?.code, name: drawing.system?.name },
+            stats: drawing._count,
+          },
+          connectors: drawing.connectors.map(c => ({
+            code: c.connectorCode,
+            pinCount: c._count.pins,
+            samplePins: c.pins.slice(0, 5).map(p => ({ pinNo: p.pinNo, wireNo: p.wireNo, signalName: p.signalName })),
+          })),
+          trainlines: drawing.trainLines.slice(0, 15).map(t => ({ wireNo: t.wireNo, itemName: t.itemName, lineGroup: t.lineGroup })),
+          aiAnalysis: ragResult.unifiedResponse || ragResult.primaryResponse.content,
+          confidence: ragResult.primaryResponse.confidence,
+        };
+      }
+
+      case 'ai_search': {
+        const query = String(params.query || '');
+        const taskType = (params.task_type as any) || 'unified_search';
+        const task = {
+          taskId: `mcp-search-${Date.now()}`,
+          taskType,
+          query,
+          context: {},
+        };
+        const result = await multiAgentRAG.executeMultiAgent(task);
+        return {
+          query,
+          response: result.unifiedResponse || result.primaryResponse.content,
+          confidence: result.primaryResponse.confidence,
+          data: result.allData,
+          executionTime: result.executionTime,
+        };
+      }
+
+      case 'trace_wire_rag': {
+        const wireNo = String(params.wire_no || '');
+        const task = {
+          taskId: `mcp-trace-${Date.now()}`,
+          taskType: 'trace_trainline' as const,
+          query: wireNo,
+          context: {},
+        };
+        const result = await multiAgentRAG.executeTask(task);
+        return {
+          wireNo,
+          traceResult: result.content,
+          data: result.data,
+          confidence: result.confidence,
+        };
+      }
+
       default:
         return { error: `Unknown tool: ${toolName}` };
     }
@@ -371,11 +463,20 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({ 
     tools: TOOLS, 
-    version: '3.0', 
-    description: 'KMRCL VCC Wiring Explorer MCP Server - Enhanced with wire tracing and cross-connections',
+    version: '4.0', 
+    description: 'KMRCL VCC Wiring Explorer MCP Server - Multi-Agent RAG + Drawing Intelligence',
+    capabilities: {
+      multiAgentRAG: true,
+      drawingIntelligence: true,
+      wireTracing: true,
+      langchainCompatible: true,
+      totalTools: TOOLS.length,
+    },
     endpoints: {
       POST: '/api/mcp',
-      GET: '/api/mcp'
+      GET: '/api/mcp',
+      drawingAI: '/api/drawings/ai-analyze',
+      ragSearch: '/api/rag',
     }
   });
 }
