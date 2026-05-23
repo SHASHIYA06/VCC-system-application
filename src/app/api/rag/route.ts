@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { multiAgentRAG } from '@/lib/rag/multiagent';
 import { callLLM, getAvailableProviders, LLMResponse } from '@/lib/llm';
 import { Prisma } from '@prisma/client';
+import { executeLangchainTree } from '@/lib/rag/langchain-tree';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -212,6 +213,11 @@ export async function POST(request: NextRequest) {
         context: context || {},
       };
       const result = await multiAgentRAG.executeMultiAgent(task);
+      return NextResponse.json(result);
+    }
+
+    if (action === 'langchain' && query) {
+      const result = await executeLangchainTree(query);
       return NextResponse.json(result);
     }
 

@@ -69,17 +69,34 @@ export default function PdfViewerEnhanced({
     try {
       const results: number[] = [];
       
-      // Search through all pages
-      for (let i = 1; i <= numPages; i++) {
-        const page = await pdfDocument.getPage(i);
-        const textContent = await page.getTextContent();
-        const text = textContent.items
-          .map((item: any) => item.str)
-          .join(' ')
-          .toLowerCase();
+      // 1. Dynamic OCR Sync: First try the backend mapping API
+      try {
+        const sourceFile = src.split('/').pop() || '';
+        const res = await fetch(`/api/drawings/pdf-mapping?drawing_no=${encodeURIComponent(query)}&source_file=${encodeURIComponent(sourceFile)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.pdfPageNo && data.pdfPageNo > 0 && data.pdfPageNo <= numPages) {
+            results.push(data.pdfPageNo);
+            // Optionally, we could continue to search other pages, but for drawings, this fast jump is key
+          }
+        }
+      } catch (err) {
+        console.warn('API sync failed, falling back to client search:', err);
+      }
+      
+      // 2. Fallback: Search through all pages if API didn't find exactly one hit
+      if (results.length === 0) {
+        for (let i = 1; i <= numPages; i++) {
+          const page = await pdfDocument.getPage(i);
+          const textContent = await page.getTextContent();
+          const text = textContent.items
+            .map((item: any) => item.str)
+            .join(' ')
+            .toLowerCase();
 
-        if (text.includes(query.toLowerCase())) {
-          results.push(i);
+          if (text.includes(query.toLowerCase())) {
+            results.push(i);
+          }
         }
       }
 
