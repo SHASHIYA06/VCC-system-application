@@ -169,12 +169,7 @@ async function populatePdfPageMappings() {
       where: {
         sourceFileId: { not: null },
         pages: {
-          none: {
-            extra: {
-              path: ['pdfPageNo'],
-              not: 'null' as any
-            }
-          }
+          none: {}
         }
       },
       include: {
@@ -245,7 +240,7 @@ async function populatePdfPageMappings() {
       where: {
         extra: {
           path: ['pdfPageNo'],
-          not: null
+          not: undefined
         }
       }
     });
