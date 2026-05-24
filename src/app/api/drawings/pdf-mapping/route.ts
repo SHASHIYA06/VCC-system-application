@@ -2,17 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import fs from 'fs';
 import path from 'path';
-import pdfParse from 'pdf-parse';
 
 function extractDrawingNumber(drawingNo: string): string {
   const cleaned = drawingNo.replace(/^942[-_]/i, '').replace(/-/g, '');
   return cleaned;
 }
 
-// Function to extract text page by page (rough approximation using pdf-parse limits if needed, 
-// but since pdf-parse extracts all text, we will scan the whole text for drawing numbers 
-// and assign a default mapping or use the existing DB).
-// A better dynamic approach: we scan the public/DOCUMENTS directory to verify files exist.
+// Function to scan physical directory for PDF files
 async function scanPhysicalDirectory() {
   const docsPath = path.join(process.cwd(), 'public', 'DOCUMENTS');
   if (!fs.existsSync(docsPath)) return [];
@@ -28,40 +24,26 @@ export async function POST(request: NextRequest) {
       const physicalFiles = await scanPhysicalDirectory();
       let mappedCount = 0;
       
-      // Perform dynamic PDF parsing for each file in the physical directory
+      // Map drawings to their inferred pages
       for (const sourceFile of physicalFiles) {
-        const filePath = path.join(process.cwd(), 'public', 'DOCUMENTS', sourceFile);
+        const drawings = await prisma.drawing.findMany({
+          where: { sourceFileId: sourceFile }
+        });
         
-        try {
-          const dataBuffer = fs.readFileSync(filePath);
-          const pdfData = await pdfParse(dataBuffer);
-          const textContent = pdfData.text;
+        for (const drawing of drawings) {
+          const inferredPage = inferPageFromDrawingNumber(drawing.drawingNo, sourceFile);
           
-          // Find drawing records that belong to this file
-          const drawings = await prisma.drawing.findMany({
-            where: { sourceFileId: sourceFile }
+          await prisma.drawingPage.upsert({
+            where: { drawingId_pageNo: { drawingId: drawing.id, pageNo: 1 } },
+            update: { extra: { pdfPageNo: inferredPage, sourceFile, verified: true } as any },
+            create: {
+              drawingId: drawing.id,
+              pageNo: 1,
+              parseStatus: 'MAPPED',
+              extra: { pdfPageNo: inferredPage, sourceFile, verified: true } as any
+            }
           });
-          
-          for (const drawing of drawings) {
-            // Very naive check to see if drawing number exists in text
-            // In a real OCR mapping, we'd use pdf.js to get exact page numbers
-            const num = extractDrawingNumber(drawing.drawingNo);
-            const inferredPage = inferPageFromDrawingNumber(drawing.drawingNo, sourceFile);
-            
-            await prisma.drawingPage.upsert({
-              where: { drawingId_pageNo: { drawingId: drawing.id, pageNo: 1 } },
-              update: { extra: { pdfPageNo: inferredPage, sourceFile, verified: true } as any },
-              create: {
-                drawingId: drawing.id,
-                pageNo: 1,
-                parseStatus: 'MAPPED',
-                extra: { pdfPageNo: inferredPage, sourceFile, verified: true } as any
-              }
-            });
-            mappedCount++;
-          }
-        } catch (err) {
-          console.error(`Failed to parse ${sourceFile}:`, err);
+          mappedCount++;
         }
       }
       
@@ -75,9 +57,7 @@ export async function POST(request: NextRequest) {
     
     if (action === 'getMapping') {
       const { drawingNo, sourceFile } = await request.json();
-      const drawingNum = extractDrawingNumber(drawingNo);
-      
-      const mapping = inferPageFromDrawingNumber(drawingNum, sourceFile);
+      const mapping = inferPageFromDrawingNumber(drawingNo, sourceFile);
       return NextResponse.json({ pdfPageNo: mapping, sourceFile, dynamic: true });
     }
     
@@ -133,7 +113,7 @@ export async function GET(request: NextRequest) {
     console.error('Database lookup failed:', error);
   }
   
-  // Fallback to dynamic inference (since hardcoded is removed)
+  // Fallback to dynamic inference
   const inferredPage = inferPageFromDrawingNumber(drawingNo, sourceFile);
   
   return NextResponse.json({ 
@@ -152,15 +132,11 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
   const num = parseInt(numMatch[0]);
   
   // For PIN drawings, typically each drawing is 2 pages (drawing + notes)
-  // Try to calculate based on sequence
   if (sourceFile.includes('PIN')) {
-    // Find the base number for this file
     if (sourceFile.includes('CAB_PIN DRAWINGS 2')) {
-      // 58124-58147 range, starting at page 1
       const offset = num - 58124;
       return offset >= 0 ? (offset * 2) + 1 : 1;
     } else if (sourceFile.includes('CAB_PIN DRAWINGS')) {
-      // 58100-58123 range, starting at page 1
       const offset = num - 58100;
       return offset >= 0 ? (offset * 2) + 1 : 1;
     } else if (sourceFile.includes('DMC_CEILING')) {
