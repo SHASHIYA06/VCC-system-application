@@ -39,6 +39,18 @@ interface DrawingResult {
   sourceFile: string;
 }
 
+interface AISearchResult {
+  query: string;
+  primaryResponse: {
+    agent: string;
+    content: string;
+    confidence: number;
+  };
+  unifiedResponse: string;
+  allData: Record<string, any>;
+  executionTime: number;
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +59,12 @@ export default function DashboardPage() {
   const [drawingResult, setDrawingResult] = useState<DrawingResult | null>(null);
   const [drawingLoading, setDrawingLoading] = useState(false);
   const [drawingError, setDrawingError] = useState<string | null>(null);
+  
+  // AI Search State
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiResult, setAiResult] = useState<AISearchResult | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -82,6 +100,39 @@ export default function DashboardPage() {
     } finally {
       setDrawingLoading(false);
     }
+  }
+
+  async function searchAI() {
+    if (!aiQuery.trim()) return;
+    setAiLoading(true);
+    setAiError(null);
+    setAiResult(null);
+    try {
+      const response = await fetch('/api/rag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: aiQuery.trim(),
+          taskType: 'unified_search',
+          useMultiAgent: true,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setAiResult(data);
+      } else {
+        setAiError(data.error || 'AI search failed');
+      }
+    } catch (err) {
+      setAiError('Failed to connect to AI service');
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  function handleQuickQuery(query: string) {
+    setAiQuery(query);
+    setTimeout(() => searchAI(), 100);
   }
 
   if (loading) {
@@ -124,60 +175,72 @@ export default function DashboardPage() {
         transition={{ delay: 0.1 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
-        <StatCard
-          icon={<Layers className="h-6 w-6" />}
-          label="Systems"
-          value={stats?.overview?.systems || 0}
-          subtext="Core systems"
-          trend="up"
-          trendValue="+2"
-          color="purple"
-        />
-        <StatCard
-          icon={<Cable className="h-6 w-6" />}
-          label="Wires"
-          value={stats?.overview?.wires || 0}
-          subtext="Total connections"
-          trend="neutral"
-          trendValue="0"
-          color="cyan"
-        />
-        <StatCard
-          icon={<FileText className="h-6 w-6" />}
-          label="Drawings"
-          value={stats?.overview?.drawings || 0}
-          subtext="Schematics"
-          trend="up"
-          trendValue="+15"
-          color="blue"
-        />
-        <StatCard
-          icon={<Settings className="h-6 w-6" />}
-          label="Equipment"
-          value={stats?.overview?.equipment || 0}
-          subtext="Devices"
-          trend="neutral"
-          trendValue="0"
-          color="indigo"
-        />
-        <StatCard
-          icon={<Link2 className="h-6 w-6" />}
-          label="Connectors"
-          value={stats?.overview?.connectors || 0}
-          subtext="Connection points"
-          trend="up"
-          trendValue="+55"
-          color="cyan"
-        />
-        <StatCard
-          icon={<Box className="h-6 w-6" />}
-          label="Pins"
-          value={stats?.overview?.pins || 0}
-          subtext="Pin connections"
-          trend="up"
-          trendValue="+110"
-          color="green"
-        />
+        <Link href="/systems/tree">
+          <StatCard
+            icon={<Layers className="h-6 w-6" />}
+            label="Systems"
+            value={stats?.overview?.systems || 0}
+            subtext="Core systems"
+            trend="up"
+            trendValue="+2"
+            color="purple"
+          />
+        </Link>
+        <Link href="/wires">
+          <StatCard
+            icon={<Cable className="h-6 w-6" />}
+            label="Wires"
+            value={stats?.overview?.wires || 0}
+            subtext="Total connections"
+            trend="neutral"
+            trendValue="0"
+            color="cyan"
+          />
+        </Link>
+        <Link href="/drawings">
+          <StatCard
+            icon={<FileText className="h-6 w-6" />}
+            label="Drawings"
+            value={stats?.overview?.drawings || 0}
+            subtext="Schematics"
+            trend="up"
+            trendValue="+15"
+            color="blue"
+          />
+        </Link>
+        <Link href="/equipment">
+          <StatCard
+            icon={<Settings className="h-6 w-6" />}
+            label="Equipment"
+            value={stats?.overview?.equipment || 0}
+            subtext="Devices"
+            trend="neutral"
+            trendValue="0"
+            color="indigo"
+          />
+        </Link>
+        <Link href="/connectors">
+          <StatCard
+            icon={<Link2 className="h-6 w-6" />}
+            label="Connectors"
+            value={stats?.overview?.connectors || 0}
+            subtext="Connection points"
+            trend="up"
+            trendValue="+55"
+            color="cyan"
+          />
+        </Link>
+        <Link href="/pins">
+          <StatCard
+            icon={<Box className="h-6 w-6" />}
+            label="Pins"
+            value={stats?.overview?.pins || 0}
+            subtext="Pin connections"
+            trend="up"
+            trendValue="+110"
+            color="green"
+          />
+        </Link>
       </motion.div>
 
       {/* Drawing Lookup Section */}
@@ -278,24 +341,104 @@ export default function DashboardPage() {
             <input
               type="text"
               placeholder="Ask anything: wire numbers, connectors, drawing details..."
+              value={aiQuery}
+              onChange={e => setAiQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && searchAI()}
               className="w-full pl-12 pr-4 py-3 bg-slate-800/80 border border-slate-600 focus:border-purple-500 rounded-xl text-white placeholder-slate-500 focus:outline-none transition-all"
             />
           </div>
-          <GlassButton variant="info" size="lg">
-            <Atom className="h-5 w-5" />
+          <GlassButton 
+            variant="info" 
+            size="lg"
+            onClick={searchAI}
+            disabled={!aiQuery.trim() || aiLoading}
+          >
+            {aiLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Atom className="h-5 w-5" />}
             Analyze
           </GlassButton>
         </div>
+        
+        {/* Quick Query Buttons */}
         <div className="flex flex-wrap gap-2 mt-3">
-          {['Wire 1001', 'Connector X1-A', 'Drawing 942-38309', 'HV System', 'Brake Circuit'].map(q => (
+          {['Wire 3003', 'Connector X1-A', 'Drawing 942-38309', 'TRAC System', 'Brake Circuit'].map(q => (
             <button
               key={q}
+              onClick={() => handleQuickQuery(q)}
               className="px-3 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 text-slate-400 hover:text-white text-xs border border-slate-700/50 transition-all"
             >
               {q}
             </button>
           ))}
         </div>
+
+        {/* AI Results */}
+        <AnimatePresence>
+          {aiError && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3"
+            >
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              <span className="text-red-300">{aiError}</span>
+              <button onClick={() => setAiError(null)} className="ml-auto">
+                <X className="h-4 w-4 text-red-400" />
+              </button>
+            </motion.div>
+          )}
+          {aiResult && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mt-4 space-y-4"
+            >
+              {/* Primary Response */}
+              <div className="p-5 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-5 w-5 text-purple-400" />
+                    <span className="text-sm font-semibold text-purple-400">
+                      {aiResult.primaryResponse.agent}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">
+                      {aiResult.executionTime}ms
+                    </span>
+                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs">
+                      {Math.round(aiResult.primaryResponse.confidence * 100)}% confident
+                    </span>
+                  </div>
+                </div>
+                <p className="text-white leading-relaxed whitespace-pre-wrap">
+                  {aiResult.unifiedResponse}
+                </p>
+              </div>
+
+              {/* Data Results */}
+              {Object.keys(aiResult.allData).length > 0 && (
+                <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                  <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                    <Database className="h-4 w-4" />
+                    Found Data
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {Object.entries(aiResult.allData).map(([key, value]) => (
+                      <div key={key} className="p-3 bg-slate-900/50 rounded-lg">
+                        <div className="text-xs text-slate-500 mb-1">{key}</div>
+                        <div className="text-lg font-bold text-cyan-400">
+                          {Array.isArray(value) ? value.length : typeof value === 'object' ? Object.keys(value).length : String(value)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </GlassPanel>
 
       {/* Quick Links */}
