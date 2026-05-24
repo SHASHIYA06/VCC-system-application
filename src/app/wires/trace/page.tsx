@@ -92,24 +92,42 @@ function WireTraceContent() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/search?wire=${encodeURIComponent(wire.trim())}`);
+      const res = await fetch(`/api/wire-trace?wire_no=${encodeURIComponent(wire.trim())}`);
       const data = await res.json();
       
-      if (data.error && data.error !== 'Query parameter "q" or "wire" is required') {
-        setError(data.error);
-        return;
-      }
-      
-      if (data.type === 'wire_trace') {
+      if (res.ok && data.wire) {
         setWireData(data.wire);
-        setPinConnections(data.pinConnections || {});
-        setTrainlineEntries(data.trainlineEntries || []);
-        setSignalMatches(data.signalMatches || []);
-        setMetadata(data.metadata || {});
-        setLocations(data.locations || []);
+        setPinConnections(data.drawings.reduce((acc: any, d: any) => {
+          acc[d.drawingNo] = {
+            drawingNo: d.drawingNo,
+            system: d.system?.code || 'N/A',
+            title: d.title,
+            pins: d.pins.map((p: any) => ({
+              pinNo: p.pinNo,
+              signalName: p.signalName,
+              connectorCode: p.connector?.connectorCode || 'N/A',
+              wireNo: p.wireNo || 'N/A'
+            }))
+          };
+          return acc;
+        }, {} as Record<string, any>));
+        setTrainlineEntries(data.trainlines.map((t: any) => ({
+          wireNo: t.wireNo,
+          itemName: t.itemName,
+          lineGroup: t.lineGroup,
+          drawingNo: t.drawing?.drawingNo || 'N/A',
+          system: t.drawing?.system?.code || 'N/A'
+        })) || []);
+        setSignalMatches(data.connectorPins || []);
+        setMetadata(data.summary || {});
+        setLocations(data.drawings.map((d: any) => ({
+          drawingNo: d.drawingNo,
+          system: d.system?.code || 'N/A',
+          pinCount: d.pins.length
+        })) || []);
         setWireNo(wire);
       } else {
-        setError('Wire not found in database');
+        setError(data.error || 'Wire not found in database');
       }
     } catch (err) {
       setError('Failed to load wire trace');
