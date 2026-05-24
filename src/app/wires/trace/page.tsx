@@ -3,10 +3,13 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card3D, GlassButton, StatCard, GlassPanel } from '@/components/ui';
 import { 
   Zap, Search, ArrowLeft, ArrowRight, MapPin, Cable, 
   AlertTriangle, RefreshCw, ChevronDown, ExternalLink, 
-  Box, FileText, X, Loader2, Layers, Database
+  Box, FileText, X, Loader2, Layers, Database, TrendingUp,
+  Activity, Network, GitBranch
 } from 'lucide-react';
 
 interface WireData {
@@ -130,37 +133,74 @@ function WireTraceContent() {
 
   if (loading) {
     return (
-      <div className="animated-bg min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 text-cyan-400 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+            className="w-20 h-20 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full mx-auto mb-4"
+          />
+          <p className="text-slate-400 text-lg">Tracing wire path...</p>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="animated-bg min-h-screen p-6 grid-pattern">
-      <div className="mb-6">
-        <Link href="/wires" className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 mb-4">
+    <div className="min-h-screen p-4 lg:p-6 space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6"
+      >
+        <Link href="/wires" className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 mb-4 transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Back to Wires
         </Link>
         
-        <div className="flex items-center gap-4 mb-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2 gradient-text-animated">
+          Wire Trace
+        </h1>
+        <p className="text-slate-400">Trace wire connections across all drawings and systems</p>
+      </motion.div>
+
+      {/* Search Panel */}
+      <GlassPanel
+        title="Search Wire"
+        subtitle="Enter wire number to trace complete path"
+        icon={<Search className="h-5 w-5" />}
+        variant="elevated"
+        glow={true}
+        glowColor="cyan"
+      >
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-cyan-400" />
             <input
               type="text"
               placeholder="Enter wire number (e.g., 3003, 6009, 4024)..."
               value={wireSearch}
               onChange={(e) => setWireSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && searchWire()}
-              className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-200"
+              className="w-full pl-12 pr-4 py-3 bg-slate-800/80 border border-slate-600 focus:border-cyan-500 rounded-xl text-white placeholder-slate-500 focus:outline-none transition-all"
             />
           </div>
-          <button onClick={searchWire} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg">
+          <GlassButton
+            variant="primary"
+            size="lg"
+            onClick={searchWire}
+            disabled={!wireSearch.trim() || loading}
+          >
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Cable className="h-5 w-5" />}
             Trace Wire
-          </button>
+          </GlassButton>
         </div>
-      </div>
+      </GlassPanel>
 
       {error && (
         <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
