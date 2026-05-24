@@ -10,7 +10,7 @@ interface StatCardProps {
   subtext?: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
-  color?: 'cyan' | 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'amber' | 'pink';
+  color?: 'cyan' | 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'amber' | 'pink' | 'indigo';
   className?: string;
 }
 
@@ -33,6 +33,7 @@ export function StatCard({
     red: 'from-red-500/20 to-rose-500/20 border-red-500/30 text-red-400',
     amber: 'from-amber-500/20 to-yellow-500/20 border-amber-500/30 text-amber-400',
     pink: 'from-pink-500/20 to-rose-500/20 border-pink-500/30 text-pink-400',
+    indigo: 'from-indigo-500/20 to-purple-500/20 border-indigo-500/30 text-indigo-400',
   };
 
   const trendColors = {
