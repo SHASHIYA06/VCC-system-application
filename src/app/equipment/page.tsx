@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Cpu, Search, ArrowRight, Box, Shield, Zap, Battery, Wind, DoorOpen, Radio, Activity } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card3D, GlassButton, GlassPanel } from '@/components/ui';
+import { Cpu, Search, ArrowRight, Box, Shield, Zap, Battery, Wind, DoorOpen, Radio, Activity, Loader2 } from 'lucide-react';
 
 interface EquipmentItem {
   id: string;

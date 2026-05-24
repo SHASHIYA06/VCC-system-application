@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, ArrowRight, Zap, ChevronDown, AlertTriangle, Filter } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card3D, GlassButton, GlassPanel } from '@/components/ui';
+import { Search, ArrowRight, Zap, ChevronDown, AlertTriangle, Filter, Loader2 } from 'lucide-react';
 
 const CROSS_CONNECTED_TRAINLINES = [3005, 3006, 6009, 6014, 6046, 6051];
 const CRITICAL_TRAINLINES = [3003, 3004, 3005, 3006, 3010, 4062, 4103, 4122, 4153, 6009, 6046, 6112, 7001, 7050];

@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { prisma } from '@/lib/prisma';
+import { Card3D, GlassPanel } from '@/components/ui';
 import {
   Train, ShieldCheck, Zap, Wind, Radio, Battery, Settings, DoorOpen,
   Activity, Lightbulb, Link2, AlertTriangle, Gauge, Cpu, Box, ZapOff

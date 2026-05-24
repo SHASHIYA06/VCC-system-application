@@ -3,7 +3,9 @@
 import { useState, Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { FileText, Search, ArrowRight, Cpu, MapPin, Cable, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card3D, GlassButton, GlassPanel } from '@/components/ui';
+import { FileText, Search, ArrowRight, Cpu, MapPin, Cable, Loader2, ChevronRight } from 'lucide-react';
 
 interface Drawing {
   id: string;

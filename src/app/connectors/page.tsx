@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Cable, Search, ArrowRight, ChevronDown, Box, Cpu, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card3D, GlassButton, GlassPanel } from '@/components/ui';
+import { Cable, Search, ArrowRight, ChevronDown, Box, Cpu, RefreshCw, ExternalLink, AlertTriangle, Loader2 } from 'lucide-react';
 
 const FALLBACK_CONNECTORS = [
   { id: 'cn-v1-1', connectorCode: 'V1-CN1', connectorType: 'VVVF', pinCount: 20, description: 'VVVF main connector - propulsion commands', equipmentCode: 'V1', equipmentName: 'VVVF Inverter 1', carCode: 'DMC', systemCode: 'TRAC', drawingNo: '942-58120',

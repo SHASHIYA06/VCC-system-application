@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { Card3D, GlassPanel } from '@/components/ui';
 import { Car, Cpu, Box, Cable, FileText, ChevronRight, Train } from 'lucide-react';
 
 const CAR_TYPES = [

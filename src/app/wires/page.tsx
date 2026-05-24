@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Cable, Search, ArrowRight, AlertTriangle, ChevronDown, Zap, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card3D, GlassButton, GlassPanel } from '@/components/ui';
+import { Cable, Search, ArrowRight, AlertTriangle, ChevronDown, Zap, RefreshCw, Loader2 } from 'lucide-react';
 
 const FALLBACK_WIRES: WireData[] = [
   { wireNo: '3003', signalName: 'FORWARD_CMD', description: 'Forward propulsion command to VVVF', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'X1', sourcePin: '17', destEq: 'V1', destConnector: 'CN1', destPin: '12' },
