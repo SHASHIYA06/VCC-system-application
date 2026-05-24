@@ -61,6 +61,11 @@ export default function PinsPage() {
 
   const filtered = pins;
 
+  // Get unique values for dropdowns
+  const uniqueConnectors = [...new Set(connectors)].sort();
+  const uniqueCars = [...new Set(cars)].filter(Boolean).sort();
+  const uniqueSystems = [...new Set(systems)].filter(Boolean).sort();
+
   return (
     <div className="animated-bg min-h-screen p-6 grid-pattern">
       <div className="mb-8">
@@ -101,17 +106,17 @@ export default function PinsPage() {
         <select value={connectorFilter} onChange={(e) => setConnectorFilter(e.target.value)}
           className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">
           <option value="all">All Connectors</option>
-          {connectors.map(c => <option key={c} value={c}>{c}</option>)}
+          {uniqueConnectors.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <select value={carFilter} onChange={(e) => setCarFilter(e.target.value)}
           className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">
           <option value="all">All Cars</option>
-          {cars.map(c => <option key={c} value={c}>{c}</option>)}
+          {uniqueCars.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <select value={systemFilter} onChange={(e) => setSystemFilter(e.target.value)}
           className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">
           <option value="all">All Systems</option>
-          {systems.map(s => <option key={s} value={s}>{s}</option>)}
+          {uniqueSystems.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 

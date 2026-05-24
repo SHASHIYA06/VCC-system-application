@@ -76,6 +76,9 @@ function DrawingsContent() {
     fetchDrawings();
   }, [filterSystem]);
 
+  // Get unique systems from drawings for filter dropdown
+  const uniqueSystems = [...new Set(drawings.map(d => d.system?.code).filter(Boolean) as string[])].sort();
+
   const filteredDrawings = drawings.filter(d => {
     const matchSearch = !search || 
       d.drawingNo.toLowerCase().includes(search.toLowerCase()) ||
@@ -119,8 +122,8 @@ function DrawingsContent() {
         <select value={filterSystem || ''} onChange={(e) => setFilterSystem(e.target.value || null)}
           className="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-200">
           <option value="">All Systems</option>
-          {Object.keys(SYSTEM_COLORS).map(sys => (
-            <option key={sys} value={sys}>{SYSTEM_COLORS[sys].label}</option>
+          {uniqueSystems.map(sys => (
+            <option key={sys} value={sys}>{SYSTEM_COLORS[sys]?.label || sys}</option>
           ))}
         </select>
       </div>

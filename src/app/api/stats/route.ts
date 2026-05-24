@@ -63,6 +63,9 @@ export async function GET() {
       _count: true,
     });
 
+    // Calculate actual wire connections from wire endpoints
+    const wireEndpointCount = await prisma.wireEndpoint.count();
+
     return NextResponse.json({
       overview: {
         systems: systemCount,
@@ -75,7 +78,8 @@ export async function GET() {
         signals: signalCount,
         circuits: circuitCount,
         documents: documentCount,
-        totalConnections: pinCount,
+        totalConnections: wireEndpointCount,
+        dataSource: 'database',
       },
       bySystem: Object.fromEntries(
         systemStats.map(s => [s.code, { 

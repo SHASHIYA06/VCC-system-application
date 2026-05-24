@@ -84,6 +84,12 @@ export default function EquipmentPage() {
   const systems = [...new Set(equipmentData.map(eq => eq.system?.code).filter(Boolean) as string[])].sort();
   const cars = [...new Set(equipmentData.map(eq => eq.carType).filter(Boolean))];
 
+  // Get connector counts for each equipment
+  const equipmentWithConnectors = equipmentData.map(eq => ({
+    ...eq,
+    connectorCount: eq.connectorCount || 0,
+  }));
+
   return (
     <div className="animated-bg min-h-screen p-6 grid-pattern">
       <div className="mb-8">
@@ -154,7 +160,7 @@ export default function EquipmentPage() {
                   <span className="px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">{eq.type || 'N/A'}</span>
                 </div>
 
-                {eq.connectorCount !== undefined && (
+                {eq.connectorCount !== undefined && eq.connectorCount > 0 && (
                   <div className="mt-3 flex items-center gap-1">
                     <span className="text-xs text-slate-500">{eq.connectorCount} connector{eq.connectorCount !== 1 ? 's' : ''}</span>
                   </div>

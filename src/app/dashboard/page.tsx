@@ -55,6 +55,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<string>('database');
   const [drawingSearch, setDrawingSearch] = useState('');
   const [drawingResult, setDrawingResult] = useState<DrawingResult | null>(null);
   const [drawingLoading, setDrawingLoading] = useState(false);
@@ -72,6 +73,7 @@ export default function DashboardPage() {
       const data = await response.json();
       if (response.ok && data.overview) {
         setStats(data);
+        setDataSource(data.overview.dataSource || 'database');
       }
     } catch {
       setError('Failed to load database stats');
@@ -160,12 +162,22 @@ export default function DashboardPage() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-10 relative"
       >
-        <h1 className="text-4xl lg:text-5xl font-bold text-white mb-2 gradient-text-animated">
-          Dashboard
-        </h1>
-        <p className="text-slate-400 text-lg">Welcome back, Alex! 👋</p>
+        <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+        <div className="relative">
+          <motion.h1 
+            initial={{ backgroundPosition: "0% 50%" }}
+            animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+            className="text-5xl lg:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-500 to-cyan-400 mb-3 bg-[length:200%_auto] tracking-tight"
+          >
+            Dashboard
+          </motion.h1>
+          <p className="text-slate-400 text-lg font-medium flex items-center gap-2">
+            Welcome back, Alex! <span className="animate-wave inline-block text-2xl">👋</span>
+          </p>
+        </div>
       </motion.div>
 
       {/* Statistics Grid - Using New StatCard Component */}
@@ -184,6 +196,7 @@ export default function DashboardPage() {
             trend="up"
             trendValue="+2"
             color="purple"
+            dataSource={dataSource}
           />
         </Link>
         <Link href="/wires">
@@ -195,6 +208,7 @@ export default function DashboardPage() {
             trend="neutral"
             trendValue="0"
             color="cyan"
+            dataSource={dataSource}
           />
         </Link>
         <Link href="/drawings">
@@ -206,6 +220,7 @@ export default function DashboardPage() {
             trend="up"
             trendValue="+15"
             color="blue"
+            dataSource={dataSource}
           />
         </Link>
         <Link href="/equipment">
@@ -217,6 +232,7 @@ export default function DashboardPage() {
             trend="neutral"
             trendValue="0"
             color="indigo"
+            dataSource={dataSource}
           />
         </Link>
         <Link href="/connectors">
@@ -228,6 +244,7 @@ export default function DashboardPage() {
             trend="up"
             trendValue="+55"
             color="cyan"
+            dataSource={dataSource}
           />
         </Link>
         <Link href="/pins">
@@ -239,6 +256,7 @@ export default function DashboardPage() {
             trend="up"
             trendValue="+110"
             color="green"
+            dataSource={dataSource}
           />
         </Link>
       </motion.div>
@@ -327,14 +345,19 @@ export default function DashboardPage() {
       </GlassPanel>
 
       {/* AI Search Section */}
-      <GlassPanel
-        title="Multi-Agent AI Search"
-        subtitle="LangChain-powered · 5 parallel agents · RAG retrieval"
-        icon={<Brain className="h-5 w-5" />}
-        variant="elevated"
-        glow={true}
-        glowColor="purple"
+      <motion.div
+        animate={{ boxShadow: ["0 0 0px 0px rgba(168,85,247,0)", "0 0 20px 2px rgba(168,85,247,0.3)", "0 0 0px 0px rgba(168,85,247,0)"] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        className="rounded-2xl"
       >
+        <GlassPanel
+          title="Multi-Agent AI Search"
+          subtitle="LangChain-powered · 5 parallel agents · RAG retrieval"
+          icon={<Brain className="h-5 w-5" />}
+          variant="elevated"
+          glow={true}
+          glowColor="purple"
+        >
         <div className="flex gap-3">
           <div className="relative flex-1">
             <Brain className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-purple-400" />
@@ -439,7 +462,8 @@ export default function DashboardPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </GlassPanel>
+        </GlassPanel>
+      </motion.div>
 
       {/* Quick Links */}
       <motion.div
@@ -457,19 +481,21 @@ export default function DashboardPage() {
             { label: 'Wires', icon: Cable, href: '/wires', color: 'green' },
             { label: 'AI Assistant', icon: Bot, href: '/ai-assistant', color: 'pink' },
           ].map((link) => (
-            <Link key={link.label} href={link.href}>
-              <Card3D glowColor={link.color as any} variant="elevated">
-                <div className="p-4 flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg bg-${link.color}-500/20 flex items-center justify-center`}>
-                    <link.icon className={`h-5 w-5 text-${link.color}-400`} />
+            <Link key={link.label} href={link.href} className="group block">
+              <motion.div whileHover={{ scale: 1.02, y: -4 }} transition={{ type: "spring", stiffness: 300 }}>
+                <Card3D glowColor={link.color as any} variant="elevated" className="border-slate-700/50 group-hover:border-slate-600/80 transition-colors">
+                  <div className="p-5 flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-xl bg-${link.color}-500/10 group-hover:bg-${link.color}-500/20 flex items-center justify-center transition-colors shadow-inner`}>
+                      <link.icon className={`h-6 w-6 text-${link.color}-400 group-hover:scale-110 transition-transform`} />
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold text-lg">{link.label}</p>
+                      <p className="text-slate-400 text-sm group-hover:text-slate-300 transition-colors">Explore system</p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-white group-hover:translate-x-1 ml-auto transition-all" />
                   </div>
-                  <div>
-                    <p className="text-white font-semibold">{link.label}</p>
-                    <p className="text-slate-400 text-xs">Explore</p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-slate-400 ml-auto" />
-                </div>
-              </Card3D>
+                </Card3D>
+              </motion.div>
             </Link>
           ))}
         </div>

@@ -2,8 +2,25 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Card3D, GlassPanel } from '@/components/ui';
 import { Car, Cpu, Box, Cable, FileText, ChevronRight, Train } from 'lucide-react';
+import { prisma } from '@/lib/prisma';
 
-const CAR_TYPES = [
+interface CarType {
+  type: string;
+  name: string;
+  positions: number[];
+  description: string;
+  key_equipment: string[];
+  key_connectors: string[];
+  drawing: string;
+  systems: string[];
+  trainlines: string[];
+  features: string[];
+  equipmentCount?: number;
+  connectorCount?: number;
+  trainlineCount?: number;
+}
+
+const CAR_TYPES: CarType[] = [
   {
     type: 'DMC',
     name: 'Driving Motor Car',
@@ -48,11 +65,46 @@ const CAR_COLORS: Record<string, { bg: string; text: string; border: string; gra
   MC: { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/30', gradient: 'from-orange-500 to-orange-600' },
 };
 
-export default function CarsPage() {
+export default async function CarsPage() {
+  let carsWithStats: CarType[] = CAR_TYPES;
+
+  try {
+    const dbStats = await prisma.device.groupBy({
+      by: ['carType'],
+      _count: true,
+    });
+
+    const dbConnectorStats = await prisma.connector.groupBy({
+      by: ['carType'],
+      _count: true,
+    });
+
+    const dbTrainlineStats = await prisma.trainLine.groupBy({
+      by: ['carType'],
+      _count: true,
+    });
+
+    const equipmentCount = Object.fromEntries(dbStats.map(s => [s.carType, s._count]));
+    const connectorCount = Object.fromEntries(dbConnectorStats.map(s => [s.carType, s._count]));
+    const trainlineCount = Object.fromEntries(dbTrainlineStats.map(s => [s.carType, s._count]));
+
+    carsWithStats = CAR_TYPES.map(car => ({
+      ...car,
+      equipmentCount: equipmentCount[car.type] || 0,
+      connectorCount: connectorCount[car.type] || 0,
+      trainlineCount: trainlineCount[car.type] || 0,
+    }));
+  } catch (e) {
+    console.error('Failed to fetch car stats from DB', e);
+  }
+
   return (
     <div className="animated-bg min-h-screen p-6 grid-pattern">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold gradient-text">Fleet Explorer</h1>
+        <h1 className="text-3xl font-bold gradient-text flex items-center gap-3">
+          <Car className="h-8 w-8 text-cyan-400" />
+          Fleet Explorer
+        </h1>
         <p className="mt-2 text-slate-400">
           Browse car types, equipment, connectors, and PIN diagrams for the 6-car formation
         </p>
@@ -96,7 +148,7 @@ export default function CarsPage() {
 
       {/* Car Type Cards */}
       <div className="space-y-6">
-        {CAR_TYPES.map(car => {
+        {carsWithStats.map(car => {
           const colors = CAR_COLORS[car.type];
 
           return (
@@ -115,6 +167,9 @@ export default function CarsPage() {
                       <p className="text-sm text-slate-400 mt-1">{car.description}</p>
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-xs text-slate-500">Positions: {car.positions.map(p => `#${p}`).join(', ')}</span>
+                        {car.equipmentCount && <span className="text-xs text-slate-500">• {car.equipmentCount} equipment</span>}
+                        {car.connectorCount && <span className="text-xs text-slate-500">• {car.connectorCount} connectors</span>}
+                        {car.trainlineCount && <span className="text-xs text-slate-500">• {car.trainlineCount} trainlines</span>}
                       </div>
                     </div>
                   </div>

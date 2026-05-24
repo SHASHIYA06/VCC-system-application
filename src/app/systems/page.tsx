@@ -17,30 +17,31 @@ interface System {
   sort_order: number;
   drawing_count?: number;
   trainline_count?: number;
+  deviceCount?: number;
 }
 
 const ALL_SYSTEMS: System[] = [
-  { id: '1', code: 'GEN', name: 'General / Foundation', category: 'Foundation', description: 'Drawing list, conductor classification, wiring number system, symbol library', icon_name: 'Settings', sort_order: 0 },
-  { id: '2', code: 'TRL', name: 'Trainlines', category: 'Core', description: 'Train line control, signal, power distribution across all cars', icon_name: 'Train', sort_order: 1, trainline_count: 52 },
-  { id: '3', code: 'CAB', name: 'Controlling Cab', category: 'Core', description: 'Head/Tail control relay, key-on relay, MCB trip status, system status', icon_name: 'Cpu', sort_order: 2 },
-  { id: '4', code: 'TRAC', name: 'Traction Control', category: 'Propulsion', description: 'Speed control, VVVF inverter, traction return current', icon_name: 'Zap', sort_order: 3, trainline_count: 10 },
-  { id: '5', code: 'BRAKE', name: 'Brake System', category: 'Core', description: 'Compressor, brake loop, emergency brake, parking brake, horn', icon_name: 'ShieldCheck', sort_order: 4, trainline_count: 12 },
-  { id: '6', code: 'APS', name: 'Auxiliary Power', category: 'Power', description: 'APS unit, shore supply, battery control, SIV contactors', icon_name: 'Battery', sort_order: 5, trainline_count: 6 },
-  { id: '7', code: 'DOOR', name: 'Door System', category: 'Core', description: 'Door supply, left/right operation, proving loop, TCMS interface', icon_name: 'DoorOpen', sort_order: 6, trainline_count: 8 },
-  { id: '8', code: 'VAC', name: 'VAC / HVAC', category: 'Core', description: 'Cab VAC, saloon VAC power, VAC control, smoke detection', icon_name: 'Wind', sort_order: 7, trainline_count: 5 },
-  { id: '9', code: 'TMS', name: 'TCMS', category: 'Control', description: 'TMS interface, TCMS RIO digital I/O mapping, point assignments', icon_name: 'Activity', sort_order: 8 },
-  { id: '10', code: 'COMMS', name: 'Communications', category: 'Control', description: 'PIS/TIS, PA, DVAS, CBTC, train radio, CCTV', icon_name: 'Radio', sort_order: 9 },
-  { id: '11', code: 'LIGHT', name: 'Interior Lighting', category: 'Power', description: 'Head cab light, tail light, door console light, interior lights, wiper', icon_name: 'Lightbulb', sort_order: 10 },
-  { id: '12', code: 'COUPL', name: 'Coupler Control', category: 'Core', description: 'Gangway coupler control for coupling and uncoupling', icon_name: 'Link2', sort_order: 11 },
-  { id: '13', code: 'LTEB', name: 'Low Tension Equipment Box', category: 'Power', description: 'Underframe low tension equipment panel', icon_name: 'Box', sort_order: 12 },
-  { id: '14', code: 'LTJB', name: 'Low Tension Junction Box', category: 'Power', description: 'Underframe low tension junction box', icon_name: 'Box', sort_order: 13 },
-  { id: '15', code: 'EDB', name: 'Electrical Distribution Box', category: 'Power', description: 'Ceiling electrical distribution box', icon_name: 'Box', sort_order: 14 },
-  { id: '16', code: 'HV', name: 'High Tension / HV', category: 'Power', description: 'HSCB, pantograph, high tension bus, earth brushes, collector shoes', icon_name: 'ZapOff', sort_order: 15 },
+  { id: '1', code: 'GEN', name: 'General / Foundation', category: 'Foundation', description: 'Drawing list, conductor classification, wiring number system, symbol library', icon_name: 'Settings', sort_order: 0, drawing_count: 0, trainline_count: 0 },
+  { id: '2', code: 'TRL', name: 'Trainlines', category: 'Core', description: 'Train line control, signal, power distribution across all cars', icon_name: 'Train', sort_order: 1, trainline_count: 52, deviceCount: 0 },
+  { id: '3', code: 'CAB', name: 'Controlling Cab', category: 'Core', description: 'Head/Tail control relay, key-on relay, MCB trip status, system status', icon_name: 'Cpu', sort_order: 2, trainline_count: 10, deviceCount: 0 },
+  { id: '4', code: 'TRAC', name: 'Traction Control', category: 'Propulsion', description: 'Speed control, VVVF inverter, traction return current', icon_name: 'Zap', sort_order: 3, trainline_count: 10, deviceCount: 0 },
+  { id: '5', code: 'BRAKE', name: 'Brake System', category: 'Core', description: 'Compressor, brake loop, emergency brake, parking brake, horn', icon_name: 'ShieldCheck', sort_order: 4, trainline_count: 12, deviceCount: 0 },
+  { id: '6', code: 'APS', name: 'Auxiliary Power', category: 'Power', description: 'APS unit, shore supply, battery control, SIV contactors', icon_name: 'Battery', sort_order: 5, trainline_count: 6, deviceCount: 0 },
+  { id: '7', code: 'DOOR', name: 'Door System', category: 'Core', description: 'Door supply, left/right operation, proving loop, TCMS interface', icon_name: 'DoorOpen', sort_order: 6, trainline_count: 8, deviceCount: 0 },
+  { id: '8', code: 'VAC', name: 'VAC / HVAC', category: 'Core', description: 'Cab VAC, saloon VAC power, VAC control, smoke detection', icon_name: 'Wind', sort_order: 7, trainline_count: 5, deviceCount: 0 },
+  { id: '9', code: 'TMS', name: 'TCMS', category: 'Control', description: 'TMS interface, TCMS RIO digital I/O mapping, point assignments', icon_name: 'Activity', sort_order: 8, deviceCount: 0 },
+  { id: '10', code: 'COMMS', name: 'Communications', category: 'Control', description: 'PIS/TIS, PA, DVAS, CBTC, train radio, CCTV', icon_name: 'Radio', sort_order: 9, deviceCount: 0 },
+  { id: '11', name: 'Interior Lighting', category: 'Power', description: 'Head cab light, tail light, door console light, interior lights, wiper', icon_name: 'Lightbulb', sort_order: 10, deviceCount: 0 },
+  { id: '12', code: 'COUPL', name: 'Coupler Control', category: 'Core', description: 'Gangway coupler control for coupling and uncoupling', icon_name: 'Link2', sort_order: 11, deviceCount: 0 },
+  { id: '13', code: 'LTEB', name: 'Low Tension Equipment Box', category: 'Power', description: 'Underframe low tension equipment panel', icon_name: 'Box', sort_order: 12, deviceCount: 0 },
+  { id: '14', code: 'LTJB', name: 'Low Tension Junction Box', category: 'Power', description: 'Underframe low tension junction box', icon_name: 'Box', sort_order: 13, deviceCount: 0 },
+  { id: '15', code: 'EDB', name: 'Electrical Distribution Box', category: 'Power', description: 'Ceiling electrical distribution box', icon_name: 'Box', sort_order: 14, deviceCount: 0 },
+  { id: '16', code: 'HV', name: 'High Tension / HV', category: 'Power', description: 'HSCB, pantograph, high tension bus, earth brushes, collector shoes', icon_name: 'ZapOff', sort_order: 15, deviceCount: 0 },
 ];
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Train, ShieldCheck, Zap, Wind, Radio, Battery, Settings, DoorOpen,
-  Activity, Lightbulb, Link2, Gauge, Cpu, Box, ZapOff,
+  Activity, Lightbulb, Link2, Gauge, Cpu, Box, ZapOff, Cpu,
 };
 
 const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; icon: string }> = {
@@ -59,7 +60,7 @@ export default async function SystemsPage() {
     if (dbSystems.length > 0) {
       systems = ALL_SYSTEMS.map(s => {
         const db = dbSystems.find(d => d.code === s.code || d.name === s.name);
-        return db ? { ...s, id: db.id } : s;
+        return db ? { ...s, id: db.id, drawing_count: db.drawings.length, trainline_count: db.trainlines.length } : s;
       });
     }
   } catch (e) {
@@ -78,19 +79,22 @@ export default async function SystemsPage() {
   return (
     <div className="animated-bg min-h-screen p-6 grid-pattern">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold gradient-text">System Explorer</h1>
+        <h1 className="text-3xl font-bold gradient-text flex items-center gap-3">
+          <Activity className="h-8 w-8 text-cyan-400" />
+          System Explorer
+        </h1>
         <p className="mt-2 text-slate-400">
-          Browse all 16 VCC systems with drawings, equipment, trainlines, and wire connections
+          Browse all {systems.length} VCC systems with drawings, equipment, trainlines, and wire connections
         </p>
         <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
           <span>{systems.length} Systems</span>
           <span className="flex items-center gap-1">
             <Train className="h-4 w-4" />
-            {ALL_SYSTEMS.reduce((sum, s) => sum + (s.trainline_count || 0), 0)} Trainlines
+            {systems.reduce((sum, s) => sum + (s.trainline_count || 0), 0)} Trainlines
           </span>
           <span className="flex items-center gap-1">
             <Box className="h-4 w-4" />
-            200+ Equipment
+            {systems.reduce((sum, s) => sum + (s.deviceCount || 0), 0)} Equipment
           </span>
         </div>
       </div>

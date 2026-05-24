@@ -120,6 +120,9 @@ export default function WiresPage() {
     fetchWires();
   }, [offset, search]); // Added search to dependency array so it refetches when search changes
 
+  // Get unique systems from wires for filter dropdown
+  const uniqueSystems = [...new Set(wires.map(w => w.endpoints?.map(e => e.device?.carType).filter(Boolean)).flat()).filter(Boolean)].sort();
+
   const loadMore = () => {
     if (hasMore && !loading) {
       setOffset(prev => prev + limit);
@@ -241,9 +244,7 @@ export default function WiresPage() {
         <select value={systemFilter} onChange={(e) => setSystemFilter(e.target.value)}
           className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">
           <option value="all">All Systems</option>
-          <option value="DMC">DMC</option>
-          <option value="TC">TC</option>
-          <option value="MC">MC</option>
+          {uniqueSystems.map(sys => <option key={sys} value={sys}>{sys}</option>)}
         </select>
         <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
           className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">

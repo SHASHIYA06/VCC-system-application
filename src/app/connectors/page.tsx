@@ -150,6 +150,7 @@ export default function ConnectorsPage() {
             terminalTo: p.terminalTo,
             note: p.note,
             endpointLabel: p.endpointLabel || `${c.connectorCode}:${p.pinNo} - ${p.signalName || 'N/A'}`,
+            wireEndpoint: p.wireEndpoint || null,
           })),
           _count: c._count,
         }));

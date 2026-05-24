@@ -36,6 +36,7 @@ interface TrainlineData {
   car_code: string;
   system_code: string;
   is_cross_connected: boolean;
+  voltageClass?: string;
 }
 
 export default function TrainlinesPage() {
@@ -53,7 +54,17 @@ export default function TrainlinesPage() {
         const response = await fetch('/api/trainlines');
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
-        setTrainlines(data.trainlines || []);
+        const formattedTrainlines = (data.data || []).map((tl: any) => ({
+          trainline_no: tl.wireNo,
+          name: tl.itemName,
+          description: tl.note,
+          voltage_domain: tl.voltageText || '110V',
+          car_code: tl.carType,
+          system_code: tl.systemCode,
+          is_cross_connected: CROSS_CONNECTED_TRAINLINES.includes(parseInt(tl.wireNo)),
+          voltageClass: tl.voltageText,
+        }));
+        setTrainlines(formattedTrainlines);
       } catch (err) {
         setError('Failed to load trainlines from database');
         console.error(err);

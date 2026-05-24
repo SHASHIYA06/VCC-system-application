@@ -23,7 +23,12 @@ export async function GET(request: NextRequest) {
 
     const devices = await prisma.device.findMany({
       where,
-      include: { system: true },
+      include: { 
+        system: true,
+        _count: {
+          select: { connectors: true }
+        }
+      },
       take: limit,
       orderBy: { deviceName: 'asc' },
     });
@@ -36,6 +41,7 @@ export async function GET(request: NextRequest) {
       carType: d.carType || '',
       location: d.locationTag || '',
       description: d.note || '',
+      connectorCount: d._count.connectors,
     }));
 
     return NextResponse.json({

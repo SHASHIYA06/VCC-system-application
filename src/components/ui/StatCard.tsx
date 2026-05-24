@@ -12,6 +12,7 @@ interface StatCardProps {
   trendValue?: string;
   color?: 'cyan' | 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'amber' | 'pink' | 'indigo';
   className?: string;
+  dataSource?: string;
 }
 
 export function StatCard({
@@ -23,6 +24,7 @@ export function StatCard({
   trendValue,
   color = 'cyan',
   className = '',
+  dataSource = 'database',
 }: StatCardProps) {
   const colorStyles = {
     cyan: 'from-cyan-500/20 to-blue-500/20 border-cyan-500/30 text-cyan-400',
@@ -85,12 +87,50 @@ export function StatCard({
 
         {/* Subtext and Trend */}
         <div className="flex items-center justify-between">
-          {subtext && <p className="text-xs text-slate-500">{subtext}</p>}
-          {trend && trendValue && (
-            <div className={`text-xs font-semibold ${trendColors[trend]}`}>
-              {trend === 'up' && '↑'} {trend === 'down' && '↓'} {trendValue}
+          <div className="flex flex-col w-full">
+            <div className="flex items-center justify-between">
+              {subtext && <p className="text-xs text-slate-400">{subtext}</p>}
+              {trend && trendValue && (
+                <div className={`text-xs font-semibold ${trendColors[trend]} bg-slate-900/40 px-2 py-0.5 rounded-full`}>
+                  {trend === 'up' && '↑'} {trend === 'down' && '↓'} {trendValue}
+                </div>
+              )}
             </div>
-          )}
+            
+            {/* Animated Sparkline */}
+            <div className="mt-4 h-8 w-full relative">
+              <svg viewBox="0 0 100 20" className="w-full h-full overflow-visible preserve-3d" preserveAspectRatio="none">
+                <motion.path
+                  d="M0 15 Q 10 5, 20 10 T 40 12 T 60 5 T 80 15 T 100 2"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="opacity-50 drop-shadow-md"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 0.8 }}
+                  transition={{ duration: 1.5, ease: "easeInOut" }}
+                />
+                <motion.path
+                  d="M0 20 L0 15 Q 10 5, 20 10 T 40 12 T 60 5 T 80 15 T 100 2 L 100 20 Z"
+                  fill="currentColor"
+                  className="opacity-10"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.15 }}
+                  transition={{ duration: 1.5, delay: 0.2 }}
+                />
+              </svg>
+            </div>
+
+            {dataSource === 'database' && (
+              <p className="text-[10px] text-green-400/80 flex items-center gap-1.5 mt-2 font-medium">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                Live DB Sync
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </motion.div>
