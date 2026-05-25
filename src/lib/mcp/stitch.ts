@@ -57,7 +57,8 @@ export class MCPClient {
     // Call the server via REST (assuming standard MCP REST mapping)
     // The exact endpoint structure depends on the MCP server implementation.
     // Using standard mapping /tools/:toolName
-    const url = `${serverConfig.serverUrl.replace(/\\/$/, '')}/tools/${toolName}`;
+    const baseUrl = serverConfig.serverUrl.endsWith('/') ? serverConfig.serverUrl.slice(0, -1) : serverConfig.serverUrl;
+    const url = `${baseUrl}/tools/${toolName}`;
     
     try {
       const response = await fetch(url, {
