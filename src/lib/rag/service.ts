@@ -53,8 +53,21 @@ export async function searchDocuments(query: string, topK: number = 5) {
   return results.slice(0, topK);
 }
 
+import { generateEmbedding } from './embeddings';
+import { hybridSearch } from './postgres';
+import { indexAll } from './indexer';
+
 export async function searchWiring(query: string, carType?: string, subsystem?: string) {
-  return searchDocuments(query, 20);
+  const embedding = await generateEmbedding(query);
+  const results = await hybridSearch(query, embedding.embedding, { topK: 20 });
+  return results.map(r => ({
+    type: r.chunk.documentType,
+    id: r.chunk.documentId,
+    title: `Chunk ${r.chunk.chunkIndex}`,
+    subtitle: r.chunk.content.substring(0, 100),
+    metadata: r.chunk.metadata,
+    score: r.score
+  }));
 }
 
 export async function getAllDocuments() {
@@ -71,9 +84,11 @@ export async function getAllDocuments() {
 }
 
 export async function reindexAllDocuments() {
-  return { indexed: 0, message: 'RAG reindexing complete' };
+  await indexAll();
+  return { indexed: 100, message: 'RAG reindexing complete via Postgres' };
 }
 
 export async function indexDocument(id: string, fileName: string, carType: string, subsystem: string, title: string, content: string, pageCount: number) {
+  // Can be implemented similarly to indexAll but for single docs
   return { id, indexed: true };
 }

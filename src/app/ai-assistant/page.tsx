@@ -55,7 +55,7 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
     },
   ]);
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<'expert' | 'all' | 'langflow'>('expert');
+  const [mode, setMode] = useState<'operator' | 'engineer' | 'admin'>('operator');
 
   useEffect(() => {
     async function checkStatus() {
@@ -145,12 +145,12 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
           <span className="text-sm text-slate-400">Mode:</span>
           <select
             value={mode}
-            onChange={(e) => setMode(e.target.value as 'expert' | 'all' | 'langflow')}
+            onChange={(e) => setMode(e.target.value as 'operator' | 'engineer' | 'admin')}
             className="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2"
           >
-            <option value="expert">Expert Mode</option>
-            <option value="all">Full Analysis</option>
-            <option value="langflow">LangFlow RAG</option>
+            <option value="operator">Operator Mode (Guided)</option>
+            <option value="engineer">Engineer Mode (Raw Trace)</option>
+            <option value="admin">Admin Mode (Parser Validation)</option>
           </select>
         </div>
         

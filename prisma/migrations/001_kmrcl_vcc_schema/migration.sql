@@ -152,7 +152,7 @@ create table public.connectors (
   pin_count integer,
   view_name text,
   remarks text,
-  unique(drawing_id, connector_code, coalesce(page_id::text, ''))
+  unique(drawing_id, connector_code, page_id)
 );
 
 -- 3.11 Wires
@@ -182,7 +182,7 @@ create table public.pins (
   from_ref text,
   to_ref text,
   remark text,
-  unique(connector_id, pin_no, coalesce(sequence_no::text, '0'))
+  unique(connector_id, pin_no, sequence_no)
 );
 
 -- 3.13 Pin Links (cross-reference engine)
@@ -346,7 +346,7 @@ insert into public.trainlines(trainline_no, name, description, voltage_domain, i
 (3013, 'RM', 'Restricted manual mode', '110VDC', false),
 (3018, 'STANDBY', 'Standby mode', '110VDC', false),
 (3019, 'WC', 'Wash coupling mode', '110VDC', false),
-(3020a, 'PROPULSION ENABLE A', 'Propulsion enable A', '110VDC', false),
+(3020, 'PROPULSION ENABLE A', 'Propulsion enable A', '110VDC', false),
 (3026, 'SPEED ZERO', 'Speed zero signal', '110VDC', false),
 (3060, 'ATO', 'Automatic train operation', '110VDC', false),
 (4024, 'BRAKE LOOP', 'Brake loop normal', '110VDC', false),

@@ -309,7 +309,7 @@ export class MultiAgentOrchestrator {
     this.synthesizer = new SynthesizerAgent();
   }
   
-  async process(query: string, mode: 'expert' | 'all' = 'expert'): Promise<AgentResponse> {
+  async process(query: string, mode: 'operator' | 'engineer' | 'admin' = 'operator'): Promise<AgentResponse> {
     try {
       // Step 1: Coordinate and plan
       const { tasks, strategy } = await this.coordinator.process(query);
@@ -336,9 +336,14 @@ export class MultiAgentOrchestrator {
       console.log('🔍 Key info extracted');
       
       // Step 4: Perform technical analysis
-      const analysis = mode === 'expert' 
-        ? await this.analyzer.analyze(query, keyInfo)
-        : keyInfo;
+      let analysis = keyInfo;
+      if (mode === 'operator') {
+        analysis = await this.analyzer.analyze(query, keyInfo + "\n\nProvide a guided, high-level answer suitable for a system operator.");
+      } else if (mode === 'engineer') {
+        analysis = await this.analyzer.analyze(query, keyInfo + "\n\nProvide raw references, exact wire traces, pin numbers, and schematic locations for an engineer.");
+      } else if (mode === 'admin') {
+        analysis = await this.analyzer.analyze(query, keyInfo + "\n\nProvide parser validation details, consistency checks, and data confidence scores for admin validation.");
+      }
       console.log('🔬 Analysis complete');
       
       // Step 5: Synthesize final response

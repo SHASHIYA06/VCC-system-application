@@ -1,11 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector]
 }
 
 enum DrawingStatus {
@@ -395,7 +397,7 @@ model Signal {
   id            String   @id @default(cuid())
   drawingId     String?
   signalName    String
-  signalCode    String? @unique
+  signalCode    String?
   protocol      String?
   voltageText   String?
   direction     String?
@@ -599,4 +601,25 @@ model ParseIssue {
 
   @@index([severity, resolved])
   @@index([entityType, entityId])
+}
+
+model DocumentChunk {
+  id               String   @id @default(cuid())
+  sourceFileId     String
+  pageNo           Int?
+  drawingNo        String?
+  sheetNo          Int?
+  systemCode       String?
+  chunkType        String
+  content          String
+  embedding        Unsupported("vector(1536)")?
+  ocrConfidence    Float?
+  parserConfidence Float?
+  reviewStatus     String   @default("DRAFT")
+  entityRefs       Json     @default("[]")
+  createdAt        DateTime @default(now())
+
+  @@index([systemCode])
+  @@index([drawingNo])
+  @@index([chunkType])
 }

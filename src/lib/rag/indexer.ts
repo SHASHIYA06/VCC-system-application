@@ -6,7 +6,7 @@
 import { prisma } from '@/lib/prisma';
 import { chunkDocument, DocumentChunkInput } from './chunking';
 import { generateEmbeddings } from './embeddings';
-import { storeChunks, DocumentChunk } from './mongodb';
+import { storeChunks, RAGDocumentChunk as DocumentChunk } from './postgres';
 
 export interface IndexingProgress {
   total: number;
