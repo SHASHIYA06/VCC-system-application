@@ -4,8 +4,8 @@ const fs = require('fs');
 async function main() {
   const filePath = process.argv[2];
   const dataBuffer = fs.readFileSync(filePath);
-  const pdf = pdfParse.default || pdfParse;
-  const data = await pdf(dataBuffer);
+  const pdfFn = typeof pdfParse === 'function' ? pdfParse : pdfParse.default;
+  const data = await pdfFn(dataBuffer);
   console.log(JSON.stringify({ text: data.text, numpages: data.numpages }));
 }
 
