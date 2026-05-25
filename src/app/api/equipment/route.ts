@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       include: { 
         system: true,
         _count: {
-          select: { connectors: true }
+          select: { wireEndpoints: true }
         }
       },
       take: limit,
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       carType: d.carType || '',
       location: d.locationTag || '',
       description: d.note || '',
-      connectorCount: d._count.connectors,
+      connectorCount: d._count.wireEndpoints,
     }));
 
     return NextResponse.json({

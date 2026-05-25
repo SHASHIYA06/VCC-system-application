@@ -121,7 +121,7 @@ export default function WiresPage() {
   }, [offset, search]); // Added search to dependency array so it refetches when search changes
 
   // Get unique systems from wires for filter dropdown
-  const uniqueSystems = [...new Set(wires.map(w => w.endpoints?.map(e => e.device?.carType).filter(Boolean)).flat()).filter(Boolean)].sort();
+  const uniqueSystems = Array.from(new Set(wires.flatMap(w => w.endpoints?.map(e => e.device?.carType) || []).filter(Boolean) as string[])).sort();
 
   const loadMore = () => {
     if (hasMore && !loading) {

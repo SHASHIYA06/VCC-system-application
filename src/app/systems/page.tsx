@@ -31,7 +31,7 @@ const ALL_SYSTEMS: System[] = [
   { id: '8', code: 'VAC', name: 'VAC / HVAC', category: 'Core', description: 'Cab VAC, saloon VAC power, VAC control, smoke detection', icon_name: 'Wind', sort_order: 7, trainline_count: 5, deviceCount: 0 },
   { id: '9', code: 'TMS', name: 'TCMS', category: 'Control', description: 'TMS interface, TCMS RIO digital I/O mapping, point assignments', icon_name: 'Activity', sort_order: 8, deviceCount: 0 },
   { id: '10', code: 'COMMS', name: 'Communications', category: 'Control', description: 'PIS/TIS, PA, DVAS, CBTC, train radio, CCTV', icon_name: 'Radio', sort_order: 9, deviceCount: 0 },
-  { id: '11', name: 'Interior Lighting', category: 'Power', description: 'Head cab light, tail light, door console light, interior lights, wiper', icon_name: 'Lightbulb', sort_order: 10, deviceCount: 0 },
+  { id: '11', code: 'LIGHT', name: 'Interior Lighting', category: 'Power', description: 'Head cab light, tail light, door console light, interior lights, wiper', icon_name: 'Lightbulb', sort_order: 10, deviceCount: 0 },
   { id: '12', code: 'COUPL', name: 'Coupler Control', category: 'Core', description: 'Gangway coupler control for coupling and uncoupling', icon_name: 'Link2', sort_order: 11, deviceCount: 0 },
   { id: '13', code: 'LTEB', name: 'Low Tension Equipment Box', category: 'Power', description: 'Underframe low tension equipment panel', icon_name: 'Box', sort_order: 12, deviceCount: 0 },
   { id: '14', code: 'LTJB', name: 'Low Tension Junction Box', category: 'Power', description: 'Underframe low tension junction box', icon_name: 'Box', sort_order: 13, deviceCount: 0 },
@@ -41,7 +41,7 @@ const ALL_SYSTEMS: System[] = [
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Train, ShieldCheck, Zap, Wind, Radio, Battery, Settings, DoorOpen,
-  Activity, Lightbulb, Link2, Gauge, Cpu, Box, ZapOff, Cpu,
+  Activity, Lightbulb, Link2, Gauge, Cpu, Box, ZapOff,
 };
 
 const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string; icon: string }> = {
@@ -60,7 +60,7 @@ export default async function SystemsPage() {
     if (dbSystems.length > 0) {
       systems = ALL_SYSTEMS.map(s => {
         const db = dbSystems.find(d => d.code === s.code || d.name === s.name);
-        return db ? { ...s, id: db.id, drawing_count: db.drawings.length, trainline_count: db.trainlines.length } : s;
+        return db ? { ...s, id: db.id, drawing_count: (db as any).drawings?.length || 0, trainline_count: (db as any).trainlines?.length || 0 } : s;
       });
     }
   } catch (e) {
