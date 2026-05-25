@@ -52,7 +52,7 @@ export function StatCard({
       className={`
         relative overflow-hidden rounded-2xl
         bg-gradient-to-br ${colorStyles[color]}
-        border backdrop-blur-xl
+        border glass-card-morph
         p-6 transition-all duration-300
         hover:shadow-2xl hover:shadow-${color}-500/20
         ${className}

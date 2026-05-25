@@ -4,7 +4,7 @@ import { join } from 'path';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path: pathSegments } = await params;
-  const filePath = pathSegments.join('/');
+  const filePath = pathSegments.map(decodeURIComponent).join('/');
   const fullPath = join(process.cwd(), 'public', 'DOCUMENTS', filePath);
 
   try {

@@ -26,7 +26,7 @@ export function GlassPanel({
 }: GlassPanelProps) {
   const variantStyles = {
     default: 'bg-slate-900/40 backdrop-blur-xl border border-slate-700/50',
-    elevated: 'bg-slate-800/60 backdrop-blur-2xl border border-slate-600/50 shadow-2xl',
+    elevated: 'glass-card-morph bg-slate-800/60 backdrop-blur-2xl border border-slate-600/50 shadow-2xl',
     flat: 'bg-slate-950/30 backdrop-blur-md border border-slate-800/30',
   };
 

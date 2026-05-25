@@ -125,40 +125,8 @@ export async function GET(request: NextRequest) {
 }
 
 function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): number {
-  // Extract numeric part
-  const numMatch = drawingNo.match(/\d+/);
-  if (!numMatch) return 1;
-  
-  const num = parseInt(numMatch[0]);
-  
-  // For PIN drawings, typically each drawing is 2 pages (drawing + notes)
-  if (sourceFile.includes('PIN')) {
-    if (sourceFile.includes('CAB_PIN DRAWINGS 2')) {
-      const offset = num - 58124;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('CAB_PIN DRAWINGS')) {
-      const offset = num - 58100;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('DMC_CEILING')) {
-      const offset = num - 58000;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('DMC UF')) {
-      const offset = num - 58050;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('TC_CEILING')) {
-      const offset = num - 58200;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('TC _UF')) {
-      const offset = num - 58250;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('MC_CEILING')) {
-      const offset = num - 58300;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('MC_UF')) {
-      const offset = num - 58350;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    }
-  }
-  
+  // Rather than arbitrary offsets which lead to the wrong drawings showing,
+  // we default to opening the PDF at page 1 unless we have a definitive DB mapping.
+  // The user can then navigate or we can implement exact page scraping later.
   return 1;
 }
