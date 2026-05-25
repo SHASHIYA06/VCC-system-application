@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Send, Bot, Loader2, MessageSquare, Lightbulb, AlertTriangle, BookOpen, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { GlassPanel } from '@/components/ui/GlassPanel';
 
 interface APIStatus {
   name: string;
@@ -54,7 +55,7 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
     },
   ]);
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<'expert' | 'all'>('expert');
+  const [mode, setMode] = useState<'expert' | 'all' | 'langflow'>('expert');
 
   useEffect(() => {
     async function checkStatus() {
@@ -144,11 +145,12 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
           <span className="text-sm text-slate-400">Mode:</span>
           <select
             value={mode}
-            onChange={(e) => setMode(e.target.value as 'expert' | 'all')}
+            onChange={(e) => setMode(e.target.value as 'expert' | 'all' | 'langflow')}
             className="bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2"
           >
             <option value="expert">Expert Mode</option>
             <option value="all">Full Analysis</option>
+            <option value="langflow">LangFlow RAG</option>
           </select>
         </div>
         
@@ -178,7 +180,7 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
       </div>
 
       {/* Chat Interface */}
-      <div className="glass-card mb-6">
+      <GlassPanel className="mb-6 glow-cyan">
         <div className="h-[500px] overflow-y-auto p-4 space-y-4">
           {messages.map((msg, idx) => (
             <div
@@ -270,10 +272,10 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
             </button>
           </div>
         </div>
-      </div>
+      </GlassPanel>
 
       {/* Suggested Queries */}
-      <div className="glass-card p-4">
+      <GlassPanel className="p-4 glow-purple">
         <h3 className="text-sm font-semibold text-slate-400 mb-3 flex items-center gap-2">
           <Lightbulb className="h-4 w-4 text-amber-400" />
           Suggested Questions
@@ -289,7 +291,7 @@ Ask me anything about the VCC system, or choose from the suggestions below.`,
             </button>
           ))}
         </div>
-      </div>
+      </GlassPanel>
     </div>
   );
 }

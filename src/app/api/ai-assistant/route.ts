@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { MultiAgentOrchestrator, simpleRAGQuery } from '@/lib/rag/agents';
 import { RAG_CONFIG } from '@/lib/rag/config';
+import { langFlowClient } from '@/lib/rag/langflow';
+import { mcpClient } from '@/lib/mcp/stitch';
 
 /**
  * GET - Return API status and configuration
@@ -96,6 +98,24 @@ export async function POST(request: NextRequest) {
     if (!hasEmbeddingKey || !hasChatKey) {
       // Fallback to database search
       return await fallbackDatabaseSearch(query);
+    }
+    
+    // LangFlow execution mode
+    if (mode === 'langflow') {
+      try {
+        const result = await langFlowClient.query(query);
+        return NextResponse.json({
+          success: true,
+          response: result,
+          model: 'langflow',
+          tokens: 0,
+          sources: [],
+          mode,
+        });
+      } catch (lfError) {
+        console.error('LangFlow execution failed:', lfError);
+        // Fallback to RAG agents if LangFlow fails
+      }
     }
     
     // Use multi-agent RAG system

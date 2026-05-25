@@ -139,7 +139,7 @@ function DrawingsContent() {
             const sysInfo = SYSTEM_COLORS[systemCode] || SYSTEM_COLORS['GEN'];
             
             return (
-              <div key={systemCode} className="glass-card overflow-hidden">
+              <GlassPanel key={systemCode} className="overflow-hidden p-0 mb-6 border-0">
                 <div className={`px-6 py-4 border-b border-slate-700/50 flex items-center justify-between ${sysInfo.bg}`}>
                   <div className="flex items-center gap-3">
                     <Cpu className={`h-5 w-5 ${sysInfo.color}`} />
@@ -156,7 +156,7 @@ function DrawingsContent() {
                     const subsystem = dwg.remarks?.split('|')[1] || systemCode;
                     
                     return (
-                      <div key={dwg.id} className="p-3 bg-slate-800/30 rounded-lg hover:bg-slate-800/50 transition-colors">
+                      <Card3D key={dwg.id} variant="flat" interactive={true} className="p-4" href={`/drawings/${dwg.drawingNo}`}>
                         <div className="flex items-center justify-between mb-2">
                           <Link href={`/drawings/${dwg.drawingNo}`} className="font-mono text-cyan-400 font-bold">
                             {dwg.drawingNo}
@@ -186,21 +186,21 @@ function DrawingsContent() {
                           </div>
                         ) : null}
                         
-                        <Link href={`/drawings/${dwg.drawingNo}`} className="mt-2 text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
-                          View Details <ArrowRight className="h-3 w-3" />
-                        </Link>
-                      </div>
+                        <div className="mt-4 text-xs text-cyan-400 font-medium flex items-center gap-1 group-hover:text-cyan-300">
+                          View Details <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+                        </div>
+                      </Card3D>
                     );
                   })}
                 </div>
-              </div>
+              </GlassPanel>
             );
           })}
         </div>
       )}
 
       {filteredDrawings.length === 0 && !loading && (
-        <div className="glass-card p-12 text-center">
+        <GlassPanel className="p-12 text-center">
           <FileText className="h-12 w-12 text-slate-500 mx-auto mb-4" />
           <p className="text-slate-400">No drawings found</p>
           {filterSystem && (
@@ -208,7 +208,7 @@ function DrawingsContent() {
               Clear filter
             </button>
           )}
-        </div>
+        </GlassPanel>
       )}
     </div>
   );
