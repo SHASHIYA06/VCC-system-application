@@ -156,7 +156,7 @@ export async function POST() {
     console.log('\nStep 2: Creating Drawings (Schematic + PIN)...');
     let dwgCount = 0;
     for (const d of [...SCHEMATIC_DRAWINGS, ...PIN_DRAWINGS]) {
-      const dany = d as any;
+      const dany = d as unknown;
       const sysId = sysMap.get(dany.system);
       if (!sysId) continue;
       const revision = dany.connectors ? '0' : 'A';

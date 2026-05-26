@@ -32,7 +32,7 @@ export async function GET() {
     const drawing = await prisma.drawing.findFirst({ where: { drawingNo: dwgNo } });
     if (!drawing) continue;
 
-    for (const m of mappings as any[]) {
+    for (const m of mappings as unknown[]) {
       const connector = await prisma.connector.findFirst({
         where: { drawingId: drawing.id, connectorCode: m.conn }
       });

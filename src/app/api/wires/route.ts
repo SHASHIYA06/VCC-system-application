@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const offset = parseInt(searchParams.get('offset') || '0');
 
   try {
-    const where: any = {};
+    const where: unknown = {};
 
     if (search) {
       where.OR = [

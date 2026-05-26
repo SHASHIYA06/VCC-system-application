@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const { mode, limit } = await request.json();
     const batchSize = Math.min(limit || 50, 100);
-    let results = { created: 0 };
+    const results = { created: 0 };
 
     if (mode === 'batch-endpoints') {
       const sourceWires = await prisma.$queryRaw<Array<{
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Unknown mode. Use: batch-endpoints' }, { status: 400 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Sync error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

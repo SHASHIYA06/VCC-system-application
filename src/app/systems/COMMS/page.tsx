@@ -68,7 +68,7 @@ export default function COMMSPage() {
       const drawingData = await drawingRes.json();
       
       // Transform wire data
-      const transformedWires: COMMSWire[] = (wireData.wires || []).map((w: any) => ({
+      const transformedWires: COMMSWire[] = (wireData.wires || []).map((w: unknown) => ({
         wireNo: w.wireNo,
         signal: w.signalName || w.description || 'Unknown',
         description: w.description || 'No description',
@@ -80,7 +80,7 @@ export default function COMMSPage() {
       }));
       
       // Transform component data
-      const transformedComponents: COMMSComponent[] = (compData.equipment || []).map((c: any) => ({
+      const transformedComponents: COMMSComponent[] = (compData.equipment || []).map((c: unknown) => ({
         component: c.deviceName || c.name || 'Unknown',
         designation: c.tagNo || c.designation || 'N/A',
         location: c.carType || 'TC',
@@ -89,7 +89,7 @@ export default function COMMSPage() {
       }));
       
       // Transform drawing data
-      const transformedDrawings: COMMSDrawing[] = (drawingData.drawings || []).map((d: any) => ({
+      const transformedDrawings: COMMSDrawing[] = (drawingData.drawings || []).map((d: unknown) => ({
         drawingNo: d.drawingNo,
         title: d.title || 'Untitled',
         description: d.description || 'No description'

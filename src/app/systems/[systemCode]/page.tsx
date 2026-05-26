@@ -3,10 +3,10 @@ import {
   ArrowLeft, FileText, Cpu, Cable, Train, AlertTriangle, ChevronRight,
   Settings, Zap, ShieldCheck, Wind, Radio, Battery, DoorOpen, Activity, Layers
 } from 'lucide-react';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 
-const SYSTEM_META: Record<string, any> = {
+const SYSTEM_META: Record<string, unknown> = {
   GEN: {
     icon: Settings,
     color: 'text-slate-400',

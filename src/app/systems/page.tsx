@@ -60,7 +60,7 @@ export default async function SystemsPage() {
     if (dbSystems.length > 0) {
       systems = ALL_SYSTEMS.map(s => {
         const db = dbSystems.find(d => d.code === s.code || d.name === s.name);
-        return db ? { ...s, id: db.id, drawing_count: (db as any).drawings?.length || 0, trainline_count: (db as any).trainlines?.length || 0 } : s;
+        return db ? { ...s, id: db.id, drawing_count: (db as unknown).drawings?.length || 0, trainline_count: (db as unknown).trainlines?.length || 0 } : s;
       });
     }
   } catch (e) {

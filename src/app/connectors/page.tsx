@@ -128,7 +128,7 @@ export default function ConnectorsPage() {
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
         
-        const mapped: ConnectorData[] = (data.connectors || []).map((c: any) => ({
+        const mapped: ConnectorData[] = (data.connectors || []).map((c: unknown) => ({
           id: c.id,
           connectorCode: c.connectorCode,
           connectorType: c.connectorType,
@@ -139,7 +139,7 @@ export default function ConnectorsPage() {
           system: c.system || null,
           drawing: c.drawing || null,
           drawingNo: c.drawing?.drawingNo || '',
-          pins: (c.pins || []).map((p: any) => ({
+          pins: (c.pins || []).map((p: unknown) => ({
             pinNo: p.pinNo,
             pinLabel: p.pinLabel,
             wireNo: p.wireNo,

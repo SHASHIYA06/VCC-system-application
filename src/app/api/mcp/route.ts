@@ -45,7 +45,7 @@ const TOOLS = [
   { name: 'trace_wire_rag', description: 'Trace a wire number using multi-agent RAG — finds it in trainlines, pins, connectors, and drawings across all cars.', inputSchema: { type: 'object', properties: { wire_no: { type: 'string' } }, required: ['wire_no'] } },
 ];
 
-const TRAINLINE_TRACES: Record<number, any> = {
+const TRAINLINE_TRACES: Record<number, unknown> = {
   3003: { source: { type: 'equipment', code: 'TCMS_RIO1', name: 'TCMS RIO Unit 1', pin: 'X1-17', car: 'MC' }, destination: { type: 'equipment', code: 'V1', name: 'VVVF Inverter 1', pin: 'CN1-12', car: 'DMC' }, wires: ['3003', '3004'], junctions: [] },
   3005: { source: { type: 'equipment', code: 'TCMS_RIO1', name: 'TCMS RIO Unit 1', pin: 'X1-19', car: 'MC' }, destination: { type: 'equipment', code: 'V1', name: 'VVVF Inverter 1', pin: 'CN1-14', car: 'DMC' }, wires: ['3005', '3006'], junctions: [{ type: 'trainline', code: 'X1', name: 'Inter-car Jumper', pin: '19/20', description: 'Crossed at X1 pins 19/20 - propulsion interlock' }] },
   3006: { source: { type: 'equipment', code: 'TCMS_RIO1', name: 'TCMS RIO Unit 1', pin: 'X1-20', car: 'MC' }, destination: { type: 'equipment', code: 'V1', name: 'VVVF Inverter 1', pin: 'CN1-15', car: 'DMC' }, wires: ['3006', '3005'], junctions: [{ type: 'trainline', code: 'X1', name: 'Inter-car Jumper (CROSSED)', pin: '20/19', description: 'Crossed at X1 pins 20/19 - propulsion interlock' }] },
@@ -60,13 +60,13 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
   try {
     switch (toolName) {
       case 'get_systems': {
-        const where: any = {};
+        const where: unknown = {};
         if (params.category) where.category = String(params.category);
         const systems = await prisma.system.findMany({ where, orderBy: { sortOrder: 'asc' } });
         return { systems: systems.map(s => ({ id: s.id, code: s.code, name: s.name, category: s.category || 'ELECTRICAL', description: s.description || '' })) };
       }
       case 'get_drawings': {
-        const where: any = {};
+        const where: unknown = {};
         if (params.system_code) where.system = { code: String(params.system_code) };
         if (params.car_type) where.remarks = { contains: String(params.car_type) };
         const docs = await prisma.drawing.findMany({ where, include: { system: true }, orderBy: { drawingNo: 'asc' } });
@@ -82,7 +82,7 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         return { drawing: { ...drawing, connector_count: drawing.connectors.length, pin_count: drawing.connectors.reduce((acc, c) => acc + (c.pins?.length || 0), 0) } };
       }
       case 'get_equipment': {
-        const where: any = {};
+        const where: unknown = {};
         if (params.system_code) where.system = { code: String(params.system_code) };
         if (params.car_type) where.carType = String(params.car_type);
         const devices = await prisma.device.findMany({ where, include: { system: true }, orderBy: { deviceName: 'asc' }, take: 100 });
@@ -98,7 +98,7 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         return { equipment: device };
       }
       case 'get_connectors': {
-        const where: any = {};
+        const where: unknown = {};
         if (params.equipment_code) where.connectorCode = { contains: String(params.equipment_code), mode: Prisma.QueryMode.insensitive };
         const connectors = await prisma.connector.findMany({ where, include: { pins: true }, orderBy: { connectorCode: 'asc' }, take: 50 });
         return { connectors: connectors.map(c => ({ id: c.id, connector_code: c.connectorCode, description: c.description || '', pin_count: c.pins?.length || c.pinCount || 0, car_type: c.carType })) };
@@ -113,7 +113,7 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         return { connector, pins: connector.pins };
       }
       case 'get_wires': {
-        const where: any = {};
+        const where: unknown = {};
         if (params.voltage_class) where.voltageClass = String(params.voltage_class);
         if (params.search) where.wireNo = { contains: String(params.search), mode: Prisma.QueryMode.insensitive };
         const wires = await prisma.wire.findMany({ where, take: 100, orderBy: { wireNo: 'asc' } });
@@ -150,7 +150,7 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         return { trainline_no: num, trace, is_cross_connected: [3005, 3006, 6009, 6046, 6014, 6051].includes(num) };
       }
       case 'get_tcms_points': {
-        const where: any = { wireNo: { not: null } };
+        const where: unknown = { wireNo: { not: null } };
         if (params.signal_type) where.signalName = { contains: String(params.signal_type), mode: Prisma.QueryMode.insensitive };
         const pins = await prisma.connectorPin.findMany({
           where,
@@ -197,13 +197,13 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         return { pins };
       }
       case 'get_subsystems': {
-        const where: any = {};
+        const where: unknown = {};
         if (params.car_type) where.carType = String(params.car_type);
         const systems = await prisma.system.findMany({ where, orderBy: { name: 'asc' } });
         return { subsystems: systems.map(s => ({ code: s.code, name: s.name, description: s.description || '', category: s.category })) };
       }
       case 'get_signals': {
-        const where: any = {};
+        const where: unknown = {};
         if (params.protocol) where.protocol = { contains: String(params.protocol), mode: Prisma.QueryMode.insensitive };
         const signals = await prisma.signal.findMany({ where, take: 50 });
         return { signals };
@@ -390,7 +390,7 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
 
       case 'ai_search': {
         const query = String(params.query || '');
-        const taskType = (params.task_type as any) || 'unified_search';
+        const taskType = (params.task_type as unknown) || 'unified_search';
         const task = {
           taskId: `mcp-search-${Date.now()}`,
           taskType,

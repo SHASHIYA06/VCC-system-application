@@ -61,7 +61,7 @@ export async function indexDrawings(
 /**
  * Index a single drawing
  */
-export async function indexDrawing(drawing: any): Promise<void> {
+export async function indexDrawing(drawing: unknown): Promise<void> {
   // Build comprehensive document content
   const content = buildDrawingContent(drawing);
   
@@ -107,7 +107,7 @@ export async function indexDrawing(drawing: any): Promise<void> {
 /**
  * Build comprehensive content for a drawing
  */
-function buildDrawingContent(drawing: any): string {
+function buildDrawingContent(drawing: unknown): string {
   const sections: string[] = [];
   
   // Header
@@ -236,7 +236,7 @@ export async function indexWires(): Promise<void> {
 /**
  * Build content for a wire
  */
-function buildWireContent(wire: any): string {
+function buildWireContent(wire: unknown): string {
   const sections: string[] = [];
   
   sections.push(`# Wire: ${wire.wireNo}`);
@@ -318,7 +318,7 @@ export async function indexConnectors(): Promise<void> {
 /**
  * Build content for a connector
  */
-function buildConnectorContent(connector: any): string {
+function buildConnectorContent(connector: unknown): string {
   const sections: string[] = [];
   
   sections.push(`# Connector: ${connector.connectorCode}`);
@@ -394,7 +394,7 @@ export async function indexSystems(): Promise<void> {
 /**
  * Build content for a system
  */
-function buildSystemContent(system: any): string {
+function buildSystemContent(system: unknown): string {
   const sections: string[] = [];
   
   sections.push(`# System: ${system.name} (${system.code})`);
@@ -412,9 +412,9 @@ function buildSystemContent(system: any): string {
   
   if (system.devices && system.devices.length > 0) {
     sections.push(`## Devices (${system.devices.length})`);
-    const deviceTypes = [...new Set(system.devices.map((d: any) => d.deviceType))];
+    const deviceTypes = [...new Set(system.devices.map((d: unknown) => d.deviceType))];
     for (const type of deviceTypes) {
-      const count = system.devices.filter((d: any) => d.deviceType === type).length;
+      const count = system.devices.filter((d: unknown) => d.deviceType === type).length;
       sections.push(`- ${type}: ${count}`);
     }
   }

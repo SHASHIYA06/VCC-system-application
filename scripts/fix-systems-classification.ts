@@ -10,7 +10,7 @@ async function main() {
 
   // Step 1: Standardize 'COMM' to 'COMMS' if COMM exists
   const commSystem = await prisma.system.findFirst({ where: { code: 'COMM' } });
-  let commsSystem = await prisma.system.findFirst({ where: { code: 'COMMS' } });
+  const commsSystem = await prisma.system.findFirst({ where: { code: 'COMMS' } });
   
   if (commSystem && commsSystem) {
     console.log('Merging COMM into COMMS...');

@@ -94,11 +94,11 @@ function DrawingDetailContent() {
   const [equipment, setEquipment] = useState<EquipmentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<unknown[]>([]);
   const [activeTab, setActiveTab] = useState<'connectors' | 'wires' | 'trainlines' | 'equipment'>('connectors');
   const [expandedConn, setExpandedConn] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<unknown[]>([]);
   const [searching, setSearching] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [pdfPage, setPdfPage] = useState(1);

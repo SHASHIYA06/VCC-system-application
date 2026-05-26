@@ -41,7 +41,7 @@ export class MCPClient {
   /**
    * Execute a tool call against the configured MCP server
    */
-  async callTool(serverName: string, toolName: string, args: Record<string, any>): Promise<any> {
+  async callTool(serverName: string, toolName: string, args: Record<string, unknown>): Promise<any> {
     if (!this.isLoaded || !this.config) {
       this.loadConfig(); // try again
       if (!this.isLoaded || !this.config) {

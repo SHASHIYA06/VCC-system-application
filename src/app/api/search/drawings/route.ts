@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
   
   const q = query.toLowerCase();
-  const results: any = {
+  const results: unknown = {
     wires: [],
     connectors: [],
     pins: [],

@@ -47,7 +47,7 @@ interface AISearchResult {
     confidence: number;
   };
   unifiedResponse: string;
-  allData: Record<string, any>;
+  allData: Record<string, unknown>;
   executionTime: number;
 }
 
@@ -483,7 +483,7 @@ export default function DashboardPage() {
           ].map((link) => (
             <Link key={link.label} href={link.href} className="group block">
               <motion.div whileHover={{ scale: 1.02, y: -4 }} transition={{ type: "spring", stiffness: 300 }}>
-                <Card3D glowColor={link.color as any} variant="elevated" className="border-slate-700/50 group-hover:border-slate-600/80 transition-colors">
+                <Card3D glowColor={link.color as unknown} variant="elevated" className="border-slate-700/50 group-hover:border-slate-600/80 transition-colors">
                   <div className="p-5 flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-xl bg-${link.color}-500/10 group-hover:bg-${link.color}-500/20 flex items-center justify-center transition-colors shadow-inner`}>
                       <link.icon className={`h-6 w-6 text-${link.color}-400 group-hover:scale-110 transition-transform`} />

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Zap, Cpu, Cable, ChevronRight, MapPin, ArrowRight, Database, FileText } from 'lucide-react';
+import { ArrowLeft, Zap, Cpu, Cable, ChevronRight, MapPin, ArrowRight, Database, FileText, Link as LinkIcon } from 'lucide-react';
+import Head from 'next/head';
 
 interface WireData {
   id: string;
@@ -68,6 +69,10 @@ export default function WireDetailPage() {
   const [wire, setWire] = useState<WireData | null>(null);
   const [trace, setTrace] = useState<WireTrace | null>(null);
   const [relatedDrawings, setRelatedDrawings] = useState<RelatedDrawing[]>([]);
+  const [relatedPins, setRelatedPins] = useState<unknown[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [trace, setTrace] = useState<WireTrace | null>(null);
+  const [relatedDrawings, setRelatedDrawings] = useState<RelatedDrawing[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -80,6 +85,7 @@ export default function WireDetailPage() {
           setWire(data.wire);
           setTrace(data.trace);
           setRelatedDrawings(data.relatedDrawings || []);
+          setRelatedPins(data.pins || []);
         }
       } catch (error) {
         console.error('Failed to fetch wire:', error);
@@ -139,7 +145,6 @@ export default function WireDetailPage() {
         </Link>
       </div>
 
-      {/* Wire Header */}
       <div className={`glass-card overflow-hidden mb-6 border-l-4 ${getTraceColorStyle(trace?.colorCode)}`}>
         <div className="px-6 py-4 bg-gradient-to-r from-slate-800/80 to-slate-700/80 border-b border-slate-700/50">
           <div className="flex items-center justify-between">
@@ -189,131 +194,71 @@ export default function WireDetailPage() {
         </div>
       </div>
 
-      {/* Wire Trace Path */}
-      {trace && (
-        <div className={`glass-card p-6 mb-6 border-l-4 ${getTraceColorStyle(trace.colorCode)}`}>
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+      <div className="glass-card mb-6 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-700/50 bg-slate-800/30 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             <Cable className="h-5 w-5 text-cyan-400" />
-            Wire Connection Trace
+            Connection Path
           </h2>
-          
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1 p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
-              <div className="text-xs text-slate-500 mb-1">Source</div>
-              <div className="flex items-center gap-2">
-                <Cpu className="h-5 w-5 text-cyan-400" />
-                <Link href={`/equipment/${trace.source.code}`} className="text-cyan-400 font-bold hover:text-cyan-300">
-                  {trace.source.code}
-                </Link>
-              </div>
-              {trace.source.pin && (
-                <div className="mt-2 text-sm text-slate-400">
-                  <span className="font-mono">{trace.source.pin}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="h-0.5 w-12 bg-cyan-500/50"></div>
-              <Zap className="h-5 w-5 text-cyan-400" />
-              <div className="h-0.5 w-12 bg-cyan-500/50"></div>
-            </div>
-
-            <div className="flex-1 p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
-              <div className="text-xs text-slate-500 mb-1">Destination</div>
-              <div className="flex items-center gap-2">
-                <Cpu className="h-5 w-5 text-orange-400" />
-                <Link href={`/equipment/${trace.destination.code}`} className="text-orange-400 font-bold hover:text-orange-300">
-                  {trace.destination.code}
-                </Link>
-              </div>
-              {trace.destination.pin && (
-                <div className="mt-2 text-sm text-slate-400">
-                  <span className="font-mono">{trace.destination.pin}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center gap-4 text-sm">
-            <span className="text-slate-500">Wire Path:</span>
-            {trace.wires.map((w, i) => (
-              <span key={i} className="font-mono text-cyan-400">{w}</span>
-            ))}
-          </div>
         </div>
-      )}
+        <div className="p-6">
+          {trace ? (
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1 p-5 rounded-xl bg-slate-900/50 border border-slate-700/50 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
+                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Source</div>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-800 rounded-lg">
+                    <Cpu className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <div>
+                    <Link href={`/equipment/${trace.source.code}`} className="text-cyan-400 font-bold hover:text-cyan-300 block text-lg">
+                      {trace.source.code}
+                    </Link>
+                    {trace.source.pin && (
+                      <span className="text-sm text-slate-400 font-mono mt-1 block">Pin: {trace.source.pin}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-      {/* Manual Trace Fields (if trace not available) */}
-      {!trace && (wire.sourceEq || wire.destEq) && (
-        <div className="glass-card p-6 mb-6">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-cyan-400" />
-            Connection Details
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
-              <div className="text-xs text-slate-500 mb-2">Source Equipment</div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Equipment</span>
-                  <span className="text-white font-mono">{wire.sourceEq || '-'}</span>
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-0.5 w-16 bg-gradient-to-r from-cyan-500/50 to-orange-500/50 relative">
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"></div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Connector</span>
-                  <span className="text-cyan-400 font-mono">{wire.sourceConnector || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Pin</span>
-                  <span className="text-white font-mono">{wire.sourcePin || '-'}</span>
+              </div>
+
+              <div className="flex-1 p-5 rounded-xl bg-slate-900/50 border border-slate-700/50 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-1 h-full bg-orange-500"></div>
+                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Destination</div>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-800 rounded-lg">
+                    <Cpu className="h-5 w-5 text-orange-400" />
+                  </div>
+                  <div>
+                    <Link href={`/equipment/${trace.destination.code}`} className="text-orange-400 font-bold hover:text-orange-300 block text-lg">
+                      {trace.destination.code}
+                    </Link>
+                    {trace.destination.pin && (
+                      <span className="text-sm text-slate-400 font-mono mt-1 block">Pin: {trace.destination.pin}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
-              <div className="text-xs text-slate-500 mb-2">Destination Equipment</div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Equipment</span>
-                  <span className="text-white font-mono">{wire.destEq || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Connector</span>
-                  <span className="text-orange-400 font-mono">{wire.destConnector || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Pin</span>
-                  <span className="text-white font-mono">{wire.destPin || '-'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          ) : (
+            <div className="text-center p-8 text-slate-500">No trace data available.</div>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Related Drawings */}
-      {relatedDrawings.length > 0 && (
-        <div className="glass-card overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-700/50">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+          <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <FileText className="h-5 w-5 text-cyan-400" />
-              Related Drawings
+              <FileText className="h-5 w-5 text-blue-400" />
+              Referenced In
             </h2>
-          </div>
-          <div className="divide-y divide-slate-700/30">
-            {relatedDrawings.map((drawing) => (
-              <Link
-                key={drawing.id}
-                href={`/drawings/${drawing.id}`}
-                className="flex items-center justify-between px-6 py-4 hover:bg-slate-800/30 transition-colors"
-            
-            {trace ? (
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 p-5 rounded-xl bg-slate-900/50 border border-slate-700/50 relative overflow-hidden group">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
-                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Source</div>
-                  <div className="flex items-center gap-3">
                     <div className="p-2 bg-slate-800 rounded-lg">
                       <Cpu className="h-5 w-5 text-cyan-400" />
                     </div>
@@ -347,37 +292,30 @@ export default function WireDetailPage() {
                       </Link>
                       {trace.destination.pin && (
                         <span className="text-sm text-slate-400 font-mono mt-1 block">Pin: {trace.destination.pin}</span>
-                      )}
-                    </div>
+</div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {relatedPins.map((pin, i) => (
+                <div key={pin.id} className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50 flex items-start gap-3 hover:border-cyan-500/30 transition-colors">
+                  <div className="p-2 bg-slate-800 rounded-lg shrink-0">
+                    <LinkIcon className="h-4 w-4 text-cyan-400" />
+                  </div>
+                  <div>
+                    <p className="text-white font-medium font-mono text-sm">{pin.connectorCode}</p>
+                    <p className="text-slate-400 text-xs mt-1">Pin: {pin.pinNo}</p>
+                    {pin.drawingNo && (
+                      <Link href={`/drawings/${pin.drawingNo}`} className="text-cyan-500 hover:text-cyan-400 text-xs mt-2 inline-flex items-center gap-1">
+                        View Drawing <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    )}
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {relatedPins.map((pin, i) => (
-                  <div key={pin.id} className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50 flex items-start gap-3 hover:border-cyan-500/30 transition-colors">
-                    <div className="p-2 bg-slate-800 rounded-lg shrink-0">
-                      <LinkIcon className="h-4 w-4 text-cyan-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium font-mono text-sm">{pin.connectorCode}</p>
-                      <p className="text-slate-400 text-xs mt-1">Pin: {pin.pinNo}</p>
-                      {pin.drawingNo && (
-                        <Link href={`/drawings/${pin.drawingNo}`} className="text-cyan-500 hover:text-cyan-400 text-xs mt-2 inline-flex items-center gap-1">
-                          View Drawing <ArrowRight className="h-3 w-3" />
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              ))}
+            </div>
           </div>
-        )}
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Related Drawings */}
-          <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+        
             <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white flex items-center gap-2">
                 <FileText className="h-5 w-5 text-blue-400" />

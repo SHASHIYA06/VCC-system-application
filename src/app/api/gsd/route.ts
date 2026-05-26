@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function buildNetworkGraph(systems: any[], connectors: any[], trainLines: any[]) {
+function buildNetworkGraph(systems: unknown[], connectors: unknown[], trainLines: unknown[]) {
   const nodes = systems.map(s => ({
     id: s.code,
     label: s.name,
@@ -76,7 +76,7 @@ function buildNetworkGraph(systems: any[], connectors: any[], trainLines: any[])
   return { nodes, edges };
 }
 
-function buildTopology(systems: any[]) {
+function buildTopology(systems: unknown[]) {
   const layers = [
     { name: 'Power', systems: systems.filter(s => ['HV', 'APS', 'LTEB', 'LTJB', 'EDB'].includes(s.code)) },
     { name: 'Propulsion', systems: systems.filter(s => ['TRAC'].includes(s.code)) },

@@ -116,7 +116,7 @@ export async function vectorSearch(
   embedding: number[],
   options: {
     topK?: number;
-    filter?: any;
+    filter?: unknown;
     threshold?: number;
   } = {}
 ): Promise<QueryResult[]> {
@@ -127,7 +127,7 @@ export async function vectorSearch(
   const threshold = options.threshold || RAG_CONFIG.retrieval.similarityThreshold;
   
   // MongoDB Atlas Vector Search
-  const pipeline: any[] = [
+  const pipeline: unknown[] = [
     {
       $vectorSearch: {
         index: RAG_CONFIG.mongodb.vectorIndex,
@@ -169,7 +169,7 @@ export async function hybridSearch(
   embedding: number[],
   options: {
     topK?: number;
-    filter?: any;
+    filter?: unknown;
     vectorWeight?: number;
     keywordWeight?: number;
   } = {}
@@ -251,11 +251,11 @@ export async function getChunksByDocument(documentId: string): Promise<DocumentC
 /**
  * Get chunks by metadata filter
  */
-export async function getChunksByMetadata(filter: any): Promise<DocumentChunk[]> {
+export async function getChunksByMetadata(filter: unknown): Promise<DocumentChunk[]> {
   const database = await connectMongoDB();
   const collection = database.collection<DocumentChunk>(RAG_CONFIG.mongodb.collections.chunks);
   
-  const metadataFilter: any = {};
+  const metadataFilter: unknown = {};
   Object.keys(filter).forEach(key => {
     metadataFilter[`metadata.${key}`] = filter[key];
   });

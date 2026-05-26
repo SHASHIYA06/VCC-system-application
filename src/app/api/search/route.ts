@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       return await searchWireEverywhere(wireNo, limit);
     }
 
-    const results: Record<string, any> = {
+    const results: Record<string, unknown> = {
       query: searchQuery,
       type,
       total: 0,
@@ -265,7 +265,7 @@ async function searchWireEverywhere(wireNo: string, limit: number) {
       wireNo: pin.wireNo,
     });
     return acc;
-  }, {} as Record<string, { drawingNo: string; system: string; title: string; pins: any[] }>);
+  }, {} as Record<string, { drawingNo: string; system: string; title: string; pins: unknown[] }>);
 
   const uniqueDrawings = Object.values(pinsByDrawing);
 

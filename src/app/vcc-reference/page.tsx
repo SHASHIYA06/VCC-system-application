@@ -24,7 +24,7 @@ interface DrawingLink {
   found: boolean;
 }
 
-const SYSTEM_INFO: Record<string, { label: string; color: string; bg: string; icon: any }> = {
+const SYSTEM_INFO: Record<string, { label: string; color: string; bg: string; icon: unknown }> = {
   GEN: { label: 'General', color: 'text-slate-400', bg: 'bg-slate-500/20', icon: Settings },
   TRL: { label: 'Train Control', color: 'text-blue-400', bg: 'bg-blue-500/20', icon: Train },
   LIGHT: { label: 'Lighting & Interior', color: 'text-yellow-400', bg: 'bg-yellow-500/20', icon: Lightbulb },
@@ -172,7 +172,7 @@ export default function VCCReferencePage() {
         if (response.ok) {
           const data = await response.json();
           const map: DrawingMap = {};
-          data.data.forEach((d: any) => {
+          data.data.forEach((d: unknown) => {
             map[d.drawingNo] = { id: d.id, pages: d.pageCount };
           });
           setDrawingMap(map);

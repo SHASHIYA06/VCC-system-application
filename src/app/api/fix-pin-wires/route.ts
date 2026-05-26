@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     console.log(`Found ${trainlines.length} trainlines with wire connections`);
 
     // Group trainlines by connector code for faster lookup
-    const byConnector: Record<string, any[]> = {};
+    const byConnector: Record<string, unknown[]> = {};
     for (const tl of trainlines) {
       if (tl.connectorCode && tl.pinNo) {
         if (!byConnector[tl.connectorCode]) byConnector[tl.connectorCode] = [];

@@ -9,7 +9,7 @@ import {
   Train, Settings, ShieldCheck, Battery, DoorOpen, Wind, Radio
 } from 'lucide-react';
 
-const SYSTEM_ICONS: Record<string, any> = {
+const SYSTEM_ICONS: Record<string, unknown> = {
   GEN: Settings,
   TRL: Train,
   TRAC: Zap,
@@ -84,7 +84,7 @@ function TreeContent() {
       
       // Transform to expected format
       const transformed = {
-        tree: data.hierarchy.map((sys: any) => ({
+        tree: data.hierarchy.map((sys: unknown) => ({
           code: sys.code,
           name: sys.name,
           category: sys.category,
@@ -96,7 +96,7 @@ function TreeContent() {
             pins: sys.stats.totalPins
           },
           children: {
-            drawings: sys.drawings.pinAssignments.map((d: any) => ({
+            drawings: sys.drawings.pinAssignments.map((d: unknown) => ({
               id: d.no,
               drawingNo: d.no,
               title: d.title,
@@ -105,7 +105,7 @@ function TreeContent() {
               connectors: d.connectors,
               connectorList: d.connectorList || []
             })),
-            devices: sys.devices.flatMap((t: any) => t.list),
+            devices: sys.devices.flatMap((t: unknown) => t.list),
             connectors: []
           }
         })),

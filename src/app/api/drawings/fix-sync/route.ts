@@ -123,7 +123,7 @@ async function analyzeDataSync() {
 }
 
 async function fixConnectorLinks() {
-  let fixed = 0;
+  const fixed = 0;
   let created = 0;
 
   // Get all drawings that should have connectors (PIN drawings)

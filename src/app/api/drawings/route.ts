@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const skip = (page - 1) * limit;
 
   try {
-    const where: any = {};
+    const where: unknown = {};
 
     if (systemCode) {
       const system = await prisma.system.findFirst({ where: { code: systemCode } });
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
         _count: d._count,
       });
       return acc;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, unknown[]>);
 
     return NextResponse.json({
       drawings: docs.map(d => ({

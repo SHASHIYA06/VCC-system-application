@@ -9,12 +9,12 @@ interface SearchResult {
   query: string;
   type: string;
   total: number;
-  wires?: any[];
-  drawings?: any[];
-  equipment?: any[];
-  trainlines?: any[];
-  systems?: any[];
-  pins?: any[];
+  wires?: unknown[];
+  drawings?: unknown[];
+  equipment?: unknown[];
+  trainlines?: unknown[];
+  systems?: unknown[];
+  pins?: unknown[];
 }
 
 export default function GlobalSearch() {
@@ -30,7 +30,7 @@ export default function GlobalSearch() {
   // Flatten results for keyboard navigation
   const flatResults = React.useMemo(() => {
     if (!results) return [];
-    const items: { type: string; data: any; title: string; subtitle: string; icon: any; link: string }[] = [];
+    const items: { type: string; data: unknown; title: string; subtitle: string; icon: unknown; link: string }[] = [];
     
     results.systems?.forEach(sys => 
       items.push({ type: 'System', data: sys, title: sys.name, subtitle: sys.code, icon: Activity, link: `/systems/${sys.code}` })

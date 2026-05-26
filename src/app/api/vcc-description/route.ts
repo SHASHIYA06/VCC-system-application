@@ -157,7 +157,7 @@ export async function POST() {
     });
 
     let trainlinesCreated = 0;
-    let equipmentCreated = 0;
+    const equipmentCreated = 0;
     let connectorsCreated = 0;
     let pinsCreated = 0;
     let wiresCreated = 0;

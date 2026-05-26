@@ -22,7 +22,7 @@ export interface AgentResponse {
 export interface AgentTask {
   type: 'retrieve' | 'analyze' | 'synthesize' | 'coordinate';
   query: string;
-  context?: any;
+  context?: unknown;
 }
 
 /**
@@ -168,7 +168,7 @@ export class RetrieverAgent {
     this.modelConfig = RAG_CONFIG.models.chat.find(m => m.name === this.config.model)!;
   }
   
-  async retrieve(query: string, filter?: any): Promise<QueryResult[]> {
+  async retrieve(query: string, filter?: unknown): Promise<QueryResult[]> {
     // Generate query embedding
     const { embedding } = await generateEmbedding(query);
     

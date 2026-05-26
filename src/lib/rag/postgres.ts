@@ -7,7 +7,7 @@ export interface RAGDocumentChunk {
   documentType: string;
   chunkIndex: number;
   content: string;
-  metadata: any;
+  metadata: unknown;
   embedding?: number[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -77,7 +77,7 @@ export async function vectorSearch(
   embedding: number[],
   options: {
     topK?: number;
-    filter?: any;
+    filter?: unknown;
     threshold?: number;
   } = {}
 ): Promise<QueryResult[]> {
@@ -86,7 +86,7 @@ export async function vectorSearch(
   
   const embeddingString = `[${embedding.join(',')}]`;
 
-  const results = await prisma.$queryRawUnsafe<any[]>(`
+  const results = await prisma.$queryRawUnsafe<unknown[]>(`
     SELECT 
       id, "sourceFileId", "pageNo", "drawingNo", "sheetNo", "systemCode", "chunkType", "content", "entityRefs",
       1 - (embedding <=> $1::vector) as similarity
@@ -121,7 +121,7 @@ export async function hybridSearch(
   embedding: number[],
   options: {
     topK?: number;
-    filter?: any;
+    filter?: unknown;
     vectorWeight?: number;
     keywordWeight?: number;
   } = {}

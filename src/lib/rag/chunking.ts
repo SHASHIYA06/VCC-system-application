@@ -51,7 +51,7 @@ export function chunkText(text: string, options?: {
   const minChunkSize = options?.minChunkSize || RAG_CONFIG.chunking.minChunkSize;
   
   const chunks: TextChunk[] = [];
-  let currentPosition = 0;
+  const currentPosition = 0;
   let chunkIndex = 0;
   
   // First, try to split by paragraphs
@@ -126,14 +126,14 @@ export interface DocumentChunkInput {
     documentType: string;
     title?: string;
     source?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
 export interface DocumentChunkOutput {
   content: string;
   chunkIndex: number;
-  metadata: any;
+  metadata: unknown;
   tokens: number;
 }
 

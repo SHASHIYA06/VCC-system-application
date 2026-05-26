@@ -54,7 +54,7 @@ export default function TrainlinesPage() {
         const response = await fetch('/api/trainlines');
         if (!response.ok) throw new Error('Failed to fetch');
         const data = await response.json();
-        const formattedTrainlines = (data.data || []).map((tl: any) => ({
+        const formattedTrainlines = (data.data || []).map((tl: unknown) => ({
           trainline_no: tl.wireNo,
           name: tl.itemName,
           description: tl.note,

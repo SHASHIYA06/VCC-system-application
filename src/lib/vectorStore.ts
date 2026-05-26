@@ -19,7 +19,7 @@ export async function getVectorCollection() {
   return vectorCollection;
 }
 
-export async function upsertEmbedding(id: string, embedding: number[], metadata: Record<string, any>) {
+export async function upsertEmbedding(id: string, embedding: number[], metadata: Record<string, unknown>) {
   const coll = await getVectorCollection();
   await coll.updateOne(
     { _id: id },

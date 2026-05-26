@@ -104,7 +104,7 @@ export async function POST() {
 
     console.log('\nStep 2: Creating ALL Drawings from ALL PDF Pages...');
     let dwgCount = 0;
-    let pageCounter = 1;
+    const pageCounter = 1;
 
     for (const doc of PDF_DOCUMENTS) {
       const sysId = sysMap.get(doc.system);

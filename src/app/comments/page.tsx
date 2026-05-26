@@ -10,7 +10,7 @@ export default async function CommentsPage() {
         {comments.length === 0 ? (
           <p className="text-gray-500">No comments yet. Database not connected.</p>
         ) : (
-          comments.map((c: any) => (
+          comments.map((c: unknown) => (
             <div key={c.id} className="p-4 bg-gray-50 rounded-lg">
               <p>{c.comment}</p>
               <p className="text-sm text-gray-400 mt-2">
