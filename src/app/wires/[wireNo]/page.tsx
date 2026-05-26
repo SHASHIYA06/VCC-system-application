@@ -307,28 +307,141 @@ export default function WireDetailPage() {
                 key={drawing.id}
                 href={`/drawings/${drawing.id}`}
                 className="flex items-center justify-between px-6 py-4 hover:bg-slate-800/30 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-slate-500" />
-                  <div>
-                    <span className="font-mono text-cyan-400 font-medium">{drawing.drawingNo}</span>
-                    <span className="ml-2 text-slate-400 text-sm">{drawing.title || ''}</span>
+            
+            {trace ? (
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 p-5 rounded-xl bg-slate-900/50 border border-slate-700/50 relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Source</div>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-800 rounded-lg">
+                      <Cpu className="h-5 w-5 text-cyan-400" />
+                    </div>
+                    <div>
+                      <Link href={`/equipment/${trace.source.code}`} className="text-cyan-400 font-bold hover:text-cyan-300 block text-lg">
+                        {trace.source.code}
+                      </Link>
+                      {trace.source.pin && (
+                        <span className="text-sm text-slate-400 font-mono mt-1 block">Pin: {trace.source.pin}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 text-slate-500" />
-              </Link>
-            ))}
+
+                <div className="flex flex-col items-center gap-2">
+                  <div className="h-0.5 w-16 bg-gradient-to-r from-cyan-500/50 to-orange-500/50 relative">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"></div>
+                  </div>
+                </div>
+
+                <div className="flex-1 p-5 rounded-xl bg-slate-900/50 border border-slate-700/50 relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-orange-500"></div>
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Destination</div>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-800 rounded-lg">
+                      <Cpu className="h-5 w-5 text-orange-400" />
+                    </div>
+                    <div>
+                      <Link href={`/equipment/${trace.destination.code}`} className="text-orange-400 font-bold hover:text-orange-300 block text-lg">
+                        {trace.destination.code}
+                      </Link>
+                      {trace.destination.pin && (
+                        <span className="text-sm text-slate-400 font-mono mt-1 block">Pin: {trace.destination.pin}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {relatedPins.map((pin, i) => (
+                  <div key={pin.id} className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50 flex items-start gap-3 hover:border-cyan-500/30 transition-colors">
+                    <div className="p-2 bg-slate-800 rounded-lg shrink-0">
+                      <LinkIcon className="h-4 w-4 text-cyan-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium font-mono text-sm">{pin.connectorCode}</p>
+                      <p className="text-slate-400 text-xs mt-1">Pin: {pin.pinNo}</p>
+                      {pin.drawingNo && (
+                        <Link href={`/drawings/${pin.drawingNo}`} className="text-cyan-500 hover:text-cyan-400 text-xs mt-2 inline-flex items-center gap-1">
+                          View Drawing <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Related Drawings */}
+          <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-400" />
+                Referenced In
+              </h2>
+              <span className="text-xs font-medium px-2 py-1 bg-slate-700 text-slate-300 rounded-md">
+                {relatedDrawings.length} Drawings
+              </span>
+            </div>
+            <div className="divide-y divide-slate-700/30 max-h-[400px] overflow-y-auto">
+              {relatedDrawings.length === 0 ? (
+                <div className="p-6 text-center text-slate-500 text-sm">No related drawings found.</div>
+              ) : (
+                relatedDrawings.map((drawing) => (
+                  <Link
+                    key={drawing.id}
+                    href={`/drawings/${drawing.drawingNo}`}
+                    className="flex items-center justify-between px-5 py-4 hover:bg-slate-700/30 transition-colors group"
+                  >
+                    <div>
+                      <span className="font-mono text-blue-400 font-medium group-hover:text-blue-300 transition-colors">{drawing.drawingNo}</span>
+                      <p className="text-slate-300 text-sm mt-1">{drawing.title || 'Untitled Drawing'}</p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-slate-300 transition-colors" />
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Additional Details */}
+          <div className="space-y-6">
+            {(wire.sourceEq || wire.destEq) && !trace && (
+              <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-cyan-400" />
+                  Routing Info
+                </h2>
+                
+                <div className="space-y-4">
+                  <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                    <span className="text-xs text-slate-500 block mb-1">Source</span>
+                    <div className="text-white font-mono">{wire.sourceEq || '-'} {wire.sourceConnector ? `> ${wire.sourceConnector}` : ''} {wire.sourcePin ? `(Pin ${wire.sourcePin})` : ''}</div>
+                  </div>
+                  <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                    <span className="text-xs text-slate-500 block mb-1">Destination</span>
+                    <div className="text-white font-mono">{wire.destEq || '-'} {wire.destConnector ? `> ${wire.destConnector}` : ''} {wire.destPin ? `(Pin ${wire.destPin})` : ''}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {wire.description && (
+              <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  Notes
+                </h3>
+                <p className="text-slate-300 text-sm leading-relaxed">{wire.description}</p>
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* Wire Info */}
-      {wire.description && (
-        <div className="glass-card p-6 mt-6">
-          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Description</h3>
-          <p className="text-slate-300">{wire.description}</p>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

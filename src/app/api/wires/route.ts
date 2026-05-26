@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { wireNo: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        { wireAlias: { contains: search, mode: Prisma.QueryMode.insensitive } },
         { signalName: { contains: search, mode: Prisma.QueryMode.insensitive } },
         { description: { contains: search, mode: Prisma.QueryMode.insensitive } },
       ];
