@@ -219,18 +219,18 @@ export async function GET(request: NextRequest) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-async function analyzeConnectedWires(drawing: unknown): Promise<{
+async function analyzeConnectedWires(drawing: any): Promise<{
   totalWires: number;
   wires: Array<{ wireNo: string; signalName: string | null; connections: number }>;
   trainlineGroups: Record<string, string[]>;
 }> {
   try {
     // Get all wire numbers from trainlines
-    const wireNos = [...new Set(drawing.trainLines.map((t: unknown) => t.wireNo).filter(Boolean))];
+    const wireNos = [...new Set(drawing.trainLines.map((t: any) => t.wireNo).filter(Boolean))];
     
     // Get all wire numbers from connector pins
     const pinWireNos = [...new Set(
-      drawing.connectors.flatMap((c: unknown) => c.pins.map((p: unknown) => p.wireNo)).filter(Boolean)
+      drawing.connectors.flatMap((c: any) => c.pins.map((p: any) => p.wireNo)).filter(Boolean)
     )];
     
     const allWireNos = [...new Set([...wireNos, ...pinWireNos])];

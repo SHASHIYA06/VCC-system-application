@@ -457,10 +457,10 @@ Provide clear, structured responses with relevant details from the database.`;
 
   private generateWireExplanation(
     wireNo: string,
-    wire: unknown,
-    pins: unknown[],
-    trainlines: unknown[],
-    circuits: unknown[]
+    wire: any,
+    pins: any[],
+    trainlines: any[],
+    circuits: any[]
   ): string {
     let explanation = `## Wire ${wireNo} Circuit Explanation\n\n`;
     
@@ -494,7 +494,7 @@ Provide clear, structured responses with relevant details from the database.`;
       Object.keys(groupedByDrawing).forEach((drawingNo) => {
         const pList = groupedByDrawing[drawingNo];
         explanation += `- Drawing ${drawingNo}:\n`;
-        pList.forEach((p: unknown) => {
+        pList.forEach((p: any) => {
           explanation += `  - ${p.connector?.connectorCode || 'Unknown'}:${p.pinNo} (${p.signalName || 'N/A'})\n`;
         });
       });

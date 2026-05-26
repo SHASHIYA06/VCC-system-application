@@ -14,7 +14,7 @@ export async function getVectorCollection() {
     vectorCollection = db.collection('vector_embeddings');
     // Ensure vector index exists – MongoDB Atlas Vector Search requires a special index definition.
     // This is a no‑op if the index already exists.
-    await vectorCollection.createIndex({ embedding: 'vector' });
+    await vectorCollection.createIndex({ embedding: 'vector' } as any);
   }
   return vectorCollection;
 }

@@ -83,9 +83,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Unknown mode. Use: batch-endpoints' }, { status: 400 });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Sync error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }
 

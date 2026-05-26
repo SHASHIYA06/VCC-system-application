@@ -159,9 +159,9 @@ const config: Config = {
     },
   },
   plugins: [
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/typography'),
-    require('@tailwindcss/aspect-ratio'),
+    require('@tailwindcss/forms') as any,
+    require('@tailwindcss/typography') as any,
+    require('@tailwindcss/aspect-ratio') as any,
   ],
   darkMode: 'class',
 };

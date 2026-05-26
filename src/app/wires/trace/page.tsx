@@ -63,7 +63,7 @@ function WireTraceContent() {
   const [wireSearch, setWireSearch] = useState('');
   const [wireNo, setWireNo] = useState(wireParam || wirePath || '');
   const [wireData, setWireData] = useState<WireData | null>(null);
-  const [pinConnections, setPinConnections] = useState<Record<string, { drawingNo: string; system: string; title: string; pins: unknown[] }>>({});
+  const [pinConnections, setPinConnections] = useState<Record<string, { drawingNo: string; system: string; title: string; pins: any[] }>>({});
   const [trainlineEntries, setTrainlineEntries] = useState<TrainlineEntry[]>([]);
   const [signalMatches, setSignalMatches] = useState<unknown[]>([]);
   const [metadata, setMetadata] = useState<any>({});
@@ -97,12 +97,12 @@ function WireTraceContent() {
       
       if (res.ok && data.wire) {
         setWireData(data.wire);
-        setPinConnections(data.drawings.reduce((acc: unknown, d: unknown) => {
+        setPinConnections(data.drawings.reduce((acc: any, d: any) => {
           acc[d.drawingNo] = {
             drawingNo: d.drawingNo,
             system: d.system?.code || 'N/A',
             title: d.title,
-            pins: d.pins.map((p: unknown) => ({
+            pins: d.pins.map((p: any) => ({
               pinNo: p.pinNo,
               signalName: p.signalName,
               connectorCode: p.connector?.connectorCode || 'N/A',
@@ -111,7 +111,7 @@ function WireTraceContent() {
           };
           return acc;
         }, {} as Record<string, unknown>));
-        setTrainlineEntries(data.trainlines.map((t: unknown) => ({
+        setTrainlineEntries(data.trainlines.map((t: any) => ({
           wireNo: t.wireNo,
           itemName: t.itemName,
           lineGroup: t.lineGroup,
@@ -120,7 +120,7 @@ function WireTraceContent() {
         })) || []);
         setSignalMatches(data.connectorPins || []);
         setMetadata(data.summary || {});
-        setLocations(data.drawings.map((d: unknown) => ({
+        setLocations(data.drawings.map((d: any) => ({
           drawingNo: d.drawingNo,
           system: d.system?.code || 'N/A',
           pinCount: d.pins.length
@@ -350,7 +350,7 @@ function WireTraceContent() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-700/30">
-                        {data.pins.map((pin: unknown, idx: number) => (
+                        {data.pins.map((pin: any, idx: number) => (
                           <tr key={idx} className="hover:bg-slate-800/20">
                             <td className="px-5 py-2 font-mono font-bold text-cyan-400">{pin.pinNo}</td>
                             <td className="px-5 py-2 text-white">{pin.connectorCode}</td>

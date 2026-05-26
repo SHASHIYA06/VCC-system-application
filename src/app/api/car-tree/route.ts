@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+interface MappedConnector {
+  id: string;
+  code: string;
+  pinCount: number;
+  wiredPins: number;
+  scope: string | null;
+}
+
+interface MappedDevice {
+  id: string;
+  name: string | null;
+  tag: string | null;
+  location: string | null;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const carType = searchParams.get('car'); // DMC, TC, MC, ALL
@@ -54,12 +69,12 @@ export async function GET(request: NextRequest) {
         acc[sys].push({
           id: c.id,
           code: c.connectorCode,
-          pinCount: c.pinCount,
+          pinCount: c.pinCount || 0,
           wiredPins: c.pins.filter(p => p.wireNo).length,
           scope: c.scope
         });
         return acc;
-      }, {} as Record<string, unknown[]>);
+      }, {} as Record<string, MappedConnector[]>);
 
       // Group devices by system
       const devicesBySystem = devices.reduce((acc, d) => {
@@ -72,7 +87,7 @@ export async function GET(request: NextRequest) {
           location: d.locationTag
         });
         return acc;
-      }, {} as Record<string, unknown[]>);
+      }, {} as Record<string, MappedDevice[]>);
 
       return {
         carType: car,
@@ -91,8 +106,8 @@ export async function GET(request: NextRequest) {
         systems: Object.entries(bySystem).map(([code, conns]) => ({
           code,
           connectors: conns.length,
-          pins: conns.reduce((sum: number, c: unknown) => sum + c.pinCount, 0),
-          wired: conns.reduce((sum: number, c: unknown) => sum + c.wiredPins, 0),
+          pins: conns.reduce((sum: number, c: MappedConnector) => sum + c.pinCount, 0),
+          wired: conns.reduce((sum: number, c: MappedConnector) => sum + c.wiredPins, 0),
           connectorList: conns.slice(0, 10)
         })),
         devices: Object.entries(devicesBySystem).map(([code, devs]) => ({

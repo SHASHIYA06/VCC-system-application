@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
           code: item.drawing.system.code,
           name: item.drawing.system.name,
         } : null,
-        endpoints: item.endpoints.map((e: unknown) => ({
+        endpoints: item.endpoints.map((e: any) => ({
           endpointId: e.id,
           role: e.endpointRole,
           label: e.endpointLabel,
@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
             locationTag: e.connector.locationTag,
           } : null,
         })),
-        pins: item.pins.map((p: unknown) => ({
+        pins: item.pins.map((p: any) => ({
           pinNo: p.pinNo,
           signalName: p.signalName,
           voltageText: p.voltageText,
@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
           note: item.trainline.note,
         } : null,
       })),
-      trainlines: trainlines.map((tl: unknown) => ({
+      trainlines: trainlines.map((tl: any) => ({
         wireNo: tl.wireNo,
         itemName: tl.itemName,
         lineGroup: tl.lineGroup,
@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
           title: tl.drawing.title,
         } : null,
       })),
-      connectorPins: connectorPins.map((p: unknown) => ({
+      connectorPins: connectorPins.map((p: any) => ({
         connectorCode: p.connector?.connectorCode,
         pinNo: p.pinNo,
         signalName: p.signalName,

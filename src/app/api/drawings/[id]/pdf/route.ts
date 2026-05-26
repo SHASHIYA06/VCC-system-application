@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'PDF file missing on server' }, { status: 404 });
   }
 
-  const fileStream = fs.createReadStream(pdfPath);
+  const fileBuffer = await fs.promises.readFile(pdfPath);
   const headers = new Headers();
   headers.set('Content-Type', 'application/pdf');
   headers.set('Content-Disposition', `inline; filename="${path.basename(pdfPath)}"`);
 
-  return new NextResponse(fileStream, { status: 200, headers });
+  return new NextResponse(fileBuffer, { status: 200, headers });
 }

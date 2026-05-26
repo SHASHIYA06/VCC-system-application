@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '200');
 
   try {
-    const where: unknown = {};
+    const where: any = {};
 
     if (connectorCode) {
       where.connector = { connectorCode: { contains: connectorCode, mode: Prisma.QueryMode.insensitive } };

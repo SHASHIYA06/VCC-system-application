@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       return await searchWireEverywhere(wireNo, limit);
     }
 
-    const results: Record<string, unknown> = {
+    const results: Record<string, any> = {
       query: searchQuery,
       type,
       total: 0,

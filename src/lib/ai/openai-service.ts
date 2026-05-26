@@ -86,7 +86,7 @@ Always provide clear, accurate, and actionable information.`
 /**
  * Analyze a drawing using AI
  */
-export async function analyzeDrawing(drawingData: unknown): Promise<string> {
+export async function analyzeDrawing(drawingData: any): Promise<string> {
   const context = {
     type: 'drawing_analysis',
     drawing: drawingData
@@ -118,7 +118,7 @@ Please provide:
 /**
  * Trace a wire path using AI
  */
-export async function traceWire(wireData: unknown): Promise<string> {
+export async function traceWire(wireData: any): Promise<string> {
   const context = {
     type: 'wire_trace',
     wire: wireData
@@ -150,7 +150,7 @@ Please provide:
 /**
  * Get troubleshooting help using AI
  */
-export async function getTroubleshootingHelp(problem: string, context?: unknown): Promise<string> {
+export async function getTroubleshootingHelp(problem: string, context?: any): Promise<string> {
   const messages: ChatMessage[] = [
     {
       role: 'user',
@@ -198,7 +198,7 @@ Please provide:
 /**
  * Build system context for AI
  */
-function buildSystemContext(context: unknown): string {
+function buildSystemContext(context: any): string {
   let contextStr = 'Current context:\n';
 
   if (context.type) {

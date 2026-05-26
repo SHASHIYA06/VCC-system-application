@@ -3,13 +3,13 @@
  * Handles document storage, embeddings, and vector search
  */
 
-import { MongoClient, Db, Collection } from 'mongodb';
+import { MongoClient, Db, Collection, Document } from 'mongodb';
 import { RAG_CONFIG } from './config';
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
 
-export interface DocumentChunk {
+export interface DocumentChunk extends Document {
   _id?: string;
   documentId: string;
   documentType: 'drawing' | 'wire' | 'connector' | 'system' | 'description' | 'manual';
@@ -116,7 +116,7 @@ export async function vectorSearch(
   embedding: number[],
   options: {
     topK?: number;
-    filter?: unknown;
+    filter?: any;
     threshold?: number;
   } = {}
 ): Promise<QueryResult[]> {
@@ -127,7 +127,7 @@ export async function vectorSearch(
   const threshold = options.threshold || RAG_CONFIG.retrieval.similarityThreshold;
   
   // MongoDB Atlas Vector Search
-  const pipeline: unknown[] = [
+  const pipeline: any[] = [
     {
       $vectorSearch: {
         index: RAG_CONFIG.mongodb.vectorIndex,
@@ -156,7 +156,7 @@ export async function vectorSearch(
   
   return results.map((doc, index) => ({
     chunk: doc as DocumentChunk,
-    score: doc.score || 0,
+    score: (doc as any).score || 0,
     rank: index + 1,
   }));
 }
@@ -169,7 +169,7 @@ export async function hybridSearch(
   embedding: number[],
   options: {
     topK?: number;
-    filter?: unknown;
+    filter?: any;
     vectorWeight?: number;
     keywordWeight?: number;
   } = {}
@@ -251,11 +251,11 @@ export async function getChunksByDocument(documentId: string): Promise<DocumentC
 /**
  * Get chunks by metadata filter
  */
-export async function getChunksByMetadata(filter: unknown): Promise<DocumentChunk[]> {
+export async function getChunksByMetadata(filter: any): Promise<DocumentChunk[]> {
   const database = await connectMongoDB();
   const collection = database.collection<DocumentChunk>(RAG_CONFIG.mongodb.collections.chunks);
   
-  const metadataFilter: unknown = {};
+  const metadataFilter: any = {};
   Object.keys(filter).forEach(key => {
     metadataFilter[`metadata.${key}`] = filter[key];
   });
@@ -299,8 +299,8 @@ export async function getStats(): Promise<{
   
   return {
     totalChunks,
-    byType: Object.fromEntries(byType.map(item => [item._id, item.count])),
-    byDrawing: Object.fromEntries(byDrawing.map(item => [item._id, item.count])),
+    byType: Object.fromEntries(byType.map(item => [item._id, item.count])) as Record<string, number>,
+    byDrawing: Object.fromEntries(byDrawing.map(item => [item._id, item.count])) as Record<string, number>,
   };
 }
 

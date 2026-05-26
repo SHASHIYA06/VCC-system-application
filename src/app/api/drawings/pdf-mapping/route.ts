@@ -35,12 +35,12 @@ export async function POST(request: NextRequest) {
           
           await prisma.drawingPage.upsert({
             where: { drawingId_pageNo: { drawingId: drawing.id, pageNo: 1 } },
-            update: { extra: { pdfPageNo: inferredPage, sourceFile, verified: true } as unknown },
+            update: { extra: { pdfPageNo: inferredPage, sourceFile, verified: true } as any },
             create: {
               drawingId: drawing.id,
               pageNo: 1,
               parseStatus: 'MAPPED',
-              extra: { pdfPageNo: inferredPage, sourceFile, verified: true } as unknown
+              extra: { pdfPageNo: inferredPage, sourceFile, verified: true } as any
             }
           });
           mappedCount++;
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
     if (drawing?.pages?.[0]?.extra) {
       try {
-        const extra = drawing.pages[0].extra as unknown;
+        const extra = drawing.pages[0].extra as any;
         if (extra && typeof extra === 'object' && extra.pdfPageNo) {
           return NextResponse.json({ 
             pdfPageNo: extra.pdfPageNo, 

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const systemCode = searchParams.get('system');
 
   try {
-    let drawings: unknown[] = [];
+    let drawings: any[] = [];
     
     if (drawingNo) {
       const current = await prisma.drawing.findFirst({

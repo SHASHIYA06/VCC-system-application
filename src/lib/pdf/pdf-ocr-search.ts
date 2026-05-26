@@ -39,7 +39,7 @@ export async function searchDrawingsByOCR(options: OCRSearchOptions): Promise<Se
   const normalizedQuery = query.trim().toUpperCase();
   
   // Build search conditions
-  const searchConditions: unknown[] = [
+  const searchConditions: any[] = [
     // Exact drawing number match
     { drawingNo: { equals: normalizedQuery } },
     { drawingNo: { equals: normalizedQuery.replace(/-/g, '') } },
@@ -178,7 +178,7 @@ async function getPDFPageMapping(drawingNo: string, sourceFile: string): Promise
   });
 
   if (drawing?.pages?.[0]?.extra) {
-    const extra = drawing.pages[0].extra as unknown;
+    const extra = drawing.pages[0].extra as any;
     if (extra.pdfPageNo) {
       return { pageNo: extra.pdfPageNo, source: 'database' };
     }

@@ -90,7 +90,7 @@ export default function PdfViewerEnhanced({
           const page = await pdfDocument.getPage(i);
           const textContent = await page.getTextContent();
           const text = textContent.items
-            .map((item: unknown) => item.str)
+            .map((item: any) => item.str)
             .join(' ')
             .toLowerCase();
 

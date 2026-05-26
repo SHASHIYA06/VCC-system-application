@@ -84,9 +84,9 @@ export default async function CarsPage() {
       _count: true,
     });
 
-    const equipmentCount = Object.fromEntries(dbStats.map(s => [s.carType, s._count]));
-    const connectorCount = Object.fromEntries(dbConnectorStats.map(s => [s.carType, s._count]));
-    const trainlineCount = Object.fromEntries(dbTrainlineStats.map(s => [s.carType, s._count]));
+    const equipmentCount = Object.fromEntries(dbStats.map(s => [s.carType, s._count])) as any;
+    const connectorCount = Object.fromEntries(dbConnectorStats.map(s => [s.carType, s._count])) as any;
+    const trainlineCount = Object.fromEntries(dbTrainlineStats.map(s => [s.carType, s._count])) as any;
 
     carsWithStats = CAR_TYPES.map(car => ({
       ...car,

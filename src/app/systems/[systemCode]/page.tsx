@@ -6,7 +6,7 @@ import {
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 
-const SYSTEM_META: Record<string, unknown> = {
+const SYSTEM_META: Record<string, any> = {
   GEN: {
     icon: Settings,
     color: 'text-slate-400',

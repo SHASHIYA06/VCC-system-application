@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
-    const analysis: unknown = {
+    const analysis: Record<string, any> = {
       connectors: {},
       wires: {},
       drawings: {},

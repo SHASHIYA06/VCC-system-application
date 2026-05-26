@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const skip = (page - 1) * limit;
 
   try {
-    const where: unknown = {};
+    const where: any = {};
 
     if (systemCode) {
       const system = await prisma.system.findFirst({ where: { code: systemCode } });

@@ -7,7 +7,7 @@ export interface RAGDocumentChunk {
   documentType: string;
   chunkIndex: number;
   content: string;
-  metadata: unknown;
+  metadata: any;
   embedding?: number[];
   createdAt?: Date;
   updatedAt?: Date;
@@ -96,7 +96,7 @@ export async function vectorSearch(
     LIMIT $3
   `, embeddingString, threshold, topK);
 
-  return results.map((doc, index) => {
+  return results.map((doc: any, index) => {
     const meta = typeof doc.entityRefs === 'string' ? JSON.parse(doc.entityRefs) : doc.entityRefs;
     return {
       chunk: {

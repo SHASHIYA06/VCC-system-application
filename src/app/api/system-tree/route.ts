@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const depth = searchParams.get('depth') || 'full'; // full, system, equipment, component
 
   try {
-    const whereClause: unknown = {};
+    const whereClause: any = {};
     
     if (systemCode) {
       const system = await prisma.system.findFirst({ where: { code: systemCode } });
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
           connections: dev._count?.wireEndpoints || 0
         });
         return acc;
-      }, {} as Record<string, unknown[]>);
+      }, {} as Record<string, any[]>);
 
       // Collect all connectors with pins for this system
       const allConnectors = systemDrawings.flatMap(d => 

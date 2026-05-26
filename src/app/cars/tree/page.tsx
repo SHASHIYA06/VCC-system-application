@@ -155,7 +155,7 @@ export default function CarTreePage() {
                       
                       {/* Connector Grid */}
                       <div className="grid grid-cols-6 gap-2">
-                        {sys.connectorList.map((conn: unknown) => (
+                        {sys.connectorList.map((conn: any) => (
                           <div key={conn.id} className="bg-slate-700/30 rounded p-2 text-center">
                             <Link href={`/connectors/${conn.code}`} 
                               className="text-xs text-cyan-400 hover:text-cyan-300 font-mono"
@@ -181,7 +181,7 @@ export default function CarTreePage() {
                   {car.devices.map(dev => (
                     <div key={dev.code} className="bg-slate-800/30 rounded-lg p-3">
                       <div className="font-semibold text-orange-400 mb-2">{dev.code} ({dev.count})</div>
-                      {dev.list.map((d: unknown) => (
+                      {dev.list.map((d: any) => (
                         <div key={d.id} className="text-xs text-slate-400 py-1">
                           <span className="font-mono">{d.tag}</span>: {d.name}
                         </div>

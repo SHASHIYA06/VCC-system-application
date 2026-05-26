@@ -31,7 +31,7 @@ const CAR_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string
   ALL: { label: 'All', color: 'text-slate-400', bg: 'bg-slate-500/20' },
 };
 
-const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg: string; icon: unknown }> = {
+const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
   REFERENCE: { label: 'Reference', color: 'text-cyan-400', bg: 'bg-cyan-500/20', icon: FileText },
   PIN_DRAWING: { label: 'Pin Drawing', color: 'text-purple-400', bg: 'bg-purple-500/20', icon: MapPin },
   LAYOUT: { label: 'Layout', color: 'text-orange-400', bg: 'bg-orange-500/20', icon: Layers },

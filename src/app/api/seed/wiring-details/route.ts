@@ -44,12 +44,13 @@ export async function POST(req: NextRequest) {
       for (let i = 1; i <= c.pins; i++) {
         pins.push({ connectorId: conn.id, pinNo: String(i), signalName: `PIN_${i}` });
       }
-      if (pins.length) await prisma.connectorPin.createMany({ data: pins as unknown });
+      if (pins.length) await prisma.connectorPin.createMany({ data: pins as any });
     }
 
     return NextResponse.json({ success: true, count: connectors.length });
-  } catch (e: unknown) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }
 

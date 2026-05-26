@@ -144,7 +144,7 @@ Respond with a JSON object containing:
     
     try {
       const parsed = JSON.parse(response.content);
-      return parsed;
+      return parsed as any;
     } catch {
       // Fallback if JSON parsing fails
       return {

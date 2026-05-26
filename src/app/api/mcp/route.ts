@@ -60,13 +60,13 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
   try {
     switch (toolName) {
       case 'get_systems': {
-        const where: unknown = {};
+        const where: any = {};
         if (params.category) where.category = String(params.category);
         const systems = await prisma.system.findMany({ where, orderBy: { sortOrder: 'asc' } });
         return { systems: systems.map(s => ({ id: s.id, code: s.code, name: s.name, category: s.category || 'ELECTRICAL', description: s.description || '' })) };
       }
       case 'get_drawings': {
-        const where: unknown = {};
+        const where: any = {};
         if (params.system_code) where.system = { code: String(params.system_code) };
         if (params.car_type) where.remarks = { contains: String(params.car_type) };
         const docs = await prisma.drawing.findMany({ where, include: { system: true }, orderBy: { drawingNo: 'asc' } });
@@ -82,7 +82,7 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         return { drawing: { ...drawing, connector_count: drawing.connectors.length, pin_count: drawing.connectors.reduce((acc, c) => acc + (c.pins?.length || 0), 0) } };
       }
       case 'get_equipment': {
-        const where: unknown = {};
+        const where: any = {};
         if (params.system_code) where.system = { code: String(params.system_code) };
         if (params.car_type) where.carType = String(params.car_type);
         const devices = await prisma.device.findMany({ where, include: { system: true }, orderBy: { deviceName: 'asc' }, take: 100 });
@@ -98,7 +98,7 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         return { equipment: device };
       }
       case 'get_connectors': {
-        const where: unknown = {};
+        const where: any = {};
         if (params.equipment_code) where.connectorCode = { contains: String(params.equipment_code), mode: Prisma.QueryMode.insensitive };
         const connectors = await prisma.connector.findMany({ where, include: { pins: true }, orderBy: { connectorCode: 'asc' }, take: 50 });
         return { connectors: connectors.map(c => ({ id: c.id, connector_code: c.connectorCode, description: c.description || '', pin_count: c.pins?.length || c.pinCount || 0, car_type: c.carType })) };
@@ -113,7 +113,7 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         return { connector, pins: connector.pins };
       }
       case 'get_wires': {
-        const where: unknown = {};
+        const where: any = {};
         if (params.voltage_class) where.voltageClass = String(params.voltage_class);
         if (params.search) where.wireNo = { contains: String(params.search), mode: Prisma.QueryMode.insensitive };
         const wires = await prisma.wire.findMany({ where, take: 100, orderBy: { wireNo: 'asc' } });
@@ -150,7 +150,7 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         return { trainline_no: num, trace, is_cross_connected: [3005, 3006, 6009, 6046, 6014, 6051].includes(num) };
       }
       case 'get_tcms_points': {
-        const where: unknown = { wireNo: { not: null } };
+        const where: any = { wireNo: { not: null } };
         if (params.signal_type) where.signalName = { contains: String(params.signal_type), mode: Prisma.QueryMode.insensitive };
         const pins = await prisma.connectorPin.findMany({
           where,
@@ -197,13 +197,13 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
         return { pins };
       }
       case 'get_subsystems': {
-        const where: unknown = {};
+        const where: any = {};
         if (params.car_type) where.carType = String(params.car_type);
         const systems = await prisma.system.findMany({ where, orderBy: { name: 'asc' } });
         return { subsystems: systems.map(s => ({ code: s.code, name: s.name, description: s.description || '', category: s.category })) };
       }
       case 'get_signals': {
-        const where: unknown = {};
+        const where: any = {};
         if (params.protocol) where.protocol = { contains: String(params.protocol), mode: Prisma.QueryMode.insensitive };
         const signals = await prisma.signal.findMany({ where, take: 50 });
         return { signals };
@@ -390,10 +390,10 @@ async function executeTool(toolName: string, params: Record<string, unknown>) {
 
       case 'ai_search': {
         const query = String(params.query || '');
-        const taskType = (params.task_type as unknown) || 'unified_search';
+        const taskType = (params.task_type as any) || 'unified_search';
         const task = {
           taskId: `mcp-search-${Date.now()}`,
-          taskType,
+          taskType: taskType as any,
           query,
           context: {},
         };

@@ -66,7 +66,7 @@ export async function importConnectors(drawingId: string, connectors: {
           description: conn.description,
           carType: conn.carType,
           locationTag: conn.location,
-          scope: conn.scope as unknown,
+          scope: conn.scope as any,
         }
       });
       results.push({ action: 'updated', ...updated });
@@ -79,7 +79,7 @@ export async function importConnectors(drawingId: string, connectors: {
           carType: conn.carType,
           locationTag: conn.location,
           pinCount: conn.pinCount || 20,
-          scope: conn.scope as unknown,
+          scope: conn.scope as any,
         }
       });
 
