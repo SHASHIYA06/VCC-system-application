@@ -3,8 +3,21 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import { Card3D, GlassButton, GlassPanel } from '@/components/ui';
-import { Network, Cpu, Cable, Box, Zap, ArrowRight, RefreshCw, Activity, Layers, Link2, Settings, FileText } from 'lucide-react';
+import { Network, Cpu, Cable, Box, Zap, ArrowRight, RefreshCw, Activity, Layers, Link2, Settings, FileText, Loader2 } from 'lucide-react';
+
+const GraphViewer = dynamic(() => import('@/components/ui/GraphViewer'), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[600px] flex items-center justify-center bg-slate-950/80 rounded-2xl border border-slate-800">
+      <div className="text-center">
+        <Loader2 className="h-10 w-10 text-cyan-400 animate-spin mx-auto mb-2" />
+        <p className="text-slate-400 text-xs font-mono">Loading Interactive Graph Viewer...</p>
+      </div>
+    </div>
+  )
+});
 
 interface GSDData {
   metadata: {
@@ -122,6 +135,36 @@ export default function GSDPage() {
       </div>
     );
   }
+
+  const flowNodes = gsdData?.network?.nodes?.map((n: any, idx: number) => ({
+    id: n.id,
+    type: 'default',
+    position: { x: (idx % 4) * 240 + 50, y: Math.floor(idx / 4) * 160 + 50 },
+    data: { label: `${n.id} (${n.connections})` },
+    style: {
+      background: 'rgba(15, 23, 42, 0.85)',
+      color: '#06b6d4',
+      border: '2px solid rgba(6, 182, 212, 0.4)',
+      borderRadius: '12px',
+      padding: '12px',
+      fontSize: '12px',
+      fontWeight: 'bold',
+      fontFamily: 'monospace',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+      width: 180,
+      textAlign: 'center',
+    }
+  })) || [];
+
+  const flowEdges = gsdData?.network?.edges?.map((e: any, idx: number) => ({
+    id: `e-${idx}`,
+    source: e.from,
+    target: e.to,
+    label: e.label,
+    animated: true,
+    style: { stroke: '#0ea5e9', strokeWidth: 2 },
+    labelStyle: { fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }
+  })) || [];
 
   return (
     <div className="min-h-screen p-4 lg:p-6 space-y-6">
@@ -300,49 +343,15 @@ export default function GSDPage() {
 
       {/* Network Connections */}
       <GlassPanel
-        title="Network Connections"
-        subtitle="System interconnections"
-        icon={<Cable className="h-5 w-5" />}
+        title="Interactive Network Connections"
+        subtitle="Visualizing system connections and trainlines in a draggable graph map"
+        icon={<Cable className="h-5 w-5 text-green-400" />}
         variant="elevated"
         glow={true}
         glowColor="green"
       >
-        <div className="overflow-x-auto">
-          <div className="min-w-[800px]">
-            <div className="flex items-center gap-4 mb-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span className="text-slate-400">Trainline</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-slate-400">Pin Connection</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {gsdData?.network.edges.slice(0, 30).map((edge, idx) => (
-                <motion.div
-                  key={idx}
-                  whileHover={{ scale: 1.02 }}
-                  className="flex items-center gap-3 p-3 bg-slate-800/40 border border-slate-700/50 rounded-lg"
-                >
-                  <span className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded text-xs font-mono font-semibold">
-                    {edge.from}
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-slate-500" />
-                  <span className="px-3 py-1.5 bg-green-500/20 text-green-400 rounded text-xs font-mono font-semibold">
-                    {edge.to}
-                  </span>
-                  <span className="text-xs text-slate-500 font-mono">{edge.label}</span>
-                </motion.div>
-              ))}
-              {gsdData?.network.edges.length === 0 && (
-                <div className="p-8 text-center text-slate-500">
-                  No network connections available
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="h-[650px] w-full rounded-xl overflow-hidden border border-slate-800 bg-slate-950/40 relative">
+          <GraphViewer nodes={flowNodes} edges={flowEdges} />
         </div>
       </GlassPanel>
     </div>

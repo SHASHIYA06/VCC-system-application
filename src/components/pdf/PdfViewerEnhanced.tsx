@@ -16,6 +16,7 @@ interface PdfViewerEnhancedProps {
   title?: string;
   searchQuery?: string;
   onClose?: () => void;
+  inline?: boolean;
 }
 
 export default function PdfViewerEnhanced({ 
@@ -23,7 +24,8 @@ export default function PdfViewerEnhanced({
   initialPage = 1, 
   title, 
   searchQuery: initialSearchQuery = '',
-  onClose 
+  onClose,
+  inline = false
 }: PdfViewerEnhancedProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState(initialPage);
@@ -163,7 +165,7 @@ export default function PdfViewerEnhanced({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col">
+    <div className={inline ? "w-full h-full bg-slate-950 flex flex-col relative" : "fixed inset-0 z-50 bg-black/95 flex flex-col"}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-700">
         <div className="flex items-center gap-4">

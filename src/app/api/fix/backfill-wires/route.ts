@@ -3,8 +3,75 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== Starting high-speed SQL Backfill API ===');
+    console.log('=== Starting high-speed SQL Backfill & Pin Seeding API ===');
     
+    // Pass 0A: Create missing ConnectorPin records referenced by WireEndpoints
+    const newPinsFromEndpoints = await prisma.$executeRawUnsafe(`
+      INSERT INTO "ConnectorPin" ("id", "connectorId", "pinNo", "extra")
+      SELECT 
+        'cp_ep_' || substr(md5(we."connectorId" || we."endpointPin" || random()::text), 1, 16),
+        we."connectorId",
+        we."endpointPin",
+        '{}'::jsonb
+      FROM "WireEndpoint" we
+      WHERE we."connectorId" IS NOT NULL 
+        AND we."endpointPin" IS NOT NULL 
+        AND we."endpointPin" != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM "ConnectorPin" cp 
+          WHERE cp."connectorId" = we."connectorId" 
+            AND cp."pinNo" = we."endpointPin"
+        )
+      GROUP BY we."connectorId", we."endpointPin";
+    `);
+    console.log(`Pass 0A: Created ${newPinsFromEndpoints} missing ConnectorPins from WireEndpoints`);
+
+    // Pass 0B: Create missing ConnectorPin records referenced by Wire source pins
+    const newPinsFromSources = await prisma.$executeRawUnsafe(`
+      INSERT INTO "ConnectorPin" ("id", "connectorId", "pinNo", "extra", "wireNo", "signalName")
+      SELECT 
+        'cp_src_' || substr(md5(c.id || w."sourcePin" || random()::text), 1, 16),
+        c.id,
+        w."sourcePin",
+        '{}'::jsonb,
+        w."wireNo",
+        w."signalName"
+      FROM "Wire" w
+      JOIN "Connector" c ON w."sourceConnector" = c."connectorCode"
+      WHERE w."sourcePin" IS NOT NULL 
+        AND w."sourcePin" != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM "ConnectorPin" cp 
+          WHERE cp."connectorId" = c.id 
+            AND cp."pinNo" = w."sourcePin"
+        )
+      GROUP BY c.id, w."sourcePin", w."wireNo", w."signalName";
+    `);
+    console.log(`Pass 0B: Created ${newPinsFromSources} missing ConnectorPins from Wire sources`);
+
+    // Pass 0C: Create missing ConnectorPin records referenced by Wire dest pins
+    const newPinsFromDests = await prisma.$executeRawUnsafe(`
+      INSERT INTO "ConnectorPin" ("id", "connectorId", "pinNo", "extra", "wireNo", "signalName")
+      SELECT 
+        'cp_dst_' || substr(md5(c.id || w."destPin" || random()::text), 1, 16),
+        c.id,
+        w."destPin",
+        '{}'::jsonb,
+        w."wireNo",
+        w."signalName"
+      FROM "Wire" w
+      JOIN "Connector" c ON w."destConnector" = c."connectorCode"
+      WHERE w."destPin" IS NOT NULL 
+        AND w."destPin" != ''
+        AND NOT EXISTS (
+          SELECT 1 FROM "ConnectorPin" cp 
+          WHERE cp."connectorId" = c.id 
+            AND cp."pinNo" = w."destPin"
+        )
+      GROUP BY c.id, w."destPin", w."wireNo", w."signalName";
+    `);
+    console.log(`Pass 0C: Created ${newPinsFromDests} missing ConnectorPins from Wire destinations`);
+
     // Pass 1: Update WireEndpoint.pinId from matching ConnectorPin
     const pass1Count = await prisma.$executeRawUnsafe(`
       UPDATE "WireEndpoint" we
@@ -57,6 +124,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       summary: {
+        pinsCreatedFromEndpoints: newPinsFromEndpoints,
+        pinsCreatedFromSources: newPinsFromSources,
+        pinsCreatedFromDests: newPinsFromDests,
         endpointsLinked: pass1Count,
         pinsUpdatedViaEndpoints: pass2Count,
         pinsUpdatedViaSources: pass3Count,

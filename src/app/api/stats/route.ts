@@ -16,6 +16,7 @@ export async function GET() {
       documentCount,
       systemStats,
       documentStats,
+      connectorByCarType,
     ] = await Promise.all([
       prisma.system.count(),
       prisma.wire.count(),
@@ -32,6 +33,8 @@ export async function GET() {
         orderBy: { sortOrder: 'asc' },
       }),
       prisma.sourceFile.groupBy({ by: ['status'], _count: true }),
+      // Use connector carType to estimate wire distribution per car type
+      prisma.connector.groupBy({ by: ['carType'], _count: { _all: true } }),
     ]);
 
     const drawingStats = await prisma.drawing.groupBy({
@@ -66,6 +69,15 @@ export async function GET() {
     // Calculate actual wire connections from wire endpoints
     const wireEndpointCount = await prisma.wireEndpoint.count();
 
+    // Build byCarType connector count map (proxy for wire distribution per car type)
+    const byCarType = connectorByCarType.reduce((acc: Record<string, number>, item) => {
+      if (item.carType) {
+        const ct = item.carType.toUpperCase().trim();
+        acc[ct] = (acc[ct] || 0) + (item._count._all ?? 0);
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
     return NextResponse.json({
       overview: {
         systems: systemCount,
@@ -81,6 +93,7 @@ export async function GET() {
         totalConnections: wireEndpointCount,
         dataSource: 'database',
       },
+      byCarType,
       bySystem: Object.fromEntries(
         systemStats.map(s => [s.code, { 
           drawings: s._count.drawings, 

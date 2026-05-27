@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 interface Card3DProps {
   children: ReactNode;
   className?: string;
-  glowColor?: 'cyan' | 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'amber' | 'pink' | 'indigo';
+  glowColor?: 'cyan' | 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'amber' | 'pink' | 'indigo' | 'slate' | 'violet' | 'emerald';
   onClick?: () => void;
   href?: string;
   variant?: 'default' | 'elevated' | 'flat' | 'outline';
@@ -60,6 +60,9 @@ export function Card3D({
     amber: 'shadow-amber-500/50 hover:shadow-amber-400/70',
     pink: 'shadow-pink-500/50 hover:shadow-pink-400/70',
     indigo: 'shadow-indigo-500/50 hover:shadow-indigo-400/70',
+    slate: 'shadow-slate-500/50 hover:shadow-slate-400/70',
+    violet: 'shadow-violet-500/50 hover:shadow-violet-400/70',
+    emerald: 'shadow-emerald-500/50 hover:shadow-emerald-400/70',
   };
 
   const variantStyles = {

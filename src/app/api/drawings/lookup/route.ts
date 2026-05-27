@@ -65,6 +65,27 @@ export async function GET(request: NextRequest) {
     const relatedEquipment = await getRelatedEquipment(drawing.id);
     const relatedConnectors = await getRelatedConnectors(drawing.id);
 
+    // Resolve the actual PDF filename from the SourceFile table
+    let resolvedSourceFile: string | null = null;
+    if (drawing.sourceFileId) {
+      // Try to look it up as a SourceFile record first (it might be a CUID)
+      try {
+        const sourceFileRecord = await prisma.sourceFile.findUnique({
+          where: { id: drawing.sourceFileId },
+          select: { filename: true },
+        });
+        if (sourceFileRecord?.filename) {
+          resolvedSourceFile = sourceFileRecord.filename;
+        }
+      } catch {
+        // sourceFileId might already be a filename string — use it directly
+      }
+      // If lookup failed, use the sourceFileId as-is (it may be stored as a filename)
+      if (!resolvedSourceFile) {
+        resolvedSourceFile = drawing.sourceFileId;
+      }
+    }
+
     return NextResponse.json({
       drawing: {
         id: drawing.id,
@@ -74,7 +95,7 @@ export async function GET(request: NextRequest) {
         systemCode: drawing.system?.code || '',
         systemName: drawing.system?.name || '',
         totalSheets: drawing.totalSheets,
-        sourceFile: drawing.sourceFileId,
+        sourceFile: resolvedSourceFile,
         remarks: drawing.remarks,
         pageCount: drawing.pages.length,
         _count: drawing._count,

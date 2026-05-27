@@ -10,7 +10,7 @@ interface StatCardProps {
   subtext?: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
-  color?: 'cyan' | 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'amber' | 'pink' | 'indigo';
+  color?: 'cyan' | 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'amber' | 'pink' | 'indigo' | 'slate' | 'violet' | 'emerald';
   className?: string;
   dataSource?: string;
 }
@@ -62,6 +62,9 @@ export function StatCard({
     amber: 'hover:shadow-[0_0_35px_rgba(245,158,11,0.25)]',
     pink: 'hover:shadow-[0_0_35px_rgba(236,72,153,0.25)]',
     indigo: 'hover:shadow-[0_0_35px_rgba(99,102,241,0.25)]',
+    slate: 'hover:shadow-[0_0_35px_rgba(148,163,184,0.25)]',
+    violet: 'hover:shadow-[0_0_35px_rgba(139,92,246,0.25)]',
+    emerald: 'hover:shadow-[0_0_35px_rgba(16,185,129,0.25)]',
   };
   const colorStyles = {
     cyan: 'from-cyan-500/20 to-blue-500/20 border-cyan-500/30 text-cyan-400',
@@ -73,6 +76,9 @@ export function StatCard({
     amber: 'from-amber-500/20 to-yellow-500/20 border-amber-500/30 text-amber-400',
     pink: 'from-pink-500/20 to-rose-500/20 border-pink-500/30 text-pink-400',
     indigo: 'from-indigo-500/20 to-purple-500/20 border-indigo-500/30 text-indigo-400',
+    slate: 'from-slate-500/20 to-slate-700/20 border-slate-500/30 text-slate-400',
+    violet: 'from-violet-500/20 to-fuchsia-500/20 border-violet-500/30 text-violet-400',
+    emerald: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30 text-emerald-400',
   };
 
   const trendColors = {

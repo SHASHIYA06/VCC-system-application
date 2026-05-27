@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
 }
 
 function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): number {
-  const numMatch = drawingNo.match(/\\d+/);
+  const numMatch = drawingNo.match(/\d+/);
   if (!numMatch) return 1;
   const num = parseInt(numMatch[0]);
   
