@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/TextLayer.css';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
 import { 
   ChevronLeft, ChevronRight, X, Download, Maximize2, 
   Search, ZoomIn, ZoomOut, Loader2, AlertCircle, Eye 
 } from 'lucide-react';
 
-// Configure PDF.js worker
+// Configure PDF.js worker — use unpkg CDN to avoid bundling the large worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface PdfViewerEnhancedProps {

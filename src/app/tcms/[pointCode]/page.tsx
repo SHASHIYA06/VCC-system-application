@@ -43,8 +43,8 @@ const SIGNAL_TYPE_CONFIG: Record<string, { color: string; bg: string; label: str
   AO: { color: 'text-orange-700', bg: 'bg-orange-50', label: 'Analog Output' },
 };
 
-export default async function TcmsPointDetailPage({ params }: { params: { pointCode: string } }) {
-  const pointCode = params.pointCode.toUpperCase();
+export default async function TcmsPointDetailPage({ params }: { params: Promise<{ pointCode: string }> }) {
+  const { pointCode: rawCode } = await params; const pointCode = rawCode.toUpperCase();
   const point = TCMS_POINTS[pointCode];
 
   if (!point) {

@@ -64,8 +64,9 @@ const SYSTEM_META: Record<string, any> = {
   }
 };
 
-export default async function SystemDetailPage({ params }: { params: { systemCode: string } }) {
-  const code = params.systemCode.toUpperCase();
+export default async function SystemDetailPage({ params }: { params: Promise<{ systemCode: string }> }) {
+  const { systemCode } = await params;
+  const code = systemCode.toUpperCase();
   
   // Fetch system from database
   const systemRecord = await prisma.system.findUnique({

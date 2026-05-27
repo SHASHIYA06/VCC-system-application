@@ -1,34 +1,48 @@
 import { PrismaClient } from '@prisma/client';
-import dotenv from 'dotenv';
 
-// Load environment variables from .env.local
-dotenv.config({ path: '.env.local' });
+declare global {
+  // eslint-disable-next-line no-var
+  var __prisma: PrismaClient | undefined;
+}
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+function createPrismaClient() {
+  return new PrismaClient({
     datasources: {
       db: {
         url: process.env.DATABASE_URL,
       },
     },
-    log: process.env.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   });
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+// Singleton pattern — reuse connection across hot-reloads in dev
+export const prisma = globalThis.__prisma ?? createPrismaClient();
 
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.__prisma = prisma;
+}
+
+// Graceful disconnect helper for scripts
+export async function disconnectPrisma() {
+  await prisma.$disconnect();
+}
+
+// Health check with auto-reconnect
 export async function testConnection(): Promise<{ connected: boolean; error?: string }> {
   try {
-    await prisma.$connect();
-    await prisma.system.count();
+    await prisma.$queryRaw`SELECT 1`;
     return { connected: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('Database connection test failed:', message);
-    return { connected: false, error: message };
-  } finally {
-    await prisma.$disconnect();
+    // Try to reconnect
+    try {
+      await prisma.$connect();
+      await prisma.$queryRaw`SELECT 1`;
+      return { connected: true };
+    } catch (retryError) {
+      return { connected: false, error: message };
+    }
   }
 }

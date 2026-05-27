@@ -104,8 +104,9 @@ function getPositionInFormation(carType: string, type: 'DMC' | 'TC' | 'MC' | 'CA
   return formation.map((c, i) => c === carType ? i + 1 : -1).filter(p => p > 0);
 }
 
-export default async function CarDetailPage({ params }: { params: { carType: string } }) {
-  const carType = params.carType.toUpperCase() as 'DMC' | 'TC' | 'MC' | 'CAB';
+export default async function CarDetailPage({ params }: { params: Promise<{ carType: string }> }) {
+  const { carType: rawCarType } = await params;
+  const carType = rawCarType.toUpperCase() as 'DMC' | 'TC' | 'MC' | 'CAB';
   const colors = getCarColor(carType);
 
   if (!['DMC', 'TC', 'MC', 'CAB'].includes(carType)) {
@@ -120,7 +121,7 @@ export default async function CarDetailPage({ params }: { params: { carType: str
             <Box className="mx-auto h-12 w-12 text-slate-300" />
             <h3 className="mt-4 text-lg font-medium text-slate-900">Car Type Not Found</h3>
             <p className="mt-2 text-sm text-slate-500">
-              Car type "{params.carType}" is not recognized. Valid types are: DMC, TC, MC, CAB.
+              Car type "{rawCarType}" is not recognized. Valid types are: DMC, TC, MC, CAB.
             </p>
           </div>
         </div>

@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { supabase, hasValidSupabaseConfig } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 
-export default async function PinDetailsPage({ params }: { params: { pinId: string } }) {
-  const id = params.pinId;
+export default async function PinDetailsPage({ params }: { params: Promise<{ pinId: string }> }) {
+  const { pinId } = await params; const id = pinId;
   
   let pin = {
     id: id,

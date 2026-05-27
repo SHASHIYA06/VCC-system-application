@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { supabase, hasValidSupabaseConfig } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 
-export default async function EquipmentDetailsPage({ params }: { params: { equipmentCode: string } }) {
-  const id = params.equipmentCode;
+export default async function EquipmentDetailsPage({ params }: { params: Promise<{ equipmentCode: string }> }) {
+  const { equipmentCode } = await params;
+  const id = equipmentCode;
+
   
   let equipment = {
     id: id,
