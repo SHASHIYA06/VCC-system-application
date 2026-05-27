@@ -52,7 +52,7 @@ interface DashboardStats {
     totalConnections: number;
   };
   byCarType: Record<string, number>;
-  systems: Array<{ code: string; name: string; deviceCount: number; category: string }>;
+  systems: Array<{ code: string; name: string; deviceCount: number; drawingCount: number; category: string }>;
 }
 
 interface DrawingResult {
@@ -247,7 +247,7 @@ export default function DashboardPage() {
   const [backfillResult, setBackfillResult] = useState<any | null>(null);
 
   // AI Agent Parameters
-  const [aiModel, setAiModel] = useState('gemini-2.5-pro');
+  const [aiModel, setAiModel] = useState('opencode-minimax');
   const [aiTemperature, setAiTemperature] = useState(0.2);
   const [aiConfidenceLimit, setAiConfidenceLimit] = useState(0.75);
 
@@ -563,7 +563,7 @@ export default function DashboardPage() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-550" />
                     <input
                       type="text"
-                      placeholder="Enter Drawing Number, e.g., 2024-VCC-1024"
+                      placeholder="Enter Drawing Number, e.g., 942-58120, 942-38301"
                       value={drawingSearch}
                       onChange={e => setDrawingSearch(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && searchDrawing()}
@@ -933,7 +933,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="flex items-center justify-between mt-4 pt-2 border-t border-slate-900">
                               <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
-                                <TrendingUp className="h-3 w-3 text-cyan-400" /> {deviceCount} devices
+                                <TrendingUp className="h-3 w-3 text-cyan-400" /> {deviceCount} Devs · {dbSystem?.drawingCount || 0} Drgs
                               </span>
                               <span className="text-[10px] text-cyan-400 font-extrabold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
                                 Explore <ChevronRight className="h-3 w-3" />
@@ -1332,7 +1332,8 @@ export default function DashboardPage() {
                         onChange={e => setAiModel(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-white text-xs focus:outline-none focus:border-purple-500 cursor-pointer"
                       >
-                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (Precision Schematic Parser)</option>
+                        <option value="opencode-minimax">OpenCode MiniMax M2.5 (Token-Saving Free)</option>
+                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (Precision Parser)</option>
                         <option value="gemini-2.5-flash">Gemini 2.5 Flash (Ultra-fast search)</option>
                         <option value="claude-3-5-sonnet">Claude 3.5 Sonnet (Advanced Reasoning)</option>
                         <option value="gpt-4o">GPT-4o (Cross-references)</option>

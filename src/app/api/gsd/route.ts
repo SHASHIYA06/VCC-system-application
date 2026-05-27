@@ -7,7 +7,7 @@ export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     // Run all queries in parallel with individual error isolation
-    const [systems, connectorCount, wireCount, trainLineCount] = await Promise.all([
+    const [systems, connectorCount, wireCount, trainLineCount, devices, wires] = await Promise.all([
       prisma.system.findMany({
         include: {
           _count: { select: { drawings: true, devices: true } },
@@ -17,6 +17,22 @@ export async function GET(request: NextRequest) {
       prisma.connector.count().catch(() => 0),
       prisma.wire.count().catch(() => 0),
       prisma.trainLine.count().catch(() => 0),
+      prisma.device.findMany({
+        include: { system: true }
+      }).catch(() => []),
+      prisma.wire.findMany({
+        where: {
+          OR: [
+            { sourceEquipment: { not: null } },
+            { destEquipment: { not: null } }
+          ]
+        },
+        select: {
+          sourceEquipment: true,
+          destEquipment: true,
+          voltageClass: true
+        }
+      }).catch(() => []),
     ]);
 
     // Get a sample of train lines for topology edges
@@ -45,7 +61,7 @@ export async function GET(request: NextRequest) {
         totalTrainLines: trainLineCount,
       },
       systems: systemConnections,
-      network: buildNetworkGraph(systems, trainLines),
+      network: buildNetworkGraph(systems, trainLines, devices, wires),
       topology: buildTopology(systems),
     };
 
@@ -70,7 +86,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function buildNetworkGraph(systems: any[], trainLines: any[]) {
+function buildNetworkGraph(systems: any[], trainLines: any[], devices: any[], wires: any[]) {
   // Build React Flow compatible nodes with layout positions
   const nodes = systems.map((s, idx) => ({
     id: s.code,
@@ -81,10 +97,59 @@ function buildNetworkGraph(systems: any[], trainLines: any[]) {
 
   // Build edges from train lines — only where both source and target exist as nodes
   const nodeIds = new Set(systems.map(s => s.code));
+
+  // Build device to system map
+  const deviceToSystemMap = new Map<string, string>();
+  for (const d of devices) {
+    if (d.tagNo && d.system?.code) {
+      deviceToSystemMap.set(d.tagNo.toUpperCase(), d.system.code);
+    }
+  }
+
+  // Count connections dynamically
+  const connectionCounts: Record<string, { count: number; voltages: Set<string> }> = {};
+  const dynamicEdgeKeys = new Set<string>();
+
+  for (const wire of wires) {
+    const srcSys = wire.sourceEquipment ? deviceToSystemMap.get(wire.sourceEquipment.toUpperCase()) : null;
+    const destSys = wire.destEquipment ? deviceToSystemMap.get(wire.destEquipment.toUpperCase()) : null;
+    
+    if (srcSys && destSys && srcSys !== destSys && nodeIds.has(srcSys) && nodeIds.has(destSys)) {
+      const sorted = [srcSys, destSys].sort();
+      const key = `${sorted[0]}->${sorted[1]}`;
+      if (!connectionCounts[key]) {
+        connectionCounts[key] = { count: 0, voltages: new Set() };
+      }
+      connectionCounts[key].count++;
+      if (wire.voltageClass) {
+        connectionCounts[key].voltages.add(wire.voltageClass);
+      }
+      dynamicEdgeKeys.add(`${sorted[0]}-${sorted[1]}`);
+      dynamicEdgeKeys.add(`${sorted[1]}-${sorted[0]}`);
+    }
+  }
+
   const edges: Array<{ from: string; to: string; label: string; type: string }> = [];
 
-  // Create system-to-system edges based on known VCC topology relationships
-  const topologyEdges = [
+  // Add dynamic edges
+  for (const [key, info] of Object.entries(connectionCounts)) {
+    const [from, to] = key.split('->');
+    let type = 'data';
+    if (info.voltages.has('750VDC') || info.voltages.has('110VDC') || from === 'HV' || to === 'HV' || from === 'APS' || to === 'APS') {
+      type = 'power';
+    } else if (from === 'TMS' || to === 'TMS' || from === 'CAB' || to === 'CAB') {
+      type = 'control';
+    }
+    edges.push({
+      from,
+      to,
+      label: `${info.count} Wires`,
+      type
+    });
+  }
+
+  // Fallback / default schematic topology edges
+  const defaultEdges = [
     { from: 'HV', to: 'APS', label: 'Power Feed', type: 'power' },
     { from: 'HV', to: 'TRAC', label: 'HV Supply', type: 'power' },
     { from: 'APS', to: 'TMS', label: 'LV Power', type: 'power' },
@@ -97,9 +162,18 @@ function buildNetworkGraph(systems: any[], trainLines: any[]) {
     { from: 'TRL', to: 'TMS', label: 'Train Bus', type: 'data' },
     { from: 'CAB', to: 'TMS', label: 'Driver Cmd', type: 'control' },
     { from: 'COMMS', to: 'TMS', label: 'Comms Data', type: 'data' },
-  ].filter(e => nodeIds.has(e.from) && nodeIds.has(e.to));
+  ];
 
-  return { nodes, edges: topologyEdges };
+  for (const de of defaultEdges) {
+    if (nodeIds.has(de.from) && nodeIds.has(de.to)) {
+      const key = `${de.from}-${de.to}`;
+      if (!dynamicEdgeKeys.has(key)) {
+        edges.push(de);
+      }
+    }
+  }
+
+  return { nodes, edges };
 }
 
 function buildTopology(systems: any[]) {

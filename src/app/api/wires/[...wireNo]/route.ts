@@ -4,12 +4,13 @@ import { Prisma } from '@prisma/client';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ wireNo: string }> }
+  { params }: { params: Promise<{ wireNo: string[] }> }
 ) {
   try {
-    const { wireNo: rawWireNo } = await params;
-    // Normalize wire number (e.g. remove trailing -W, dashes, etc.)
-    const wireNo = rawWireNo.replace(/-W$/, '').replace(/-/g, '').trim();
+    const { wireNo: segments } = await params;
+    const rawWireNo = segments.map(decodeURIComponent).join('/');
+    // Normalize wire number (e.g. remove trailing -W, but keep / since it's a valid separator in wireNo)
+    const wireNo = rawWireNo.replace(/-W$/, '').trim();
 
     let wire = await prisma.wire.findFirst({
       where: {
@@ -22,23 +23,16 @@ export async function GET(
     });
 
     if (!wire) {
+      // Try with slash removed if we searched with it, or try startsWith base
+      const noSlash = wireNo.replace(/[\/]/g, '');
       wire = await prisma.wire.findFirst({
         where: {
-          wireNo: { startsWith: wireNo.substring(0, 4), mode: Prisma.QueryMode.insensitive },
+          OR: [
+            { wireNo: noSlash },
+            { wireNo: { startsWith: wireNo.substring(0, 4), mode: Prisma.QueryMode.insensitive } },
+          ]
         },
       });
-    }
-
-    if (!wire) {
-      const allWires = await prisma.wire.findMany({ take: 1 });
-      if (allWires.length === 0) {
-        return NextResponse.json({ 
-          error: 'No wire found',
-          message: 'Database is empty. Please seed the database first.',
-          hint: 'Call /api/vcc-master-seed to populate the database',
-          searchTerm: wireNo
-        }, { status: 404 });
-      }
     }
 
     if (!wire) {
@@ -48,8 +42,8 @@ export async function GET(
     const relatedTrainLines = await prisma.trainLine.findMany({
       where: { 
         OR: [
-          { wireNo: wireNo },
-          { wireNo: { contains: wireNo } }
+          { wireNo: wire.wireNo },
+          { wireNo: { contains: wire.wireNo } }
         ]
       },
       include: { drawing: true },
@@ -58,8 +52,8 @@ export async function GET(
     const relatedPins = await prisma.connectorPin.findMany({
       where: { 
         OR: [
-          { wireNo: wireNo },
-          { wireNo: { contains: wireNo } }
+          { wireNo: wire.wireNo },
+          { wireNo: { contains: wire.wireNo } }
         ]
       },
       include: { connector: { include: { drawing: true } } },
@@ -68,7 +62,7 @@ export async function GET(
     const relatedSignals = await prisma.signal.findMany({
       where: {
         OR: [
-          { signalCode: { contains: wireNo } },
+          { signalCode: { contains: wire.wireNo } },
           { signalName: { contains: wire.signalName || '' } },
         ],
       },
@@ -127,6 +121,7 @@ export async function GET(
       wire: {
         id: wire.id,
         wireNo: wire.wireNo,
+        wireAlias: wire.wireAlias,
         signalName: wire.signalName,
         description: wire.description,
         wireColor: wire.wireColor,

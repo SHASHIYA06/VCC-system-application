@@ -68,7 +68,7 @@ export async function getWires(params?: { search?: string; voltage?: string; lim
 
 export async function getWireDetails(wireNo: string) {
   try {
-    return await fetchAPI(`/api/wires/${wireNo}`);
+    return await fetchAPI(`/api/wires/${encodeURIComponent(wireNo)}`);
   } catch {
     return null;
   }

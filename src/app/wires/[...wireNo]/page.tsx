@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Zap, Cpu, Cable, ChevronRight, MapPin, ArrowRight, Database, FileText, Link as LinkIcon } from 'lucide-react';
-import Head from 'next/head';
 
 interface WireData {
   id: string;
@@ -64,7 +63,8 @@ const WIRE_TRACE_COLORS: Record<string, string> = {
 
 export default function WireDetailPage() {
   const params = useParams();
-  const wireNo = params.wireNo as string;
+  const segments = params.wireNo as string[] | undefined;
+  const wireNo = Array.isArray(segments) ? segments.map(decodeURIComponent).join('/') : (segments || '');
   
   const [wire, setWire] = useState<WireData | null>(null);
   const [trace, setTrace] = useState<WireTrace | null>(null);
@@ -76,7 +76,7 @@ export default function WireDetailPage() {
     async function fetchWire() {
       if (!wireNo) return;
       try {
-        const response = await fetch(`/api/wires/${wireNo}`);
+        const response = await fetch(`/api/wires/${encodeURIComponent(wireNo)}`);
         if (response.ok) {
           const data = await response.json();
           setWire(data.wire);
@@ -123,8 +123,8 @@ export default function WireDetailPage() {
         <div className="glass-card p-12 text-center">
           <Zap className="h-12 w-12 text-slate-500 mx-auto mb-4" />
           <p className="text-slate-400">Wire {wireNo} not found</p>
-          <Link href="/admin/import" className="mt-4 text-cyan-400 hover:text-cyan-300">
-            Import wires to add to database
+          <Link href="/documents" className="mt-4 text-cyan-400 hover:text-cyan-300">
+            View PDF documents list to search manually
           </Link>
         </div>
       </div>
@@ -209,9 +209,9 @@ export default function WireDetailPage() {
                     <Cpu className="h-5 w-5 text-cyan-400" />
                   </div>
                   <div>
-                    <Link href={`/equipment/${trace.source.code}`} className="text-cyan-400 font-bold hover:text-cyan-300 block text-lg">
+                    <span className="text-cyan-400 font-bold block text-lg">
                       {trace.source.code}
-                    </Link>
+                    </span>
                     {trace.source.pin && (
                       <span className="text-sm text-slate-400 font-mono mt-1 block">Pin: {trace.source.pin}</span>
                     )}
@@ -233,9 +233,9 @@ export default function WireDetailPage() {
                     <Cpu className="h-5 w-5 text-orange-400" />
                   </div>
                   <div>
-                    <Link href={`/equipment/${trace.destination.code}`} className="text-orange-400 font-bold hover:text-orange-300 block text-lg">
+                    <span className="text-orange-400 font-bold block text-lg">
                       {trace.destination.code}
-                    </Link>
+                    </span>
                     {trace.destination.pin && (
                       <span className="text-sm text-slate-400 font-mono mt-1 block">Pin: {trace.destination.pin}</span>
                     )}

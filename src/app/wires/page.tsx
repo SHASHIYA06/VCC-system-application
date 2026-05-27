@@ -55,6 +55,7 @@ const CROSS_CONNECTED = ['3005', '3006', '6009', '6014', '6046', '6051'];
 
 interface WireData {
   wireNo: string;
+  wireAlias?: string | null;
   signalName: string | null;
   description: string | null;
   wireColor: string | null;
@@ -132,7 +133,8 @@ export default function WiresPage() {
   const filtered = wires.filter(w => {
     // If we're filtering server-side via the search input, client-side filtering by search is redundant but harmless.
     const matchSearch = search === '' ||
-      w.wireNo?.includes(search) || 
+      w.wireNo?.toLowerCase().includes(search.toLowerCase()) || 
+      (w.wireAlias || '').toLowerCase().includes(search.toLowerCase()) ||
       (w.signalName || '').toLowerCase().includes(search.toLowerCase()) ||
       (w.description || '').toLowerCase().includes(search.toLowerCase());
     const matchSystem = systemFilter === 'all' || 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -95,6 +95,7 @@ function DrawingDetailContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [allPageVariants, setAllPageVariants] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'connectors' | 'wires' | 'trainlines' | 'equipment'>('connectors');
   const [expandedConn, setExpandedConn] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -148,14 +149,24 @@ function DrawingDetailContent() {
     return null;
   }
 
+  const pdfViewerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToPdf = () => {
+    setTimeout(() => {
+      pdfViewerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   function openPdfViewer() {
     setPdfSearchQuery('');
     setShowPdfViewer(true);
+    scrollToPdf();
   }
 
   function openPdfWithSearch(searchTerm: string) {
     setPdfSearchQuery(searchTerm);
     setShowPdfViewer(true);
+    scrollToPdf();
   }
 
   useEffect(() => {
@@ -182,10 +193,12 @@ function DrawingDetailContent() {
         setTrainlines(data.relatedTrainlines || []);
         setEquipment(data.relatedEquipment || []);
         setSuggestions(data.suggestions || []);
+        setAllPageVariants(data.allPageVariants || []);
         setError(null);
       } else {
         setError(data.error || 'Drawing not found');
         setSuggestions(data.suggestions || []);
+        setAllPageVariants(data.allPageVariants || []);
       }
     } catch (err) {
       setError('Failed to load drawing');
@@ -206,8 +219,10 @@ function DrawingDetailContent() {
         setWires(data.relatedWires || []);
         setTrainlines(data.relatedTrainlines || []);
         setEquipment(data.relatedEquipment || []);
+        setAllPageVariants(data.allPageVariants || []);
       } else {
         setSearchResults(data.suggestions || []);
+        setAllPageVariants([]);
       }
     } catch (err) {
       console.error('Search failed:', err);
@@ -288,6 +303,31 @@ function DrawingDetailContent() {
 
       {drawing && (
         <>
+          {allPageVariants.length > 1 && (
+            <div className="glass-card p-4 mb-6">
+              <p className="text-xs text-slate-400 mb-2 font-bold uppercase tracking-wider">Drawing Sheets/Pages:</p>
+              <div className="flex flex-wrap gap-2">
+                {allPageVariants.map((v, i) => {
+                  const isActive = v.drawingNo === drawing.drawingNo;
+                  const cleanLabel = v.drawingNo.replace(drawing.drawingNo.replace(/[A-Z]+$/, ''), '') || v.drawingNo;
+                  return (
+                    <Link
+                      key={i}
+                      href={`/drawings/${v.drawingNo}?doc=${v.drawingNo}`}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all border ${
+                        isActive
+                          ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-600/25'
+                          : 'bg-slate-850 border-slate-700/40 text-slate-300 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      Sheet {cleanLabel}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="glass-card p-6 mb-6">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -517,13 +557,16 @@ function DrawingDetailContent() {
       )}
 
       {showPdfViewer && resolvePdfSrc() && (
-        <PdfViewerEnhanced
-          src={resolvePdfSrc()!}
-          initialPage={pdfPage}
-          title={`${drawing?.drawingNo} - ${drawing?.title}`}
-          searchQuery={pdfSearchQuery}
-          onClose={() => setShowPdfViewer(false)}
-        />
+        <div ref={pdfViewerRef} className="mt-8 border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl bg-slate-900 min-h-[600px] h-[750px] w-full">
+          <PdfViewerEnhanced
+            src={resolvePdfSrc()!}
+            initialPage={pdfPage}
+            title={`${drawing?.drawingNo} - ${drawing?.title}`}
+            searchQuery={pdfSearchQuery}
+            onClose={() => setShowPdfViewer(false)}
+            inline={true}
+          />
+        </div>
       )}
     </div>
   );

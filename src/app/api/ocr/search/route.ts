@@ -1,145 +1,176 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { searchDrawingsByOCR, searchInOCRText, getDrawingSuggestions } from '@/lib/pdf/pdf-ocr-search';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+
+export const dynamic = 'force-dynamic';
 
 /**
- * OCR Search API
- * 
- * Provides comprehensive search across all VCC drawings using OCR text
- * 
- * Query Parameters:
- * - q: Search query (required)
- * - type: Search type ('drawing' | 'text' | 'suggest') - default: 'drawing'
- * - fuzzy: Enable fuzzy matching (true | false) - default: true
- * - limit: Maximum results - default: 50
- * - system: Filter by system code (optional)
- * 
- * Examples:
- * - /api/ocr/search?q=942-38402
- * - /api/ocr/search?q=EDB&type=text
- * - /api/ocr/search?q=58&type=suggest&limit=10
+ * Full-text OCR search across indexed PDF pages.
+ * Uses OcrPage.rawText for searching.
+ * Returns: matching pages with drawing context, wire numbers found on page.
  */
-
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    
-    const query = searchParams.get('q');
-    const type = searchParams.get('type') || 'drawing';
-    const fuzzy = searchParams.get('fuzzy') !== 'false';
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const systemFilter = searchParams.get('system') || undefined;
+  const { searchParams } = new URL(request.url);
+  const q = (searchParams.get('q') || '').trim();
+  const type = searchParams.get('type') || 'all'; // wire | drawing | text | all
+  const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
+  const sourceFile = searchParams.get('file') || undefined;
 
-    if (!query) {
-      return NextResponse.json(
-        { error: 'Query parameter "q" is required' },
-        { status: 400 }
-      );
-    }
-
-    let results;
-
-    switch (type) {
-      case 'drawing':
-        // Search by drawing number/title
-        results = await searchDrawingsByOCR({
-          query,
-          fuzzy,
-          limit,
-          systemFilter
-        });
-        break;
-
-      case 'text':
-        // Search within OCR text content
-        results = await searchInOCRText(query, limit);
-        break;
-
-      case 'suggest':
-        // Get suggestions for autocomplete
-        results = await getDrawingSuggestions(query, limit);
-        break;
-
-      default:
-        return NextResponse.json(
-          { error: 'Invalid search type. Use: drawing, text, or suggest' },
-          { status: 400 }
-        );
-    }
-
-    return NextResponse.json({
-      query,
-      type,
-      count: results.length,
-      results
-    });
-
-  } catch (error) {
-    console.error('OCR search error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Search failed', 
-        details: error instanceof Error ? error.message : String(error)
-      },
-      { status: 500 }
-    );
+  if (!q) {
+    return NextResponse.json({ error: 'Query required' }, { status: 400 });
   }
-}
 
-/**
- * POST endpoint for advanced search with filters
- */
-export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    
-    const {
-      query,
-      fuzzy = true,
-      limit = 50,
-      systemFilter,
-      includeOCRText = false
-    } = body;
+    const results: {
+      pages: any[];
+      wires: any[];
+      drawings: any[];
+      pins: any[];
+      totalMatches: number;
+    } = { pages: [], wires: [], drawings: [], pins: [], totalMatches: 0 };
 
-    if (!query) {
-      return NextResponse.json(
-        { error: 'Query is required' },
-        { status: 400 }
-      );
+    // ── 1. OCR page full-text search ──────────────────────────────────────
+    if (type === 'all' || type === 'text') {
+      const pageWhere: Prisma.OcrPageWhereInput = {
+        rawText: { contains: q, mode: Prisma.QueryMode.insensitive },
+      };
+      if (sourceFile) pageWhere.sourceFileId = { contains: sourceFile };
+
+      const pages = await prisma.ocrPage.findMany({
+        where: pageWhere,
+        orderBy: { pageNo: 'asc' },
+        take: limit,
+        select: {
+          id: true,
+          sourceFileId: true,
+          pageNo: true,
+          sourcePageLabel: true,
+          parseStatus: true,
+          extra: true,
+        },
+      });
+
+      results.pages = pages.map(p => {
+        const extra = (p.extra as any) || {};
+        return {
+          sourceFile: p.sourceFileId,
+          pageNo: p.pageNo,
+          label: p.sourcePageLabel,
+          drawingNos: extra.drawingNos || [],
+          wireCount: extra.wireCount || 0,
+          pdfUrl: `/api/pdf/${encodeURIComponent(p.sourceFileId)}#page=${p.pageNo}`,
+        };
+      });
+      results.totalMatches += pages.length;
     }
 
-    // Perform search
-    const results = await searchDrawingsByOCR({
-      query,
-      fuzzy,
-      limit,
-      systemFilter
-    });
+    // ── 2. Wire search with alphanumeric support ───────────────────────────
+    if (type === 'all' || type === 'wire') {
+      const numBase = q.replace(/[a-zA-Z]+$/, '').replace(/[\/\-]/g, '');
+      const wireWhere: Prisma.WireWhereInput = {
+        OR: [
+          { wireNo: { contains: q, mode: Prisma.QueryMode.insensitive } },
+          { wireAlias: { contains: q, mode: Prisma.QueryMode.insensitive } },
+          { signalName: { contains: q, mode: Prisma.QueryMode.insensitive } },
+          { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
+          numBase.length >= 3 ? { wireNo: { startsWith: numBase } } : {},
+        ].filter(c => Object.keys(c).length > 0),
+      };
 
-    // Optionally include full OCR text
-    if (includeOCRText) {
-      const textResults = await searchInOCRText(query, limit);
-      return NextResponse.json({
-        query,
-        drawingResults: results,
-        textResults,
-        totalCount: results.length + textResults.length
+      const wires = await prisma.wire.findMany({
+        where: wireWhere,
+        orderBy: { wireNo: 'asc' },
+        take: limit,
+        include: {
+          endpoints: {
+            include: {
+              connector: { select: { connectorCode: true, carType: true } },
+            }
+          }
+        }
       });
+
+      results.wires = wires;
+      results.totalMatches += wires.length;
+    }
+
+    // ── 3. Drawing number search ───────────────────────────────────────────
+    if (type === 'all' || type === 'drawing') {
+      const drawBase = q.replace(/[A-D]$/, '');
+      const drawings = await prisma.drawing.findMany({
+        where: {
+          OR: [
+            { drawingNo: { contains: q } },
+            { drawingNo: { startsWith: drawBase } },
+            { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
+          ],
+        },
+        orderBy: { drawingNo: 'asc' },
+        take: limit,
+        include: { system: { select: { code: true, name: true } } },
+      });
+
+      results.drawings = drawings.map(d => ({
+        id: d.id,
+        drawingNo: d.drawingNo,
+        title: d.title,
+        revision: d.revision,
+        systemCode: d.system?.code,
+        systemName: d.system?.name,
+        sourceFile: d.sourceFileId,
+        pdfUrl: d.drawingPdfUrl || (d.sourceFileId ? `/api/pdf/${encodeURIComponent(d.sourceFileId)}` : null),
+        totalSheets: d.totalSheets,
+      }));
+      results.totalMatches += drawings.length;
+    }
+
+    // ── 4. Pin search ─────────────────────────────────────────────────────
+    if (type === 'all' || type === 'pin') {
+      const pins = await prisma.connectorPin.findMany({
+        where: {
+          OR: [
+            { wireNo: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            { signalName: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            { pinNo: { contains: q } },
+          ],
+        },
+        take: limit,
+        include: {
+          connector: {
+            include: {
+              drawing: { select: { drawingNo: true, title: true, sourceFileId: true } }
+            }
+          }
+        },
+        orderBy: { wireNo: 'asc' },
+      });
+
+      results.pins = pins.map(p => ({
+        id: p.id,
+        pinNo: p.pinNo,
+        wireNo: p.wireNo,
+        signalName: p.signalName,
+        connectorCode: p.connector?.connectorCode,
+        drawingNo: p.connector?.drawing?.drawingNo,
+        drawingTitle: p.connector?.drawing?.title,
+        pdfUrl: p.connector?.drawing?.sourceFileId 
+          ? `/api/pdf/${encodeURIComponent(p.connector.drawing.sourceFileId)}`
+          : null,
+      }));
+      results.totalMatches += pins.length;
     }
 
     return NextResponse.json({
-      query,
-      count: results.length,
-      results
+      query: q,
+      type,
+      ...results,
+      searchTip: results.totalMatches === 0
+        ? `No results for "${q}". Try: shorter query, use drawing number (e.g. 58120), or wire base number (e.g. 3001).`
+        : undefined,
     });
 
   } catch (error) {
     console.error('OCR search error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Search failed', 
-        details: error instanceof Error ? error.message : String(error)
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Search failed', details: String(error) }, { status: 500 });
   }
 }

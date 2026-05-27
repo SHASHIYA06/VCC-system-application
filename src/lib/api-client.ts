@@ -84,7 +84,7 @@ export const api = {
   wires: {
     list: (params?: { search?: string; voltage?: string; limit?: number; page?: number }) =>
       fetchApi<unknown>('/api/wires', { params }),
-    get: (wireNo: string) => fetchApi<unknown>(`/api/wires/${wireNo}`),
+    get: (wireNo: string) => fetchApi<unknown>(`/api/wires/${encodeURIComponent(wireNo)}`),
   },
 
   equipment: {

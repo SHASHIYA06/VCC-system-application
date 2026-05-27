@@ -33,6 +33,12 @@ export interface LLMProvider {
 
 const DEFAULT_PROVIDERS: LLMProvider[] = [
   {
+    name: 'opencode',
+    baseURL: 'https://opencode.ai/zen/v1',
+    models: ['minimax-m2.5', 'minimax/minimax-m2.5', 'minimax-m2.5-free'],
+    defaultModel: 'minimax-m2.5',
+  },
+  {
     name: 'openai',
     baseURL: 'https://api.openai.com/v1',
     models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
@@ -225,7 +231,7 @@ export async function callLLMWithFallback(
     preferredProviders?: string[];
   } = {}
 ): Promise<LLMResponse> {
-  const providers = options.preferredProviders || ['openrouter', 'openai', 'anthropic', 'gemini', 'nvidia'];
+  const providers = options.preferredProviders || ['opencode', 'openrouter', 'openai', 'anthropic', 'gemini', 'nvidia'];
   
   console.log('Trying LLM providers:', providers);
   

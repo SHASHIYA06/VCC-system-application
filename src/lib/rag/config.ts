@@ -31,6 +31,16 @@ export const RAG_CONFIG = {
     // Chat/Completion models (multi-provider)
     chat: [
       {
+        name: 'opencode-minimax',
+        provider: 'opencode',
+        model: 'minimax-m2.5',
+        apiKey: process.env.OPENCODE_API_KEY,
+        baseURL: 'https://opencode.ai/zen/v1',
+        maxTokens: 4096,
+        temperature: 0.3,
+        priority: 0,
+      },
+      {
         name: 'claude-sonnet',
         provider: 'anthropic',
         model: 'claude-3-5-sonnet-20241022',
@@ -83,10 +93,10 @@ export const RAG_CONFIG = {
 
     // Specialized models for specific tasks
     specialized: {
-      codeAnalysis: 'deepseek-chat',
-      technicalDocs: 'claude-sonnet',
-      quickAnswers: 'gpt-4-turbo',
-      complexReasoning: 'claude-sonnet',
+      codeAnalysis: 'opencode-minimax',
+      technicalDocs: 'opencode-minimax',
+      quickAnswers: 'opencode-minimax',
+      complexReasoning: 'opencode-minimax',
     },
   },
 
@@ -111,7 +121,7 @@ export const RAG_CONFIG = {
   // Multi-Agent Configuration
   agents: {
     coordinator: {
-      model: 'claude-sonnet',
+      model: 'opencode-minimax',
       systemPrompt: `You are the Coordinator Agent for the VCC (Vehicle Control Cabinet) system.
 Your role is to:
 1. Understand user queries and break them into sub-tasks
@@ -120,7 +130,7 @@ Your role is to:
 4. Ensure accuracy and completeness of answers`,
     },
     retriever: {
-      model: 'gpt-4-turbo',
+      model: 'opencode-minimax',
       systemPrompt: `You are the Retriever Agent for VCC documentation.
 Your role is to:
 1. Search and retrieve relevant documents
@@ -129,7 +139,7 @@ Your role is to:
 4. Provide context for other agents`,
     },
     analyzer: {
-      model: 'deepseek-chat',
+      model: 'opencode-minimax',
       systemPrompt: `You are the Analyzer Agent for VCC technical analysis.
 Your role is to:
 1. Analyze wiring diagrams and circuits
@@ -138,7 +148,7 @@ Your role is to:
 4. Validate technical specifications`,
     },
     synthesizer: {
-      model: 'claude-sonnet',
+      model: 'opencode-minimax',
       systemPrompt: `You are the Synthesizer Agent for VCC responses.
 Your role is to:
 1. Combine information from multiple sources
