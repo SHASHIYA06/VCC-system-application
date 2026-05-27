@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { 
   ChevronLeft, ChevronRight, X, Download, Maximize2, 
-  Search, ZoomIn, ZoomOut, Loader2, AlertCircle 
+  Search, ZoomIn, ZoomOut, Loader2, AlertCircle, Eye 
 } from 'lucide-react';
 
 // Configure PDF.js worker
@@ -35,6 +35,7 @@ export default function PdfViewerEnhanced({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfDocument, setPdfDocument] = useState<any>(null);
+  const [useIframe, setUseIframe] = useState(false);
 
   useEffect(() => {
     setPageNumber(initialPage);
@@ -54,9 +55,10 @@ export default function PdfViewerEnhanced({
   }
 
   function onDocumentLoadError(error: Error) {
-    console.error('PDF load error:', error);
-    setError('Failed to load PDF. Please try again.');
+    console.error('PDF load error, falling back to standard browser viewer:', error);
+    setUseIframe(true);
     setLoading(false);
+    setError(null);
   }
 
   async function performSearch(query: string) {
@@ -214,6 +216,24 @@ export default function PdfViewerEnhanced({
         {/* Controls */}
         <div className="flex items-center gap-3 bg-slate-800 px-4 py-2 rounded-lg">
           <button 
+            type="button"
+            onClick={() => {
+              setUseIframe(!useIframe);
+              setLoading(true);
+            }}
+            className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              useIframe 
+                ? 'bg-amber-500/25 text-amber-400 border border-amber-500/30' 
+                : 'bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600'
+            }`}
+            title="Switch between high-fidelity and simple browser viewer"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            {useIframe ? 'High-Fidelity PDF' : 'Use Browser Viewer'}
+          </button>
+          
+          <div className="w-px h-6 bg-slate-700" />
+          <button 
             onClick={goToPrevPage} 
             disabled={pageNumber <= 1}
             className="p-1.5 hover:bg-slate-700 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -312,39 +332,36 @@ export default function PdfViewerEnhanced({
           </div>
         )}
         
-        {!loading && !error && (
-          <Document
-            file={src}
-            onLoadSuccess={(pdf) => {
-              onDocumentLoadSuccess(pdf);
-              setPdfDocument(pdf);
-            }}
-            onLoadError={onDocumentLoadError}
-            loading={
-              <div className="flex items-center justify-center">
-                <Loader2 className="h-8 w-8 text-cyan-400 animate-spin" />
-              </div>
-            }
-            error={
-              <div className="text-red-400">
-                Failed to load PDF
-              </div>
-            }
-          >
-            <div className="bg-white shadow-2xl">
-              <Page 
-                pageNumber={pageNumber} 
-                scale={scale}
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-                loading={
-                  <div className="flex items-center justify-center p-8">
-                    <Loader2 className="h-8 w-8 text-cyan-400 animate-spin" />
-                  </div>
-                }
-              />
+        {useIframe ? (
+          <iframe
+            src={`${src}#page=${pageNumber}`}
+            className="w-full h-full border-0 rounded-lg bg-white shadow-2xl"
+            title={title || 'PDF Viewer'}
+            onLoad={() => setLoading(false)}
+          />
+        ) : (
+          !error && (
+            <div className={loading ? 'hidden' : 'block bg-white shadow-2xl'}>
+              <Document
+                file={src}
+                onLoadSuccess={(pdf) => {
+                  onDocumentLoadSuccess(pdf);
+                  setPdfDocument(pdf);
+                }}
+                onLoadError={onDocumentLoadError}
+                loading={null}
+                error={null}
+              >
+                <Page 
+                  pageNumber={pageNumber} 
+                  scale={scale}
+                  renderTextLayer={true}
+                  renderAnnotationLayer={true}
+                  loading={null}
+                />
+              </Document>
             </div>
-          </Document>
+          )
         )}
       </div>
       
