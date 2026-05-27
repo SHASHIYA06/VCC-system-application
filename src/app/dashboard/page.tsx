@@ -705,7 +705,7 @@ export default function DashboardPage() {
 
             {/* Inline Drawing PDF Rendering below Search Result */}
             <AnimatePresence>
-              {showInlinePdf && activeDrawing && activeDrawing.sourceFile && (
+              {showInlinePdf && activeDrawing && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -726,7 +726,19 @@ export default function DashboardPage() {
                   </div>
                   <div className="h-[80vh] relative">
                     <PdfViewerEnhanced
-                      src={`/api/pdf/${encodeURIComponent(activeDrawing.sourceFile)}`}
+                      src={activeDrawing.sourceFile
+                        ? `/api/pdf/${encodeURIComponent(activeDrawing.sourceFile)}`
+                        : (() => {
+                          const upper = (activeDrawing.drawingNo || '').toUpperCase();
+                          if (upper.match(/942-?38[1-2]/)) return `/api/pdf/${encodeURIComponent('CAB_PIN DRAWINGS.pdf')}`;
+                          if (upper.match(/942-?383/)) return `/api/pdf/${encodeURIComponent('DMC UF_PIN DRAWINGS.pdf')}`;
+                          if (upper.match(/942-?384/)) return `/api/pdf/${encodeURIComponent('DMC_CEILING.pdf')}`;
+                          if (upper.match(/942-?385/)) return `/api/pdf/${encodeURIComponent('TC _UF PIN DRAWINGS.pdf')}`;
+                          if (upper.match(/942-?386/)) return `/api/pdf/${encodeURIComponent('TC_CEILING PIN DRAWINGS.pdf')}`;
+                          if (upper.match(/942-?387/)) return `/api/pdf/${encodeURIComponent('MC_CEILING_PIN DRAWINGS.pdf')}`;
+                          return `/api/pdf/${encodeURIComponent('KMRCL VCC Drawings_OCR.pdf')}`;
+                        })()
+                      }
                       initialPage={inlinePdfPage}
                       title={`${activeDrawing.drawingNo} - ${activeDrawing.title}`}
                       onClose={() => setShowInlinePdf(false)}

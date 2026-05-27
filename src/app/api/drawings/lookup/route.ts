@@ -1,9 +1,106 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { readdir } from 'fs/promises';
+import { join } from 'path';
+
+export const dynamic = 'force-dynamic';
+
+// ─── PDF filename to drawing number prefix mappings ──────────────────────────
+// Maps actual PDF files in public/DOCUMENTS to the drawing number ranges they cover
+const PDF_FILE_REGISTRY: Record<string, { file: string; systems: string[]; description: string; drawingPrefixes: string[] }> = {
+  'KMRCL VCC Drawings_OCR.pdf': {
+    file: 'KMRCL VCC Drawings_OCR.pdf',
+    systems: ['GEN', 'TRAC', 'BRAKE', 'TMS', 'DOOR', 'VAC', 'APS', 'COMMS', 'CBTC', 'LIGHT', 'PIS'],
+    description: 'Main VCC Drawings (all schematics)',
+    drawingPrefixes: ['942-38', '942-58'],
+  },
+  'DMC UF_PIN DRAWINGS.pdf': {
+    file: 'DMC UF_PIN DRAWINGS.pdf',
+    systems: ['TRAC', 'BRAKE', 'APS'],
+    description: 'DMC Underframe PIN Drawing',
+    drawingPrefixes: ['942-383'],
+  },
+  'DMC_CEILING.pdf': {
+    file: 'DMC_CEILING.pdf',
+    systems: ['TMS', 'DOOR', 'COMMS'],
+    description: 'DMC Ceiling PIN Drawing',
+    drawingPrefixes: ['942-384'],
+  },
+  'TC _UF PIN DRAWINGS.pdf': {
+    file: 'TC _UF PIN DRAWINGS.pdf',
+    systems: ['APS', 'BRAKE'],
+    description: 'TC Underframe PIN Drawing',
+    drawingPrefixes: ['942-385'],
+  },
+  'TC_CEILING PIN DRAWINGS.pdf': {
+    file: 'TC_CEILING PIN DRAWINGS.pdf',
+    systems: ['TMS', 'VAC'],
+    description: 'TC Ceiling PIN Drawing',
+    drawingPrefixes: ['942-386'],
+  },
+  'MC_UF.pdf': {
+    file: 'MC_UF.pdf',
+    systems: ['TRAC', 'BRAKE', 'DOOR'],
+    description: 'MC Underframe PIN Drawing',
+    drawingPrefixes: ['942-386'],
+  },
+  'MC_CEILING_PIN DRAWINGS.pdf': {
+    file: 'MC_CEILING_PIN DRAWINGS.pdf',
+    systems: ['TMS', 'DOOR', 'VAC', 'COMMS'],
+    description: 'MC Ceiling PIN Drawing',
+    drawingPrefixes: ['942-387'],
+  },
+  'CAB_PIN DRAWINGS.pdf': {
+    file: 'CAB_PIN DRAWINGS.pdf',
+    systems: ['CAB', 'TMS'],
+    description: 'CAB PIN Drawing',
+    drawingPrefixes: ['942-381'],
+  },
+  'CAB_PIN DRAWINGS 2.pdf': {
+    file: 'CAB_PIN DRAWINGS 2.pdf',
+    systems: ['CAB'],
+    description: 'CAB PIN Drawing (Part 2)',
+    drawingPrefixes: ['942-382'],
+  },
+  'VCC DESCRIPTION 13.12.2017.pdf': {
+    file: 'VCC DESCRIPTION 13.12.2017.pdf',
+    systems: ['GEN'],
+    description: 'VCC System Description',
+    drawingPrefixes: [],
+  },
+};
+
+/**
+ * Resolve which PDF file contains a given drawing number.
+ * Returns the filename and a hint at page number.
+ */
+function resolveDrawingToPdf(drawingNo: string): { file: string; isPin: boolean } | null {
+  const upper = drawingNo.toUpperCase();
+  const numMatch = upper.match(/(\d{2,3})[-]?(\d+)/);
+  if (!numMatch) return null;
+
+  const fullNum = upper.replace(/[^0-9\-]/g, '');
+
+  // PIN drawings: 942-383xx = DMC_UF, 942-385xx = TC_UF, 942-386xx = MC_UF, 942-381 = CAB
+  if (upper.match(/942[-]?38[1-2]/i)) return { file: 'CAB_PIN DRAWINGS.pdf', isPin: true };
+  if (upper.match(/942[-]?383/i)) return { file: 'DMC UF_PIN DRAWINGS.pdf', isPin: true };
+  if (upper.match(/942[-]?384/i)) return { file: 'DMC_CEILING.pdf', isPin: true };
+  if (upper.match(/942[-]?385/i)) return { file: 'TC _UF PIN DRAWINGS.pdf', isPin: true };
+  if (upper.match(/942[-]?386/i)) return { file: 'TC_CEILING PIN DRAWINGS.pdf', isPin: true };
+  if (upper.match(/942[-]?387/i)) return { file: 'MC_CEILING_PIN DRAWINGS.pdf', isPin: true };
+
+  // Schematic drawings: 942-58xxx
+  if (upper.match(/942[-]?58/i)) return { file: 'KMRCL VCC Drawings_OCR.pdf', isPin: false };
+  if (upper.match(/942[-]?38/i)) return { file: 'KMRCL VCC Drawings_OCR.pdf', isPin: false };
+
+  // Fallback to main OCR file
+  return { file: 'KMRCL VCC Drawings_OCR.pdf', isPin: false };
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const drawingNo = searchParams.get('drawing_no');
+  const includePages = searchParams.get('include_pages') === 'true';
 
   if (!drawingNo) {
     return NextResponse.json({ error: 'Drawing number required' }, { status: 400 });
@@ -11,53 +108,99 @@ export async function GET(request: NextRequest) {
 
   try {
     const normalizedQuery = drawingNo.trim().toUpperCase();
-    
-    // Handle drawings with alphabetic suffixes (e.g., 942-58128D)
-    const baseNumber = normalizedQuery.replace(/[A-Z]+$/, ''); // Remove trailing letters
+
+    // Handle drawings with alphabetic page suffixes (e.g., 942-58128D means page D of 942-58128)
+    // Extract base number — everything before trailing A/B/C/D/E etc.
+    const baseNumber = normalizedQuery.replace(/[A-Z]+$/, '');
+    const pageSuffix = normalizedQuery.slice(baseNumber.length); // e.g. "A", "B", "D"
     const withoutPrefix = normalizedQuery.replace(/^942[-_]/i, '');
     const baseWithoutPrefix = withoutPrefix.replace(/[A-Z]+$/, '');
 
+    // Build an OR search that catches ALL page variants of this drawing
     const drawing = await prisma.drawing.findFirst({
       where: {
         OR: [
-          // Exact matches
           { drawingNo: { equals: normalizedQuery } },
           { drawingNo: { equals: normalizedQuery.replace(/-/g, '') } },
-          
-          // Contains matches
           { drawingNo: { contains: normalizedQuery } },
           { drawingNo: { contains: normalizedQuery.replace(/-/g, '') } },
-          
-          // Without prefix
           { drawingNo: { contains: withoutPrefix } },
-          { drawingNo: { contains: withoutPrefix.replace(/-/g, '') } },
-          
-          // Base number matches (for alphabetic suffixes)
           { drawingNo: { startsWith: baseNumber } },
           { drawingNo: { startsWith: baseWithoutPrefix } },
-          
-          // Flexible matching
           { drawingNo: { contains: baseWithoutPrefix } },
         ],
       },
       include: {
         pages: { orderBy: { pageNo: 'asc' } },
         system: true,
-        connectors: { include: { pins: true } },
-        trainLines: true,
+        connectors: { include: { pins: { orderBy: { pinNo: 'asc' } } } },
+        trainLines: { orderBy: { wireNo: 'asc' } },
         devices: { include: { system: true } },
-        _count: { select: { connectors: true, trainLines: true, devices: true } }
+        sheets: { orderBy: { sheetNo: 'asc' } },
+        _count: { select: { connectors: true, trainLines: true, devices: true } },
       },
     });
 
+    // Also fetch ALL page variants of this drawing (e.g. 942-58120, 942-58120A, 942-58120B...)
+    let allPages: any[] = [];
+    if (baseNumber.length >= 6) {
+      allPages = await prisma.drawing.findMany({
+        where: {
+          drawingNo: { startsWith: baseNumber },
+        },
+        select: {
+          id: true,
+          drawingNo: true,
+          title: true,
+          revision: true,
+          totalSheets: true,
+          _count: { select: { connectors: true, trainLines: true } },
+        },
+        orderBy: { drawingNo: 'asc' },
+        take: 20,
+      });
+    }
+
     if (!drawing) {
       const suggestions = await getDrawingSuggestions(drawingNo);
-      return NextResponse.json({ 
-        error: 'Drawing not found', 
+      return NextResponse.json({
+        error: 'Drawing not found',
         suggestions,
         searchedQuery: drawingNo,
-        tip: 'Try entering just the numeric portion (e.g., 58120 instead of 942-58120)'
+        allPageVariants: allPages,
+        tip: 'Try entering just the numeric portion (e.g., 58120 instead of 942-58120). For multi-page drawings, use the base number (e.g., 942-58120 to find 942-58120A, 942-58120B).',
       }, { status: 404 });
+    }
+
+    // Resolve PDF source file
+    let resolvedSourceFile: string | null = null;
+
+    // 1. Try DB-stored sourceFileId
+    if (drawing.sourceFileId) {
+      try {
+        const sfRecord = await prisma.sourceFile.findUnique({
+          where: { id: drawing.sourceFileId },
+          select: { filename: true },
+        });
+        if (sfRecord?.filename) resolvedSourceFile = sfRecord.filename;
+      } catch { /* ignore */ }
+      if (!resolvedSourceFile) resolvedSourceFile = drawing.sourceFileId;
+    }
+
+    // 2. Fall back to intelligent mapping based on drawing number
+    if (!resolvedSourceFile || !resolvedSourceFile.endsWith('.pdf')) {
+      const mapped = resolveDrawingToPdf(drawing.drawingNo);
+      if (mapped) resolvedSourceFile = mapped.file;
+    }
+
+    // 3. Last resort: list actual PDF files in public/DOCUMENTS
+    if (!resolvedSourceFile) {
+      try {
+        const docsDir = join(process.cwd(), 'public', 'DOCUMENTS');
+        const files = await readdir(docsDir);
+        const pdfs = files.filter(f => f.endsWith('.pdf'));
+        if (pdfs.length > 0) resolvedSourceFile = pdfs[0];
+      } catch { /* ignore */ }
     }
 
     const relatedWires = await getRelatedWires(drawing.id, drawing.drawingNo);
@@ -65,26 +208,9 @@ export async function GET(request: NextRequest) {
     const relatedEquipment = await getRelatedEquipment(drawing.id);
     const relatedConnectors = await getRelatedConnectors(drawing.id);
 
-    // Resolve the actual PDF filename from the SourceFile table
-    let resolvedSourceFile: string | null = null;
-    if (drawing.sourceFileId) {
-      // Try to look it up as a SourceFile record first (it might be a CUID)
-      try {
-        const sourceFileRecord = await prisma.sourceFile.findUnique({
-          where: { id: drawing.sourceFileId },
-          select: { filename: true },
-        });
-        if (sourceFileRecord?.filename) {
-          resolvedSourceFile = sourceFileRecord.filename;
-        }
-      } catch {
-        // sourceFileId might already be a filename string — use it directly
-      }
-      // If lookup failed, use the sourceFileId as-is (it may be stored as a filename)
-      if (!resolvedSourceFile) {
-        resolvedSourceFile = drawing.sourceFileId;
-      }
-    }
+    // Determine if this is a PIN drawing
+    const isPinDrawing = drawing.drawingNo.match(/942-38[1-9]/i) !== null ||
+      drawing.title?.toLowerCase().includes('pin') || false;
 
     return NextResponse.json({
       drawing: {
@@ -98,8 +224,12 @@ export async function GET(request: NextRequest) {
         sourceFile: resolvedSourceFile,
         remarks: drawing.remarks,
         pageCount: drawing.pages.length,
+        isPinDrawing,
+        pageSuffix: pageSuffix || null,
         _count: drawing._count,
       },
+      // All page variants: 942-58120, 942-58120A, 942-58120B
+      allPageVariants: allPages,
       relatedWires,
       relatedTrainlines,
       relatedEquipment,
@@ -112,162 +242,145 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// ─── Helper queries ─────────────────────────────────────────────────────────
+
 async function getRelatedWires(drawingId: string, drawingNo: string) {
-  // Method 1: Get wires through connector pins on this drawing
-  const connectorsOnDrawing = await prisma.connector.findMany({
-    where: { drawingId },
-    include: {
-      pins: {
-        where: { wireNo: { not: null } },
-        select: { wireNo: true }
-      }
-    }
-  });
+  try {
+    // Get wire numbers from connector pins
+    const connectorsOnDrawing = await prisma.connector.findMany({
+      where: { drawingId },
+      include: { pins: { where: { wireNo: { not: null } }, select: { wireNo: true } } }
+    });
+    const wireNosFromPins = [...new Set(
+      connectorsOnDrawing.flatMap(c => c.pins.map(p => p.wireNo)).filter(Boolean) as string[]
+    )];
 
-  const wireNosFromPins = connectorsOnDrawing
-    .flatMap(c => c.pins.map(p => p.wireNo))
-    .filter((w): w is string => w !== null);
+    // Get wires from endpoints
+    const wireEndpoints = await prisma.wireEndpoint.findMany({
+      where: { connector: { drawingId } },
+      include: { wire: true },
+    });
+    const wiresFromEndpoints = wireEndpoints.map(we => we.wire);
 
-  // Method 2: Get wires through wire endpoints linked to connectors on this drawing
-  const wireEndpoints = await prisma.wireEndpoint.findMany({
-    where: {
-      connector: { drawingId }
-    },
-    include: {
-      wire: true
-    }
-  });
+    // Get wires by wire number prefix from drawing
+    const baseNumMatch = drawingNo.match(/\d+/);
+    const baseNum = baseNumMatch ? baseNumMatch[0].slice(-4) : '';
 
-  const wiresFromEndpoints = wireEndpoints.map(we => we.wire);
-
-  // Method 3: Search for wires with alphabetic prefixes/suffixes (Y4181a, Y4184, etc.)
-  // Extract base drawing number for wire search
-  const drawingNumMatch = drawingNo.match(/\d+/);
-  const baseNum = drawingNumMatch ? drawingNumMatch[0] : '';
-  
-  const wiresFromRemarks = await prisma.wire.findMany({
-    where: {
-      OR: [
-        { remarks: { contains: drawingNo } },
-        { description: { contains: drawingNo } },
-        { wireNo: { contains: baseNum } }, // Search by base number
-        { signalName: { contains: baseNum } },
-      ],
-    },
-    take: 50,
-  });
-
-  // Method 4: Get wires by wireNo if we have them from pins (handle alphabetic variants)
-  const wiresFromPinRefs = wireNosFromPins.length > 0 
-    ? await prisma.wire.findMany({
-        where: { 
+    // Fetch by PIN wire numbers + search
+    const [wiresFromPins, wiresFromSearch] = await Promise.all([
+      wireNosFromPins.length > 0 ? prisma.wire.findMany({
+        where: {
           OR: [
             { wireNo: { in: wireNosFromPins } },
-            // Also search for wires that start with any of the pin wire numbers
-            ...wireNosFromPins.map(wn => ({ wireNo: { startsWith: wn } }))
+            ...wireNosFromPins.slice(0, 10).map(wn => ({ wireNo: { startsWith: wn.replace(/[a-zA-Z]+$/, '') } }))
           ]
         },
-        take: 100
-      })
-    : [];
+        take: 100,
+      }) : [],
+      baseNum ? prisma.wire.findMany({
+        where: {
+          OR: [
+            { remarks: { contains: drawingNo } },
+            { description: { contains: drawingNo } },
+          ]
+        },
+        take: 30,
+      }) : [],
+    ]);
 
-  // Method 5: Search for wires with alphabetic patterns (Y4181a, Y4184, etc.)
-  const alphabeticWires = await prisma.wire.findMany({
-    where: {
-      OR: [
-        { wireNo: { contains: 'Y4' } },
-        { wireNo: { contains: 'W4' } },
-        { wireNo: { contains: 'X4' } },
-        { wireNo: { contains: 'Z4' } },
-      ]
-    },
-    take: 50
-  });
+    const allWires = [...wiresFromEndpoints, ...wiresFromPins, ...wiresFromSearch];
+    const unique = Array.from(new Map(allWires.map(w => [w.wireNo, w])).values());
 
-  // Combine and deduplicate
-  const allWires = [
-    ...wiresFromEndpoints, 
-    ...wiresFromRemarks, 
-    ...wiresFromPinRefs,
-    ...alphabeticWires
-  ];
-  
-  const uniqueWires = Array.from(
-    new Map(allWires.map(w => [w.wireNo, w])).values()
-  );
-
-  return uniqueWires.slice(0, 100).map(w => ({
-    wireNo: w.wireNo,
-    signalName: w.signalName,
-    wireColor: w.wireColor,
-    voltageClass: w.voltageClass,
-    sourceConnector: w.sourceConnector,
-    destConnector: w.destConnector,
-    sourceEquipment: w.sourceEquipment,
-    destEquipment: w.destEquipment,
-  }));
+    return unique.slice(0, 150).map(w => ({
+      wireNo: w.wireNo,
+      signalName: w.signalName,
+      wireColor: w.wireColor,
+      voltageClass: w.voltageClass,
+      wireSize: w.wireSize,
+      sourceConnector: w.sourceConnector,
+      destConnector: w.destConnector,
+      sourceEquipment: w.sourceEquipment,
+      destEquipment: w.destEquipment,
+      cableSpec: w.cableSpec,
+    }));
+  } catch { return []; }
 }
 
 async function getRelatedTrainlines(drawingId: string) {
-  const trainlines = await prisma.trainLine.findMany({
-    where: { drawingId },
-    orderBy: { wireNo: 'asc' },
-    take: 100,
-  });
-  return trainlines;
+  try {
+    return await prisma.trainLine.findMany({
+      where: { drawingId },
+      orderBy: { wireNo: 'asc' },
+      take: 200,
+    });
+  } catch { return []; }
 }
 
 async function getRelatedEquipment(drawingId: string) {
-  const equipment = await prisma.device.findMany({
-    where: { drawingId },
-    include: { system: true },
-    take: 50,
-    orderBy: { deviceName: 'asc' },
-  });
-  return equipment.map(e => ({
-    name: e.deviceName,
-    tag: e.tagNo,
-    carType: e.carType,
-    systemCode: e.system?.code,
-    systemName: e.system?.name,
-  }));
+  try {
+    const equipment = await prisma.device.findMany({
+      where: { drawingId },
+      include: { system: true },
+      take: 100,
+      orderBy: { deviceName: 'asc' },
+    });
+    return equipment.map(e => ({
+      name: e.deviceName,
+      tag: e.tagNo,
+      carType: e.carType,
+      systemCode: e.system?.code,
+      systemName: e.system?.name,
+      location: e.locationTag,
+    }));
+  } catch { return []; }
 }
 
 async function getRelatedConnectors(drawingId: string) {
-  const connectors = await prisma.connector.findMany({
-    where: { drawingId },
-    include: { pins: true, _count: { select: { pins: true } } },
-    take: 50,
-    orderBy: { connectorCode: 'asc' },
-  });
-  return connectors.map(c => ({
-    connectorCode: c.connectorCode,
-    connectorType: c.connectorTypeCode,
-    description: c.description,
-    carType: c.carType,
-    pinCount: c._count.pins,
-    pins: c.pins.map(p => ({
-      pinNo: p.pinNo,
-      signalName: p.signalName,
-      wireNo: p.wireNo,
-    })),
-  }));
+  try {
+    const connectors = await prisma.connector.findMany({
+      where: { drawingId },
+      include: {
+        pins: { orderBy: { pinNo: 'asc' } },
+        _count: { select: { pins: true } },
+      },
+      take: 100,
+      orderBy: { connectorCode: 'asc' },
+    });
+    return connectors.map(c => ({
+      connectorCode: c.connectorCode,
+      connectorType: c.connectorTypeCode,
+      description: c.description,
+      carType: c.carType,
+      pinCount: c._count.pins,
+      pins: c.pins.map(p => ({
+        pinNo: p.pinNo,
+        signalName: p.signalName,
+        wireNo: p.wireNo,
+      })),
+    }));
+  } catch { return []; }
 }
 
 async function getDrawingSuggestions(query: string) {
-  const normalizedQuery = query.trim().toUpperCase();
-  
-  const drawings = await prisma.drawing.findMany({
-    where: {
-      OR: [
-        { drawingNo: { contains: normalizedQuery } },
-        { drawingNo: { contains: normalizedQuery.replace(/-/g, '') } },
-        { title: { contains: normalizedQuery, mode: 'insensitive' } },
-      ],
-    },
-    select: { drawingNo: true, title: true, revision: true, system: { select: { code: true } } },
-    take: 10,
-    orderBy: { drawingNo: 'asc' },
-  });
-  return drawings;
+  try {
+    const q = query.trim().toUpperCase();
+    const base = q.replace(/[A-Z]+$/, '');
+    return await prisma.drawing.findMany({
+      where: {
+        OR: [
+          { drawingNo: { contains: q } },
+          { drawingNo: { startsWith: base } },
+          { drawingNo: { contains: q.replace(/-/g, '') } },
+          { title: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        drawingNo: true, title: true, revision: true,
+        system: { select: { code: true, name: true } },
+        _count: { select: { connectors: true, trainLines: true } },
+      },
+      take: 15,
+      orderBy: { drawingNo: 'asc' },
+    });
+  } catch { return []; }
 }

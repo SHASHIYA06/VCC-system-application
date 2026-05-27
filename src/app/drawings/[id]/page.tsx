@@ -129,18 +129,33 @@ function DrawingDetailContent() {
     }
   }
 
-  function openPdfViewer() {
-    if (drawing?.sourceFile) {
-      setPdfSearchQuery('');
-      setShowPdfViewer(true);
+  /** Resolve PDF source — DB file or inferred from drawing number */
+  function resolvePdfSrc(): string | null {
+    if (drawing?.sourceFile && drawing.sourceFile.endsWith('.pdf')) {
+      return `/api/pdf/${encodeURIComponent(drawing.sourceFile)}`;
     }
+    // Infer from drawing number pattern
+    if (drawing?.drawingNo) {
+      const upper = drawing.drawingNo.toUpperCase();
+      if (upper.match(/942-?38[1-2]/)) return `/api/pdf/${encodeURIComponent('CAB_PIN DRAWINGS.pdf')}`;
+      if (upper.match(/942-?383/)) return `/api/pdf/${encodeURIComponent('DMC UF_PIN DRAWINGS.pdf')}`;
+      if (upper.match(/942-?384/)) return `/api/pdf/${encodeURIComponent('DMC_CEILING.pdf')}`;
+      if (upper.match(/942-?385/)) return `/api/pdf/${encodeURIComponent('TC _UF PIN DRAWINGS.pdf')}`;
+      if (upper.match(/942-?386/)) return `/api/pdf/${encodeURIComponent('TC_CEILING PIN DRAWINGS.pdf')}`;
+      if (upper.match(/942-?387/)) return `/api/pdf/${encodeURIComponent('MC_CEILING_PIN DRAWINGS.pdf')}`;
+      if (upper.match(/942-?38/) || upper.match(/942-?58/)) return `/api/pdf/${encodeURIComponent('KMRCL VCC Drawings_OCR.pdf')}`;
+    }
+    return null;
+  }
+
+  function openPdfViewer() {
+    setPdfSearchQuery('');
+    setShowPdfViewer(true);
   }
 
   function openPdfWithSearch(searchTerm: string) {
-    if (drawing?.sourceFile) {
-      setPdfSearchQuery(searchTerm);
-      setShowPdfViewer(true);
-    }
+    setPdfSearchQuery(searchTerm);
+    setShowPdfViewer(true);
   }
 
   useEffect(() => {
@@ -289,15 +304,21 @@ function DrawingDetailContent() {
                 <p className="text-sm text-slate-400 mt-1">{drawing.systemName || drawing.systemCode}</p>
               </div>
               <div className="flex flex-col gap-2">
-                {drawing.sourceFile ? (
-                  <button onClick={openPdfViewer}
-                    className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg">
-                    <Eye className="h-4 w-4" />
-                    View PDF (Page {pdfPage})
-                  </button>
-                ) : (
-                  <div className="text-sm text-slate-500">No PDF attached</div>
-                )}
+                {(() => {
+                  const pdfSrc = resolvePdfSrc();
+                  return pdfSrc ? (
+                    <button onClick={openPdfViewer}
+                      className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold transition-colors">
+                      <Eye className="h-4 w-4" />
+                      View PDF {pdfPage > 1 ? `(Page ${pdfPage})` : ''}
+                    </button>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      <div className="text-xs text-amber-400 font-medium">PDF not mapped</div>
+                      <a href="/documents" className="text-xs text-cyan-400 hover:underline">Browse PDFs →</a>
+                    </div>
+                  );
+                })()}
                 <Link href="/documents" className="text-xs text-cyan-400 hover:text-cyan-300 text-center">
                   Browse all documents
                 </Link>
@@ -495,11 +516,11 @@ function DrawingDetailContent() {
         </>
       )}
 
-      {showPdfViewer && drawing?.sourceFile && (
+      {showPdfViewer && resolvePdfSrc() && (
         <PdfViewerEnhanced
-          src={`/api/pdf/${encodeURIComponent(drawing.sourceFile)}`}
+          src={resolvePdfSrc()!}
           initialPage={pdfPage}
-          title={`${drawing.drawingNo} - ${drawing.title}`}
+          title={`${drawing?.drawingNo} - ${drawing?.title}`}
           searchQuery={pdfSearchQuery}
           onClose={() => setShowPdfViewer(false)}
         />

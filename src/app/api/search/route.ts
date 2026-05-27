@@ -30,14 +30,19 @@ export async function GET(request: NextRequest) {
     };
 
     if (type === 'all' || type === 'wires') {
+      // Alphanumeric wire search: support 3001a, 3001/1, 3001A, 3001-1
+      const numBase = searchQuery.replace(/[a-zA-Z]+$/, '').replace(/[\/-]/g, '');
+      const wireWhere: any = { OR: [
+        { wireNo: { contains: searchQuery, mode: 'insensitive' } },
+        { wireAlias: { contains: searchQuery, mode: 'insensitive' } },
+        { signalName: { contains: searchQuery, mode: 'insensitive' } },
+        { description: { contains: searchQuery, mode: 'insensitive' } },
+      ]};
+      if (numBase && numBase.length >= 2 && numBase !== searchQuery) {
+        wireWhere.OR.push({ wireNo: { startsWith: numBase } });
+      }
       const wires = await prisma.wire.findMany({
-        where: {
-          OR: [
-            { wireNo: { contains: searchQuery } },
-            { signalName: { contains: searchQuery, mode: 'insensitive' } },
-            { description: { contains: searchQuery, mode: 'insensitive' } },
-          ],
-        },
+        where: wireWhere,
         take: limit,
         orderBy: { wireNo: 'asc' },
       });
@@ -89,14 +94,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === 'all' || type === 'drawings') {
+      // Support suffix variants: 942-58120 finds 942-58120A, 942-58120B, etc.
+      const drawBase = searchQuery.replace(/[A-Z]+$/, '');
       const drawings = await prisma.drawing.findMany({
-        where: {
-          OR: [
-            { drawingNo: { contains: searchQuery } },
-            { drawingNo: { contains: searchQuery.replace(/-/g, '') } },
-            { title: { contains: searchQuery, mode: 'insensitive' } },
-          ],
-        },
+        where: { OR: [
+          { drawingNo: { contains: searchQuery } },
+          { drawingNo: { contains: searchQuery.replace(/-/g, '') } },
+          { drawingNo: { startsWith: drawBase } },
+          { title: { contains: searchQuery, mode: 'insensitive' } },
+        ]},
         include: { system: true },
         take: limit,
         orderBy: { drawingNo: 'asc' },
@@ -187,22 +193,39 @@ export async function GET(request: NextRequest) {
 }
 
 async function searchWireEverywhere(wireNo: string, limit: number) {
+  // Alphanumeric normalization: 3001a → base 3001, 3001/1 → 3001
   const normalizedWireNo = wireNo.trim().toUpperCase();
+  const numBase = normalizedWireNo.replace(/[A-Z]+$/, '').replace(/[\/\-]/g, '');
+  const normalized = normalizedWireNo.replace(/[\/\-\s]/g, '');
 
   const wireDetails = await prisma.wire.findFirst({
     where: {
       OR: [
         { wireNo: normalizedWireNo },
-        { wireNo: { contains: normalizedWireNo } },
+        { wireNo: { equals: normalizedWireNo, mode: 'insensitive' } },
+        { wireAlias: { equals: normalizedWireNo, mode: 'insensitive' } },
+        { wireNo: { contains: normalizedWireNo, mode: 'insensitive' } },
+        { wireNo: { startsWith: numBase } },
       ],
     },
   });
 
+  const wireSearchWhere = { OR: [
+    { wireNo: { contains: normalizedWireNo, mode: 'insensitive' } },
+    { wireNo: { startsWith: numBase } },
+    { wireAlias: { contains: normalizedWireNo, mode: 'insensitive' } },
+    normalized !== normalizedWireNo ? { wireNo: { contains: normalized, mode: 'insensitive' } } : {},
+  ].filter(c => Object.keys(c).length > 0) };
+
+  const pinSearchWhere = { OR: [
+    { wireNo: { contains: normalizedWireNo } },
+    { wireNo: normalizedWireNo },
+    { wireNo: { startsWith: numBase } },
+  ]};
+
   const [pins, trainlines, wires, signalMatches] = await Promise.all([
     prisma.connectorPin.findMany({
-      where: {
-        wireNo: { contains: normalizedWireNo },
-      },
+      where: pinSearchWhere,
       include: {
         connector: {
           include: {
