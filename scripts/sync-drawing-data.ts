@@ -14,7 +14,7 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
-// Load environment variables from .env.local
+// Load environment variables from .env.local before Prisma client initialization
 config({ path: resolve(process.cwd(), '.env.local') });
 
 import { PrismaClient } from '@prisma/client';
@@ -149,45 +149,38 @@ async function fixConnectors() {
       
       for (const connCode of connectorCodes) {
         try {
-          // Check if connector already exists
-          const existing = await prisma.connector.findFirst({
-            where: {
+          // Create connector directly since drawing had 0 connectors
+          const connector = await prisma.connector.create({
+            data: {
               drawingId: drawing.id,
-              connectorCode: connCode
+              connectorCode: connCode,
+              connectorTypeCode: '74P',
+              pinCount: 74,
+              carType: 'ALL',
+              description: `${connCode} - ${drawing.title}`,
+              scope: 'INTERCAR'
             }
           });
 
-          if (!existing) {
-            const connector = await prisma.connector.create({
-              data: {
-                drawingId: drawing.id,
-                connectorCode: connCode,
-                connectorTypeCode: '74P',
-                pinCount: 74,
-                carType: 'ALL',
-                description: `${connCode} - ${drawing.title}`,
-                scope: 'INTERCAR'
-              }
-            });
-
-            stats.connectorsCreated++;
+          stats.connectorsCreated++;
 
             // Create pins for this connector
+            const pinsData = [];
             for (let pinNo = 1; pinNo <= 74; pinNo++) {
-              await prisma.connectorPin.create({
-                data: {
-                  connectorId: connector.id,
-                  pinNo: String(pinNo),
-                  pinLabel: `P${pinNo}`,
-                  signalName: `${connCode}-SIG${pinNo}`,
-                  wireNo: generateWireNumber(drawing.drawingNo, connCode, pinNo),
-                }
+              pinsData.push({
+                connectorId: connector.id,
+                pinNo: String(pinNo),
+                pinLabel: `P${pinNo}`,
+                signalName: `${connCode}-SIG${pinNo}`,
+                wireNo: generateWireNumber(drawing.drawingNo, connCode, pinNo),
               });
-              stats.pinsCreated++;
             }
+            await prisma.connectorPin.createMany({
+              data: pinsData
+            });
+            stats.pinsCreated += 74;
 
             console.log(`   ✓ Created connector ${connCode} with 74 pins for ${drawing.drawingNo}`);
-          }
         } catch (error) {
           console.error(`   ✗ Failed to create connector ${connCode} for ${drawing.drawingNo}:`, error);
         }
@@ -323,14 +316,16 @@ async function fixTrainlines() {
     // Assign this group to a specific TRL drawing
     const targetDrawing = trlDrawings[Object.keys(groupedTrainlines).indexOf(group) % trlDrawings.length];
     
-    for (const tl of tls) {
-      if (tl.drawingId !== targetDrawing.id) {
-        await prisma.trainLine.update({
-          where: { id: tl.id },
-          data: { drawingId: targetDrawing.id }
-        });
-        stats.trainlinesRedistributed++;
-      }
+    const tlIdsToUpdate = tls
+      .filter(tl => tl.drawingId !== targetDrawing.id)
+      .map(tl => tl.id);
+      
+    if (tlIdsToUpdate.length > 0) {
+      const updateResult = await prisma.trainLine.updateMany({
+        where: { id: { in: tlIdsToUpdate } },
+        data: { drawingId: targetDrawing.id }
+      });
+      stats.trainlinesRedistributed += updateResult.count;
     }
   }
 

@@ -71,66 +71,64 @@ export function StatCard({
         transition={{ duration: 4, repeat: Infinity }}
       />
 
-      <div className="relative z-10">
-        {/* Icon */}
-        <div className="mb-4 inline-flex p-3 rounded-xl bg-white/10 backdrop-blur-sm">
-          {icon}
-        </div>
-
-        {/* Content */}
-        <div className="mb-4">
-          <p className="text-slate-400 text-sm font-medium mb-1">{label}</p>
-          <h3 className="text-3xl font-bold text-white">
-            {typeof value === 'number' ? value.toLocaleString() : value}
-          </h3>
-        </div>
-
-        {/* Subtext and Trend */}
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col w-full">
-            <div className="flex items-center justify-between">
-              {subtext && <p className="text-xs text-slate-400">{subtext}</p>}
-              {trend && trendValue && (
-                <div className={`text-xs font-semibold ${trendColors[trend]} bg-slate-900/40 px-2 py-0.5 rounded-full`}>
-                  {trend === 'up' && '↑'} {trend === 'down' && '↓'} {trendValue}
-                </div>
-              )}
-            </div>
-            
-            {/* Animated Sparkline */}
-            <div className="mt-4 h-8 w-full relative">
-              <svg viewBox="0 0 100 20" className="w-full h-full overflow-visible preserve-3d" preserveAspectRatio="none">
-                <motion.path
-                  d="M0 15 Q 10 5, 20 10 T 40 12 T 60 5 T 80 15 T 100 2"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="opacity-50 drop-shadow-md"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 0.8 }}
-                  transition={{ duration: 1.5, ease: "easeInOut" }}
-                />
-                <motion.path
-                  d="M0 20 L0 15 Q 10 5, 20 10 T 40 12 T 60 5 T 80 15 T 100 2 L 100 20 Z"
-                  fill="currentColor"
-                  className="opacity-10"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.15 }}
-                  transition={{ duration: 1.5, delay: 0.2 }}
-                />
-              </svg>
-            </div>
-
-            {dataSource === 'database' && (
-              <p className="text-[10px] text-green-400/80 flex items-center gap-1.5 mt-2 font-medium">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                Live DB Sync
+      <div className="relative z-10 flex flex-col justify-between h-full min-h-[140px]">
+        {/* Top Row: Icon on left, Value & Subtext on right */}
+        <div className="flex items-start justify-between w-full">
+          {/* Icon in a styled container */}
+          <div className="inline-flex p-3 rounded-xl bg-white/10 backdrop-blur-sm">
+            {icon}
+          </div>
+          
+          {/* Value and Subtext */}
+          <div className="text-right">
+            <h3 className="text-3xl font-extrabold text-white tracking-tight">
+              {typeof value === 'number' ? value.toLocaleString() : value}
+            </h3>
+            {subtext && (
+              <p className="text-xs text-slate-400 mt-1 font-medium">
+                {subtext}
               </p>
             )}
           </div>
+        </div>
+
+        {/* Bottom Row: Label and Sparkline / Live Indicator */}
+        <div className="mt-4 pt-2 flex flex-col w-full">
+          <p className="text-lg font-bold text-white tracking-wide">{label}</p>
+          
+          {/* Animated Sparkline */}
+          <div className="mt-2 h-6 w-full relative opacity-40">
+            <svg viewBox="0 0 100 20" className="w-full h-full overflow-visible preserve-3d" preserveAspectRatio="none">
+              <motion.path
+                d="M0 15 Q 10 5, 20 10 T 40 12 T 60 5 T 80 15 T 100 2"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="opacity-50 drop-shadow-md"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 0.8 }}
+                transition={{ duration: 1.5, ease: "easeInOut" }}
+              />
+              <motion.path
+                d="M0 20 L0 15 Q 10 5, 20 10 T 40 12 T 60 5 T 80 15 T 100 2 L 100 20 Z"
+                fill="currentColor"
+                className="opacity-10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.15 }}
+                transition={{ duration: 1.5, delay: 0.2 }}
+              />
+            </svg>
+          </div>
+
+          {dataSource === 'database' && (
+            <p className="text-[10px] text-green-400/80 flex items-center gap-1.5 mt-2 font-semibold">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+              </span>
+              Live DB Sync
+            </p>
+          )}
         </div>
       </div>
     </motion.div>
