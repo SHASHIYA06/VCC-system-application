@@ -83,6 +83,19 @@ async function extractPageText(filename: string, pageNo: number): Promise<string
   }
 }
 
+async function executeWithRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (retries > 0) {
+      console.warn(`⚠️ DB connection warning. Retrying in ${delay}ms... (Remaining retries: ${retries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return executeWithRetry(fn, retries - 1, delay * 2);
+    }
+    throw err;
+  }
+}
+
 async function main() {
   console.log('🚀 Starting Full PDF OCR Text Extraction & Database Seeding...\n');
   
@@ -117,22 +130,33 @@ async function main() {
     }
     
     // Ensure SourceFile record exists
-    let sourceFile = await prisma.sourceFile.findFirst({ where: { filename } });
+    let sourceFile = await executeWithRetry(() => prisma.sourceFile.findFirst({ where: { filename } }));
     if (!sourceFile) {
-      sourceFile = await prisma.sourceFile.create({
+      sourceFile = await executeWithRetry(() => prisma.sourceFile.create({
         data: {
           projectId: project.id,
           filename,
           fileType: 'PDF',
           status: 'IN_PROGRESS',
         }
-      });
+      }));
       console.log(`   Created SourceFile record: ${sourceFile.id}`);
     }
     
     console.log(`   Extracting pages and upserting data...`);
     
     for (let pageNo = 1; pageNo <= pageCount; pageNo++) {
+      // Skip if already processed in standard tables to optimize resume speed
+      const existing = await executeWithRetry(() => prisma.ocrPage.findUnique({
+        where: { sourceFileId_pageNo: { sourceFileId: filename, pageNo } },
+        select: { parseStatus: true }
+      })).catch(() => null);
+
+      if (existing?.parseStatus === 'DONE') {
+        totalPagesProcessed++;
+        continue;
+      }
+
       const text = await extractPageText(filename, pageNo);
       if (!text) continue;
       
@@ -140,7 +164,7 @@ async function main() {
       const drawingNos = parseDrawingNumbers(text);
       
       // Save OcrPage (standard search tables)
-      await prisma.ocrPage.upsert({
+      await executeWithRetry(() => prisma.ocrPage.upsert({
         where: { sourceFileId_pageNo: { sourceFileId: filename, pageNo } },
         create: {
           sourceFileId: filename,
@@ -155,10 +179,10 @@ async function main() {
           parseStatus: 'DONE',
           extra: { drawingNos, wireCount: wires.length } as any,
         },
-      });
+      }));
       
       // Save SourcePage (Prisma-specific tables)
-      await prisma.sourcePage.upsert({
+      await executeWithRetry(() => prisma.sourcePage.upsert({
         where: { sourceFileId_pageNo: { sourceFileId: sourceFile.id, pageNo } },
         create: {
           sourceFileId: sourceFile.id,
@@ -172,15 +196,13 @@ async function main() {
           drawingNo: drawingNos[0] || null,
           metadata: { drawingNos, wireCount: wires.length } as any,
         },
-      });
+      }));
       
       // Seed real wires
       for (const wireNo of wires) {
         try {
           const voltageClass = detectVoltageClass(text);
-          // Only save if it's alphanumeric (user specifically complained alphanumeric wires like 3001a or prefix X3201 is missing)
-          // Also let's save all wires found to make the DB highly accurate
-          await prisma.wire.upsert({
+          await executeWithRetry(() => prisma.wire.upsert({
             where: { wireNo },
             create: {
               wireNo,
@@ -189,10 +211,9 @@ async function main() {
               remarks: `OCR: ${filename} p.${pageNo}`,
             },
             update: {
-              // Append source if not already present
               remarks: `OCR: ${filename} p.${pageNo}`,
             },
-          });
+          }));
           totalWiresSaved++;
         } catch (e) {
           // ignore upsert conflicts
@@ -201,13 +222,13 @@ async function main() {
       
       // Map drawings to PDF files and pages
       for (const drawingNo of drawingNos) {
-        await prisma.drawing.updateMany({
+        await executeWithRetry(() => prisma.drawing.updateMany({
           where: { drawingNo },
           data: {
             sourceFileId: filename,
             drawingPdfUrl: `/api/pdf/${encodeURIComponent(filename)}`,
           },
-        });
+        }));
       }
       
       totalPagesProcessed++;
@@ -217,10 +238,10 @@ async function main() {
     }
     
     // Set SourceFile status to DONE
-    await prisma.sourceFile.update({
+    await executeWithRetry(() => prisma.sourceFile.update({
       where: { id: sourceFile.id },
       data: { status: 'DONE' },
-    });
+    }));
     console.log(`   Finished processing ${filename}.`);
   }
   
