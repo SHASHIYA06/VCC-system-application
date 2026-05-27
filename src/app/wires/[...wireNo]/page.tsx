@@ -82,7 +82,7 @@ export default function WireDetailPage() {
           setWire(data.wire);
           setTrace(data.trace);
           setRelatedDrawings(data.relatedDrawings || []);
-          setRelatedPins(data.pins || []);
+          setRelatedPins(data.relatedPins || data.pins || []);
         }
       } catch (error) {
         console.error('Failed to fetch wire:', error);
