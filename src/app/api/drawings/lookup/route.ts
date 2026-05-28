@@ -76,12 +76,11 @@ const PDF_FILE_REGISTRY: Record<string, { file: string; systems: string[]; descr
  */
 function resolveDrawingToPdf(drawingNo: string): { file: string; isPin: boolean } | null {
   const upper = drawingNo.toUpperCase();
-  const numMatch = upper.match(/(\d{2,3})[-]?(\d+)/);
-  if (!numMatch) return null;
-
-  const fullNum = upper.replace(/[^0-9\-]/g, '');
-
-  // PIN drawings: 942-383xx = DMC_UF, 942-385xx = TC_UF, 942-386xx = MC_UF, 942-381 = CAB
+  
+  // Handle drawing numbers with alphabetic suffixes (e.g., 942-58128D)
+  const cleanNo = upper.replace(/[A-Z]+$/, '');
+  
+  // PIN drawings: 942-381xx = CAB, 942-382xx = CAB Part 2, 942-383xx = DMC_UF, etc.
   if (upper.match(/942[-]?38[1-2]/i)) return { file: 'CAB_PIN DRAWINGS 2.pdf', isPin: true };
   if (upper.match(/942[-]?383/i)) return { file: 'DMC UF_PIN DRAWINGS.pdf', isPin: true };
   if (upper.match(/942[-]?384/i)) return { file: 'DMC_CEILING.pdf', isPin: true };
