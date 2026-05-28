@@ -1,176 +1,252 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 
-export const dynamic = 'force-dynamic';
-
-/**
- * Full-text OCR search across indexed PDF pages.
- * Uses OcrPage.rawText for searching.
- * Returns: matching pages with drawing context, wire numbers found on page.
- */
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const q = (searchParams.get('q') || '').trim();
-  const type = searchParams.get('type') || 'all'; // wire | drawing | text | all
-  const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
-  const sourceFile = searchParams.get('file') || undefined;
-
-  if (!q) {
-    return NextResponse.json({ error: 'Query required' }, { status: 400 });
-  }
-
   try {
-    const results: {
-      pages: any[];
-      wires: any[];
-      drawings: any[];
-      pins: any[];
-      totalMatches: number;
-    } = { pages: [], wires: [], drawings: [], pins: [], totalMatches: 0 };
+    const searchParams = request.nextUrl.searchParams;
+    const query = searchParams.get('q');
+    const drawingNo = searchParams.get('drawing_no');
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    // ── 1. OCR page full-text search ──────────────────────────────────────
-    if (type === 'all' || type === 'text') {
-      const pageWhere: Prisma.OcrPageWhereInput = {
-        rawText: { contains: q, mode: Prisma.QueryMode.insensitive },
+    if (!query || query.trim().length < 2) {
+      return NextResponse.json({ error: 'Search query must be at least 2 characters' }, { status: 400 });
+    }
+
+    const searchTerm = query.trim();
+
+    // Build the where clause
+    const whereClause: any = {
+      ocrText: {
+        contains: searchTerm,
+        mode: 'insensitive',
+      },
+    };
+
+    // If drawing number is specified, filter by it
+    if (drawingNo) {
+      whereClause.drawing = {
+        drawingNo: {
+          equals: drawingNo,
+          mode: 'insensitive',
+        },
       };
-      if (sourceFile) pageWhere.sourceFileId = { contains: sourceFile };
-
-      const pages = await prisma.ocrPage.findMany({
-        where: pageWhere,
-        orderBy: { pageNo: 'asc' },
-        take: limit,
-        select: {
-          id: true,
-          sourceFileId: true,
-          pageNo: true,
-          sourcePageLabel: true,
-          parseStatus: true,
-          extra: true,
-        },
-      });
-
-      results.pages = pages.map(p => {
-        const extra = (p.extra as any) || {};
-        return {
-          sourceFile: p.sourceFileId,
-          pageNo: p.pageNo,
-          label: p.sourcePageLabel,
-          drawingNos: extra.drawingNos || [],
-          wireCount: extra.wireCount || 0,
-          pdfUrl: `/api/pdf/${encodeURIComponent(p.sourceFileId)}#page=${p.pageNo}`,
-        };
-      });
-      results.totalMatches += pages.length;
     }
 
-    // ── 2. Wire search with alphanumeric support ───────────────────────────
-    if (type === 'all' || type === 'wire') {
-      const numBase = q.replace(/[a-zA-Z]+$/, '').replace(/[\/\-]/g, '');
-      const wireWhere: Prisma.WireWhereInput = {
-        OR: [
-          { wireNo: { contains: q, mode: Prisma.QueryMode.insensitive } },
-          { wireAlias: { contains: q, mode: Prisma.QueryMode.insensitive } },
-          { signalName: { contains: q, mode: Prisma.QueryMode.insensitive } },
-          { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
-          numBase.length >= 3 ? { wireNo: { startsWith: numBase } } : {},
-        ].filter(c => Object.keys(c).length > 0),
+    // Search in DrawingPage table
+    const [results, totalCount] = await Promise.all([
+      prisma.drawingPage.findMany({
+        where: whereClause,
+        include: {
+          drawing: {
+            select: {
+              id: true,
+              drawingNo: true,
+              title: true,
+              revision: true,
+              systemId: true,
+              system: {
+                select: {
+                  code: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [
+          { drawingId: 'asc' },
+          { pageNo: 'asc' },
+        ],
+        take: limit,
+        skip: offset,
+      }),
+      prisma.drawingPage.count({ where: whereClause }),
+    ]);
+
+    // Process results to extract context around the search term
+    const processedResults = results.map(page => {
+      const ocrText = page.ocrText || '';
+      const lowerText = ocrText.toLowerCase();
+      const lowerQuery = searchTerm.toLowerCase();
+      
+      // Find all occurrences
+      const occurrences: Array<{ index: number; context: string; highlight: string }> = [];
+      let index = lowerText.indexOf(lowerQuery);
+      
+      while (index !== -1) {
+        // Extract context (100 chars before and after)
+        const contextStart = Math.max(0, index - 100);
+        const contextEnd = Math.min(ocrText.length, index + searchTerm.length + 100);
+        const context = ocrText.substring(contextStart, contextEnd);
+        
+        // Get the actual matched text (preserving case)
+        const highlight = ocrText.substring(index, index + searchTerm.length);
+        
+        occurrences.push({
+          index,
+          context: (contextStart > 0 ? '...' : '') + context + (contextEnd < ocrText.length ? '...' : ''),
+          highlight,
+        });
+        
+        // Find next occurrence
+        index = lowerText.indexOf(lowerQuery, index + 1);
+      }
+
+      return {
+        drawingId: page.drawing.id,
+        drawingNo: page.drawing.drawingNo,
+        drawingTitle: page.drawing.title,
+        revision: page.drawing.revision,
+        systemCode: page.drawing.system?.code || 'GEN',
+        systemName: page.drawing.system?.name || 'General',
+        pageNo: page.pageNo,
+        pageLabel: page.pageLabel,
+        occurrences,
+        matchCount: occurrences.length,
       };
-
-      const wires = await prisma.wire.findMany({
-        where: wireWhere,
-        orderBy: { wireNo: 'asc' },
-        take: limit,
-        include: {
-          endpoints: {
-            include: {
-              connector: { select: { connectorCode: true, carType: true } },
-            }
-          }
-        }
-      });
-
-      results.wires = wires;
-      results.totalMatches += wires.length;
-    }
-
-    // ── 3. Drawing number search ───────────────────────────────────────────
-    if (type === 'all' || type === 'drawing') {
-      const drawBase = q.replace(/[A-D]$/, '');
-      const drawings = await prisma.drawing.findMany({
-        where: {
-          OR: [
-            { drawingNo: { contains: q } },
-            { drawingNo: { startsWith: drawBase } },
-            { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
-          ],
-        },
-        orderBy: { drawingNo: 'asc' },
-        take: limit,
-        include: { system: { select: { code: true, name: true } } },
-      });
-
-      results.drawings = drawings.map(d => ({
-        id: d.id,
-        drawingNo: d.drawingNo,
-        title: d.title,
-        revision: d.revision,
-        systemCode: d.system?.code,
-        systemName: d.system?.name,
-        sourceFile: d.sourceFileId,
-        pdfUrl: d.drawingPdfUrl || (d.sourceFileId ? `/api/pdf/${encodeURIComponent(d.sourceFileId)}` : null),
-        totalSheets: d.totalSheets,
-      }));
-      results.totalMatches += drawings.length;
-    }
-
-    // ── 4. Pin search ─────────────────────────────────────────────────────
-    if (type === 'all' || type === 'pin') {
-      const pins = await prisma.connectorPin.findMany({
-        where: {
-          OR: [
-            { wireNo: { contains: q, mode: Prisma.QueryMode.insensitive } },
-            { signalName: { contains: q, mode: Prisma.QueryMode.insensitive } },
-            { pinNo: { contains: q } },
-          ],
-        },
-        take: limit,
-        include: {
-          connector: {
-            include: {
-              drawing: { select: { drawingNo: true, title: true, sourceFileId: true } }
-            }
-          }
-        },
-        orderBy: { wireNo: 'asc' },
-      });
-
-      results.pins = pins.map(p => ({
-        id: p.id,
-        pinNo: p.pinNo,
-        wireNo: p.wireNo,
-        signalName: p.signalName,
-        connectorCode: p.connector?.connectorCode,
-        drawingNo: p.connector?.drawing?.drawingNo,
-        drawingTitle: p.connector?.drawing?.title,
-        pdfUrl: p.connector?.drawing?.sourceFileId 
-          ? `/api/pdf/${encodeURIComponent(p.connector.drawing.sourceFileId)}`
-          : null,
-      }));
-      results.totalMatches += pins.length;
-    }
-
-    return NextResponse.json({
-      query: q,
-      type,
-      ...results,
-      searchTip: results.totalMatches === 0
-        ? `No results for "${q}". Try: shorter query, use drawing number (e.g. 58120), or wire base number (e.g. 3001).`
-        : undefined,
     });
 
+    // Calculate total matches across all results
+    const totalMatches = processedResults.reduce((sum, r) => sum + r.matchCount, 0);
+
+    return NextResponse.json({
+      query: searchTerm,
+      totalResults: totalCount,
+      totalMatches,
+      limit,
+      offset,
+      hasMore: offset + limit < totalCount,
+      results: processedResults,
+    });
   } catch (error) {
-    console.error('OCR search error:', error);
-    return NextResponse.json({ error: 'Search failed', details: String(error) }, { status: 500 });
+    console.error('Error in OCR search:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: 'OCR search failed', details: errorMessage }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { query, drawingIds, systemCodes, limit = 50, offset = 0 } = body;
+
+    if (!query || query.trim().length < 2) {
+      return NextResponse.json({ error: 'Search query must be at least 2 characters' }, { status: 400 });
+    }
+
+    const searchTerm = query.trim();
+
+    // Build advanced where clause
+    const whereClause: any = {
+      ocrText: {
+        contains: searchTerm,
+        mode: 'insensitive',
+      },
+    };
+
+    if (drawingIds && Array.isArray(drawingIds) && drawingIds.length > 0) {
+      whereClause.drawingId = {
+        in: drawingIds,
+      };
+    }
+
+    if (systemCodes && Array.isArray(systemCodes) && systemCodes.length > 0) {
+      whereClause.drawing = {
+        system: {
+          code: {
+            in: systemCodes,
+          },
+        },
+      };
+    }
+
+    const [results, totalCount] = await Promise.all([
+      prisma.drawingPage.findMany({
+        where: whereClause,
+        include: {
+          drawing: {
+            select: {
+              id: true,
+              drawingNo: true,
+              title: true,
+              revision: true,
+              systemId: true,
+              system: {
+                select: {
+                  code: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [
+          { drawingId: 'asc' },
+          { pageNo: 'asc' },
+        ],
+        take: limit,
+        skip: offset,
+      }),
+      prisma.drawingPage.count({ where: whereClause }),
+    ]);
+
+    // Process results similar to GET
+    const processedResults = results.map(page => {
+      const ocrText = page.ocrText || '';
+      const lowerText = ocrText.toLowerCase();
+      const lowerQuery = searchTerm.toLowerCase();
+      
+      const occurrences: Array<{ index: number; context: string; highlight: string }> = [];
+      let index = lowerText.indexOf(lowerQuery);
+      
+      while (index !== -1) {
+        const contextStart = Math.max(0, index - 100);
+        const contextEnd = Math.min(ocrText.length, index + searchTerm.length + 100);
+        const context = ocrText.substring(contextStart, contextEnd);
+        const highlight = ocrText.substring(index, index + searchTerm.length);
+        
+        occurrences.push({
+          index,
+          context: (contextStart > 0 ? '...' : '') + context + (contextEnd < ocrText.length ? '...' : ''),
+          highlight,
+        });
+        
+        index = lowerText.indexOf(lowerQuery, index + 1);
+      }
+
+      return {
+        drawingId: page.drawing.id,
+        drawingNo: page.drawing.drawingNo,
+        drawingTitle: page.drawing.title,
+        revision: page.drawing.revision,
+        systemCode: page.drawing.system?.code || 'GEN',
+        systemName: page.drawing.system?.name || 'General',
+        pageNo: page.pageNo,
+        pageLabel: page.pageLabel,
+        occurrences,
+        matchCount: occurrences.length,
+      };
+    });
+
+    const totalMatches = processedResults.reduce((sum, r) => sum + r.matchCount, 0);
+
+    return NextResponse.json({
+      query: searchTerm,
+      totalResults: totalCount,
+      totalMatches,
+      limit,
+      offset,
+      hasMore: offset + limit < totalCount,
+      results: processedResults,
+      filters: {
+        drawingIds: drawingIds || [],
+        systemCodes: systemCodes || [],
+      },
+    });
+  } catch (error) {
+    console.error('Error in advanced OCR search:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: 'Advanced OCR search failed', details: errorMessage }, { status: 500 });
   }
 }

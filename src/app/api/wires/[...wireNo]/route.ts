@@ -20,6 +20,27 @@ export async function GET(
           { wireAlias: { equals: wireNo, mode: Prisma.QueryMode.insensitive } },
         ],
       },
+      include: {
+        drawings: {
+          include: {
+            drawing: {
+              select: {
+                id: true,
+                drawingNo: true,
+                title: true,
+                revision: true,
+                systemId: true,
+                system: {
+                  select: {
+                    code: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!wire) {
@@ -31,6 +52,27 @@ export async function GET(
             { wireNo: noSlash },
             { wireNo: { startsWith: wireNo.substring(0, 4), mode: Prisma.QueryMode.insensitive } },
           ]
+        },
+        include: {
+          drawings: {
+            include: {
+              drawing: {
+                select: {
+                  id: true,
+                  drawingNo: true,
+                  title: true,
+                  revision: true,
+                  systemId: true,
+                  system: {
+                    select: {
+                      code: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       });
     }
@@ -68,33 +110,18 @@ export async function GET(
       },
     });
 
-    const allRelatedDrawings: Array<{id: string, drawingNo: string, title: string, type: string}> = [];
-    
-    relatedTrainLines.forEach(tl => {
-      if (tl.drawing) {
-        allRelatedDrawings.push({
-          id: tl.drawing.id,
-          drawingNo: tl.drawing.drawingNo,
-          title: tl.drawing.title,
-          type: 'Trainline'
-        });
-      }
-    });
-
-    relatedPins.forEach(pin => {
-      if (pin.connector?.drawing) {
-        allRelatedDrawings.push({
-          id: pin.connector.drawing.id,
-          drawingNo: pin.connector.drawing.drawingNo,
-          title: pin.connector.drawing.title,
-          type: 'Pin Connection'
-        });
-      }
-    });
-
-    const uniqueDrawings = allRelatedDrawings.filter((v, i, a) => 
-      a.findIndex(d => d.id === v.id) === i
-    );
+    // Get all related drawings from the junction table
+    const allRelatedDrawings = wire.drawings.map(dw => ({
+      id: dw.drawing.id,
+      drawingNo: dw.drawing.drawingNo,
+      title: dw.drawing.title,
+      revision: dw.drawing.revision,
+      systemCode: dw.drawing.system?.code || 'GEN',
+      systemName: dw.drawing.system?.name || 'General',
+      type: 'Wire Connection',
+      pageNo: dw.pageNo,
+      sheetNo: dw.sheetNo,
+    }));
 
     const wireTrace = (wire.sourceEquipment && wire.destEquipment) ? {
       source: {
@@ -137,7 +164,7 @@ export async function GET(
         destPin: wire.destPin,
         remarks: wire.remarks,
       },
-      relatedDrawings: uniqueDrawings,
+      relatedDrawings: allRelatedDrawings,
       relatedPins: relatedPins.map(p => ({
         id: p.id,
         pinNo: p.pinNo,
@@ -152,7 +179,7 @@ export async function GET(
       metadata: {
         trainlineCount: relatedTrainLines.length,
         pinCount: relatedPins.length,
-        drawingCount: uniqueDrawings.length,
+        drawingCount: allRelatedDrawings.length,
       }
     });
   } catch (error) {

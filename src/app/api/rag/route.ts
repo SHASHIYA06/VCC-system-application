@@ -4,6 +4,7 @@ import { multiAgentRAG } from '@/lib/rag/multiagent';
 import { callLLM, getAvailableProviders, LLMResponse } from '@/lib/llm';
 import { Prisma } from '@prisma/client';
 import { executeLangchainTree } from '@/lib/rag/langchain-tree';
+import { executeRAGQuery, executeMultiAgentQuery } from '@/lib/ai/rag-pipeline';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -172,24 +173,64 @@ export async function POST(request: NextRequest) {
       };
 
       if (useMultiAgent) {
-        const result = await multiAgentRAG.executeMultiAgent(task);
-        return NextResponse.json({
-          query,
-          primaryResponse: result.primaryResponse,
-          supportingResponses: result.supportingResponses,
-          unifiedResponse: result.unifiedResponse,
-          allData: result.allData,
-          executionTime: result.executionTime,
-        });
+        // Use new LangChain multi-agent pipeline
+        try {
+          const result = await executeMultiAgentQuery({
+            query,
+            taskType: taskType || 'unified_search',
+            context: context || {},
+            model: body.model || 'openrouter-claude',
+            temperature: body.temperature || 0.2,
+            useMultiAgent: true,
+          });
+          return NextResponse.json(result);
+        } catch (error) {
+          console.error('LangChain multi-agent error, falling back:', error);
+          // Fallback to original implementation
+          const result = await multiAgentRAG.executeMultiAgent(task);
+          return NextResponse.json({
+            query,
+            primaryResponse: result.primaryResponse,
+            supportingResponses: result.supportingResponses,
+            unifiedResponse: result.unifiedResponse,
+            allData: result.allData,
+            executionTime: result.executionTime,
+          });
+        }
       } else {
-        const result = await multiAgentRAG.executeTask(task);
-        return NextResponse.json({
-          query,
-          primaryResponse: result,
-          unifiedResponse: result.content,
-          supportingResponses: [],
-          executionTime: result.executionTime,
-        });
+        // Use new LangChain single-agent pipeline
+        try {
+          const result = await executeRAGQuery({
+            query,
+            taskType: taskType || 'unified_search',
+            context: context || {},
+            model: body.model || 'openrouter-claude',
+            temperature: body.temperature || 0.2,
+          });
+          return NextResponse.json({
+            query,
+            primaryResponse: {
+              agent: result.model,
+              content: result.response,
+              confidence: result.confidence,
+            },
+            unifiedResponse: result.response,
+            supportingResponses: [],
+            sources: result.sources,
+            executionTime: result.executionTime,
+          });
+        } catch (error) {
+          console.error('LangChain single-agent error, falling back:', error);
+          // Fallback to original implementation
+          const result = await multiAgentRAG.executeTask(task);
+          return NextResponse.json({
+            query,
+            primaryResponse: result,
+            unifiedResponse: result.content,
+            supportingResponses: [],
+            executionTime: result.executionTime,
+          });
+        }
       }
     }
 

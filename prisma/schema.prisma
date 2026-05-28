@@ -127,6 +127,7 @@ model Drawing {
   noteEntities         Note[]
   signals              Signal[]
   trainLines           TrainLine[]
+  wires                DrawingWire[]
 
   @@unique([projectId, drawingNo, revision])
   @@index([drawingNo])
@@ -429,6 +430,23 @@ model Wire {
   updatedAt          DateTime       @updatedAt
   wireAlias          String?        @unique
   endpoints          WireEndpoint[]
+  drawings           DrawingWire[]
+}
+
+model DrawingWire {
+  id         String   @id @default(cuid())
+  drawingId  String
+  wireId     String
+  pageNo     Int?
+  sheetNo    Int?
+  context    String?
+  createdAt  DateTime @default(now())
+  drawing    Drawing  @relation(fields: [drawingId], references: [id], onDelete: Cascade)
+  wire       Wire     @relation(fields: [wireId], references: [id], onDelete: Cascade)
+
+  @@unique([drawingId, wireId])
+  @@index([wireId])
+  @@index([drawingId])
 }
 
 model WireEndpoint {
