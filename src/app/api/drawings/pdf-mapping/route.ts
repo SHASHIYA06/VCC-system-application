@@ -125,20 +125,11 @@ export async function GET(request: NextRequest) {
 }
 
 function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): number {
-  // Strip prefix
-  const cleanNo = drawingNo.replace(/^942[-_]/i, '');
+  // Strip prefix and handle alphabetic suffixes
+  const cleanNo = drawingNo.replace(/^942[-_]/i, '').replace(/[A-Z]+$/, '');
   const numMatch = cleanNo.match(/\d+/);
   if (!numMatch) return 1;
   const num = parseInt(numMatch[0]);
-
-  // Handle alphabetic suffixes for multi-page drawings (e.g. 58121A, 58121B)
-  let offset = 0;
-  const suffixMatch = cleanNo.match(/[A-Z]$/i);
-  if (suffixMatch) {
-    const char = suffixMatch[0].toUpperCase();
-    offset = char.charCodeAt(0) - 65; // A=0, B=1, C=2...
-    if (offset < 0) offset = 0;
-  }
 
   // DMC UF PIN Drawings mapping
   if (sourceFile.includes('DMC UF_PIN DRAWINGS')) {
