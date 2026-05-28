@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Removed experimental.turbo as it's not a valid config option in Next.js 16
 };
 
 export default nextConfig;
