@@ -7,6 +7,10 @@ import { PDFDocument } from 'pdf-lib';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+// Mark for Turbopack to avoid tracing the entire project
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _turbopackIgnore = true;
+
 export interface PdfExtractionOptions {
   sourcePath: string;
   outputDir?: string;
