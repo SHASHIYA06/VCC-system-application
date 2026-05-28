@@ -1,15 +1,18 @@
 /**
  * PDF Extraction Service
  * Handles extraction of individual pages from PDF files
+ * 
+ * NOTE: This file uses fs/promises which can cause Turbopack to trace the entire project.
+ * The actual file system operations are only used at build time, not runtime.
  */
 
 import { PDFDocument } from 'pdf-lib';
-import * as fs from 'fs/promises';
-import * as path from 'path';
 
 // Mark for Turbopack to avoid tracing the entire project
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// This is a build-time utility, not a runtime dependency
+/* eslint-disable @typescript-eslint/no-unused-vars */
 const _turbopackIgnore = true;
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 export interface PdfExtractionOptions {
   sourcePath: string;
@@ -27,13 +30,14 @@ export interface PdfPageInfo {
 
 /**
  * Extract a single page from a PDF file
+ * This function is only used during build time, not runtime
  */
 export async function extractPdfPage(options: PdfExtractionOptions): Promise<string> {
   const { sourcePath, outputDir = '/tmp/pdf-pages', pageNumber, outputFileName } = options;
 
   try {
     // Read the source PDF
-    const pdfBytes = await fs.readFile(sourcePath);
+    const pdfBytes = await import('fs').then(({ promises: fs }) => fs.readFile(sourcePath));
     const pdfDoc = await PDFDocument.load(pdfBytes);
 
     // Validate page number
@@ -51,14 +55,14 @@ export async function extractPdfPage(options: PdfExtractionOptions): Promise<str
     const newPdfBytes = await newPdf.save();
     
     // Ensure output directory exists
-    await fs.mkdir(outputDir, { recursive: true });
+    await import('fs').then(({ promises: fs }) => fs.mkdir(outputDir, { recursive: true }));
 
     // Generate output filename
     const fileName = outputFileName || `page-${pageNumber}.pdf`;
-    const outputPath = path.join(outputDir, fileName);
+    const outputPath = `${outputDir}/${fileName}`;
 
     // Write the file
-    await fs.writeFile(outputPath, newPdfBytes);
+    await import('fs').then(({ promises: fs }) => fs.writeFile(outputPath, newPdfBytes));
 
     return outputPath;
   } catch (error) {
@@ -72,7 +76,7 @@ export async function extractPdfPage(options: PdfExtractionOptions): Promise<str
  */
 export async function getPdfPageInfo(sourcePath: string): Promise<PdfPageInfo[]> {
   try {
-    const pdfBytes = await fs.readFile(sourcePath);
+    const pdfBytes = await import('fs').then(({ promises: fs }) => fs.readFile(sourcePath));
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const pages = pdfDoc.getPages();
 
@@ -120,7 +124,7 @@ export async function extractPdfPageRange(
   outputFileName?: string
 ): Promise<string> {
   try {
-    const pdfBytes = await fs.readFile(sourcePath);
+    const pdfBytes = await import('fs').then(({ promises: fs }) => fs.readFile(sourcePath));
     const pdfDoc = await PDFDocument.load(pdfBytes);
 
     const totalPages = pdfDoc.getPageCount();
@@ -141,12 +145,12 @@ export async function extractPdfPageRange(
     const newPdfBytes = await newPdf.save();
     
     const outputDir = '/tmp/pdf-pages';
-    await fs.mkdir(outputDir, { recursive: true });
+    await import('fs').then(({ promises: fs }) => fs.mkdir(outputDir, { recursive: true }));
 
     const fileName = outputFileName || `pages-${startPage}-${endPage}.pdf`;
-    const outputPath = path.join(outputDir, fileName);
+    const outputPath = `${outputDir}/${fileName}`;
 
-    await fs.writeFile(outputPath, newPdfBytes);
+    await import('fs').then(({ promises: fs }) => fs.writeFile(outputPath, newPdfBytes));
 
     return outputPath;
   } catch (error) {
