@@ -20,9 +20,25 @@ export async function GET(request: NextRequest) {
     
     console.log(`🔍 Tracing wire: ${wireNo}`);
     
-    // Find the wire record
-    const wire = await prisma.wire.findUnique({
-      where: { wireNo },
+    // Find the wire record using case-insensitive and flexible matching
+    const normalizedWireNo = wireNo.trim();
+    const numBase = normalizedWireNo.replace(/[a-zA-Z\/\-]+$/, '');
+    
+    const wireWhere: any = {
+      OR: [
+        { wireNo: normalizedWireNo },
+        { wireNo: { equals: normalizedWireNo, mode: 'insensitive' } },
+        { wireAlias: { equals: normalizedWireNo, mode: 'insensitive' } }
+      ]
+    };
+    
+    if (numBase && numBase !== normalizedWireNo) {
+      wireWhere.OR.push({ wireNo: { startsWith: numBase } });
+    }
+    
+    const wire = await prisma.wire.findFirst({
+      where: wireWhere,
+      orderBy: { wireNo: 'asc' },
       include: {
         endpoints: {
           include: {

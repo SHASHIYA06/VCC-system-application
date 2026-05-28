@@ -4,6 +4,7 @@ import "./globals.css";
 import 'react-pdf/dist/Page/TextLayer.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import AppShell from "@/components/layout/AppShell";
+import KhushiAgent from "@/components/agent/KhushiAgent";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,6 +26,7 @@ export default function RootLayout({
             {children}
           </div>
         </AppShell>
+        <KhushiAgent />
       </body>
     </html>
   );

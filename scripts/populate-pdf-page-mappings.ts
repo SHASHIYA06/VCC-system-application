@@ -11,294 +11,300 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Hardcoded PDF page mappings from pdf-mapping/route.ts
-const PDF_PAGE_MAPPINGS: Record<string, Record<string, number>> = {
-  'CAB_PIN DRAWINGS.pdf': {
-    '58100': 1, '58101': 3, '58102': 5, '58103': 7, '58104': 9,
-    '58105': 11, '58106': 13, '58107': 15, '58108': 17, '58109': 19,
-    '58110': 21, '58111': 23, '58112': 25, '58113': 27, '58114': 29,
-    '58115': 31, '58116': 33, '58117': 35, '58118': 37, '58119': 39,
-    '58120': 41, '58121': 43, '58122': 45, '58123': 47
-  },
-  'CAB_PIN DRAWINGS 2.pdf': {
-    '58124': 1, '58125': 3, '58126': 5, '58127': 7, '58128': 9,
-    '58129': 11, '58130': 13, '58131': 15, '58132': 17, '58133': 19,
-    '58134': 21, '58135': 23, '58136': 25, '58137': 27, '58138': 29,
-    '58139': 31, '58140': 33, '58141': 35, '58142': 37, '58143': 39,
-    '58144': 41, '58145': 43, '58146': 45, '58147': 47
-  },
-  'DMC_CEILING.pdf': {
-    '58000': 1, '58001': 3, '58002': 5, '58003': 7, '58004': 9,
-    '58005': 11, '58006': 13, '58007': 15, '58008': 17, '58009': 19,
-    '58010': 21, '58011': 23, '58012': 25, '58013': 27
-  },
-  'DMC UF_PIN DRAWINGS.pdf': {
-    '58050': 1, '58051': 3, '58052': 5, '58053': 7, '58054': 9,
-    '58055': 11, '58056': 13, '58057': 15, '58058': 17, '58059': 19,
-    '58060': 21, '58061': 23, '58062': 25
-  },
-  'TC_CEILING PIN DRAWINGS.pdf': {
-    '58200': 1, '58201': 3, '58202': 5, '58203': 7, '58204': 9,
-    '58205': 11, '58206': 13, '58207': 15, '58208': 17, '58209': 19,
-    '58210': 21, '58211': 23, '58212': 25
-  },
-  'TC _UF PIN DRAWINGS.pdf': {
-    '58250': 1, '58251': 3, '58252': 5, '58253': 7, '58254': 9,
-    '58255': 11, '58256': 13, '58257': 15, '58258': 17, '58259': 19
-  },
-  'MC_CEILING_PIN DRAWINGS.pdf': {
-    '58300': 1, '58301': 3, '58302': 5, '58303': 7, '58304': 9,
-    '58305': 11, '58306': 13, '58307': 15, '58308': 17, '58309': 19,
-    '58310': 21, '58311': 23, '58312': 25, '58313': 27, '58314': 29,
-    '58315': 31, '58316': 33, '58317': 35, '58318': 37, '58319': 39,
-    '58320': 41, '58321': 43, '58322': 45, '58323': 47, '58324': 49,
-    '58325': 51, '58326': 53, '58327': 55, '58328': 57
-  },
-  'MC_UF.pdf': {
-    '58350': 1, '58351': 3, '58352': 5, '58353': 7, '58354': 9,
-    '58355': 11, '58356': 13, '58357': 15, '58358': 17, '58359': 19,
-    '58360': 21, '58361': 23, '58362': 25, '58363': 27
-  },
-  'VCC DESCRIPTION 13.12.2017.pdf': {
-    '942-58100': 1, '942-58101': 5, '942-58102': 9, '942-58103': 13, '942-58104': 17,
-    '942-58105': 21, '942-58106': 25, '942-58107': 29, '942-58108': 33, '942-58109': 37,
-    '942-58110': 41, '942-58111': 45, '942-58112': 49, '942-58113': 53
-  }
-};
+function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): number {
+  // Strip prefix
+  const cleanNo = drawingNo.replace(/^942[-_]/i, '');
+  const numMatch = cleanNo.match(/\d+/);
+  if (!numMatch) return 1;
+  const num = parseInt(numMatch[0]);
 
-function extractDrawingNumber(drawingNo: string): string {
-  // Remove "942-" prefix and hyphens
-  const cleaned = drawingNo.replace(/^942[-_]/i, '').replace(/-/g, '');
-  return cleaned;
+  // DMC UF PIN Drawings mapping
+  if (sourceFile.includes('DMC UF_PIN DRAWINGS')) {
+    const DMC_UF_MAPPING: Record<number, number> = {
+      38305: 1, // LTEB: 2 sheets (page 1, 2)
+      38306: 3, // VVVF: 2 sheets (page 3, 4)
+      38307: 5, // Collector Shoe JB: 1 sheet (page 5)
+      38308: 6, // Stinger Box: 1 sheet (page 6)
+      38309: 7, // DMC Underframe PIN: 1 sheet (page 7)
+      38310: 8, // BCU: 1 sheet (page 8)
+      38311: 9, // ASCOS: 1 sheet (page 9)
+      38312: 10, // LTJB: 3 sheets (page 10, 11, 12)
+      38314: 15, // Speed Sensor: 1 sheet (page 15)
+      38315: 14, // Brake Resistor: 1 sheet (page 14)
+      38316: 17, // Main Switch Box: 1 sheet (page 17)
+      38317: 16, // Current Collector Fuse Box: 1 sheet (page 16)
+      38319: 19, // HSCB: 1 sheet (page 19)
+      38320: 20, // TM Connector: 1 sheet (page 20)
+      38321: 21, // Earth Brush: 1 sheet (page 21)
+      38322: 22, // Anti Skid Auto Coupler: 1 sheet (page 22)
+      38323: 26  // HTEB HTJB: 1 sheet (page 26)
+    };
+    return DMC_UF_MAPPING[num] || 1;
+  }
+
+  // CAB PIN Drawings mapping
+  if (sourceFile.includes('CAB_PIN DRAWINGS')) {
+    const CAB_PIN_MAPPING: Record<number, number> = {
+      38103: 1, // HV System PIN
+      38104: 8, // Operating Panel: 8 sheets (pages 8-15)
+      38105: 16, // MCB Panel: 3 sheets (pages 16-18)
+      38108: 24, // Start-up Relay
+      38109: 27, // PIS/TIS
+      38111: 28, // DC Supply Contactor
+      38112: 29, // Head Cab Main Light
+      38113: 30, // Tail Light
+      38117: 33, // Cab VAC
+      38118: 34,
+      38119: 35,
+      38120: 37,
+      38121: 38,
+      38122: 41,
+      38110: 42,
+      38128: 46
+    };
+    return CAB_PIN_MAPPING[num] || 1;
+  }
+
+  // DMC Ceiling mapping
+  if (sourceFile.includes('DMC_CEILING')) {
+    const DMC_CEILING_MAPPING: Record<number, number> = {
+      38402: 1,
+      38403: 3,
+      38404: 5,
+      38405: 7,
+      38406: 9,
+      38407: 11,
+      38409: 15,
+      38410: 17,
+      38411: 19,
+      38413: 23
+    };
+    return DMC_CEILING_MAPPING[num] || 1;
+  }
+
+  // TC Underframe mapping
+  if (sourceFile.includes('TC _UF')) {
+    const TC_UF_MAPPING: Record<number, number> = {
+      38505: 2,
+      38506: 3, // LTJB1 (3 sheets: pages 3, 4, 5)
+      38507: 7, // LTJB2
+      38508: 8,
+      38509: 9,
+      38510: 10,
+      38512: 12, // APS (2 sheets: pages 12, 13)
+      38514: 14,
+      38515: 15,
+      38516: 16,
+      38518: 18,
+      38519: 19,
+      38520: 20,
+      38521: 21
+    };
+    return TC_UF_MAPPING[num] || 1;
+  }
+
+  // TC Ceiling mapping
+  if (sourceFile.includes('TC_CEILING')) {
+    const TC_CEILING_MAPPING: Record<number, number> = {
+      38602: 1,
+      38603: 3,
+      38605: 5,
+      38606: 7,
+      38607: 9,
+      38608: 11,
+      38611: 17,
+      38612: 19,
+      38614: 23
+    };
+    return TC_CEILING_MAPPING[num] || 1;
+  }
+
+  // MC Ceiling mapping
+  if (sourceFile.includes('MC_CEILING')) {
+    const MC_CEILING_MAPPING: Record<number, number> = {
+      38604: 3,  // Saloon Lights
+      38609: 16, // MC Underframe
+      38610: 20, // MC Ceiling
+      38705: 21,
+      38706: 22,
+      38707: 23,
+      38709: 25,
+      38710: 26,
+      38711: 27
+    };
+    return MC_CEILING_MAPPING[num] || 1;
+  }
+
+  // MC Underframe mapping
+  if (sourceFile.includes('MC_UF')) {
+    const MC_UF_MAPPING: Record<number, number> = {
+      38105: 1,
+      38106: 3,
+      38101: 6,
+      38109: 7,
+      38110: 8,
+      38111: 9,
+      38112: 10,
+      38114: 13,
+      38115: 14,
+      38116: 15,
+      38118: 18,
+      38119: 19,
+      38120: 20,
+      38121: 22,
+      38122: 23,
+      38123: 24,
+      38124: 25
+    };
+    return MC_UF_MAPPING[num] || 1;
+  }
+
+  // Schematics file KMRCL VCC Drawings_OCR.pdf mapping
+  if (sourceFile.includes('KMRCL VCC Drawings_OCR')) {
+    if (num >= 58100 && num <= 58154) {
+      const KMRCL_MAPPING: Record<number, number> = {
+        58100: 3,  // Classification
+        58101: 4,  // Wiring
+        58102: 5,  // Symbols (4 sheets: 5-8)
+        58103: 9,  // Train Lines Control (4 sheets: 9-12)
+        58104: 13, // Train Lines Signal (8 sheets: 13-20)
+        58105: 21, // LT Power
+        58106: 22, // HT Power
+        58107: 23, // Cab
+        58108: 24, // Start-up (2 sheets: 24-25)
+        58109: 26, // Status (2 sheets: 26-27)
+        58110: 28, // MCB Trip
+        58111: 29, // Supply Contactor
+        58112: 30, // Head Cab
+        58113: 31, // Tail Light
+        58114: 32, // Interior
+        58115: 33,
+        58116: 34, // Wiper
+        58117: 35, // Coupling
+        58118: 36,
+        58119: 37, // Speed
+        58120: 38, // VVVF
+        58121: 39, // Return Current (6 sheets: 39-44)
+        58123: 45, // Compressor
+        58124: 46, // Brake Loop
+        58125: 47, // Emergency Brake
+        58126: 48, // Parking Brake
+        58127: 49, // Horn
+        58128: 50, // Brake Control DMC
+        58129: 51, // Brake Control TC
+        58130: 52, // APS
+        58131: 53, // AC Shore
+        58132: 54, // Battery Control
+        58137: 55, // Saloon Door Volt
+        58138: 56, // Left Door (2 sheets: 56-57)
+        58139: 58, // Right Door (2 sheets: 58-59)
+        58140: 60, // Door Proving Loop
+        58141: 61, // Local Door Interlock
+        58142: 62, // Door Comm
+        58143: 63, // Cab VAC
+        58144: 64, // Saloon VAC Power
+        58145: 65, // Saloon VAC Control (2 sheets: 65-66)
+        58146: 67, // TMS Interface
+        58147: 68, // PIS/TIS
+        58148: 69, // PIS/TIS Sh2
+        58149: 70, // DVAS/PA
+        58150: 71, // PA Amp
+        58151: 72, // PA Amp Sh2
+        58152: 73, // CBTC
+        58153: 74, // Train Radio
+        58154: 75  // CCTV
+      };
+      return KMRCL_MAPPING[num] || 1;
+    }
+  }
+
+  // System Description mapping
+  if (sourceFile.includes('VCC DESCRIPTION')) {
+    if (drawingNo.startsWith('VCC-REF-')) {
+      const pageNum = parseInt(drawingNo.replace('VCC-REF-', ''));
+      return pageNum || 1;
+    }
+  }
+
+  return 1;
 }
 
 async function populatePdfPageMappings() {
-  console.log('🚀 Starting PDF page mapping population...\n');
+  console.log('🚀 Starting PDF page mapping population with corrected logic...\n');
+  
+  const drawings = await prisma.drawing.findMany({
+    orderBy: { drawingNo: 'asc' }
+  });
+  
+  console.log(`Found ${drawings.length} drawings in database to process.`);
   
   let totalProcessed = 0;
   let totalUpdated = 0;
   let totalCreated = 0;
-  let totalSkipped = 0;
+  let totalRedirected = 0;
   
-  try {
-    // Process each source file and its mappings
-    for (const [sourceFile, mappings] of Object.entries(PDF_PAGE_MAPPINGS)) {
-      console.log(`\n📄 Processing: ${sourceFile}`);
-      console.log(`   Mappings: ${Object.keys(mappings).length} drawing prefixes`);
-      
-      let fileUpdated = 0;
-      let fileCreated = 0;
-      
-      for (const [drawingPrefix, pdfPageNo] of Object.entries(mappings)) {
-        // Find all drawings matching this prefix and source file
-        const drawings = await prisma.drawing.findMany({
-          where: {
-            sourceFileId: sourceFile,
-            OR: [
-              { drawingNo: { contains: drawingPrefix } },
-              { drawingNo: { startsWith: drawingPrefix } },
-              { drawingNo: { contains: `942-${drawingPrefix}` } },
-              { drawingNo: { contains: `942${drawingPrefix}` } }
-            ]
-          },
-          include: {
-            pages: {
-              where: { pageNo: 1 },
-              take: 1
-            }
-          }
-        });
-        
-        if (drawings.length === 0) {
-          console.log(`   ⚠️  No drawings found for prefix: ${drawingPrefix}`);
-          totalSkipped++;
-          continue;
-        }
-        
-        for (const drawing of drawings) {
-          totalProcessed++;
-          
-          // Check if page already exists
-          const existingPage = drawing.pages[0];
-          
-          if (existingPage) {
-            // Update existing page
-            await prisma.drawingPage.update({
-              where: { id: existingPage.id },
-              data: {
-                extra: {
-                  pdfPageNo,
-                  sourceFile,
-                  mappedAt: new Date().toISOString(),
-                  mappingSource: 'hardcoded'
-                }
-              }
-            });
-            fileUpdated++;
-            totalUpdated++;
-          } else {
-            // Create new page
-            await prisma.drawingPage.create({
-              data: {
-                drawingId: drawing.id,
-                pageNo: 1,
-                parseStatus: 'MAPPED',
-                extra: {
-                  pdfPageNo,
-                  sourceFile,
-                  mappedAt: new Date().toISOString(),
-                  mappingSource: 'hardcoded'
-                }
-              }
-            });
-            fileCreated++;
-            totalCreated++;
-          }
-          
-          console.log(`   ✅ ${drawing.drawingNo} → Page ${pdfPageNo}`);
-        }
-      }
-      
-      console.log(`   📊 File Summary: ${fileUpdated} updated, ${fileCreated} created`);
+  for (const drawing of drawings) {
+    let sourceFile = drawing.sourceFileId || 'KMRCL VCC Drawings_OCR.pdf';
+    
+    // Redirect CAB_PIN DRAWINGS.pdf to CAB_PIN DRAWINGS 2.pdf (which has the OCR text layer)
+    if (sourceFile === 'CAB_PIN DRAWINGS.pdf') {
+      sourceFile = 'CAB_PIN DRAWINGS 2.pdf';
+      await prisma.drawing.update({
+        where: { id: drawing.id },
+        data: { sourceFileId: sourceFile }
+      });
+      totalRedirected++;
     }
     
-    // Now handle drawings without mappings using inference
-    console.log('\n\n🔍 Processing drawings without explicit mappings (using inference)...');
+    const pdfPageNo = inferPageFromDrawingNumber(drawing.drawingNo, sourceFile);
+    totalProcessed++;
     
-    const unmappedDrawings = await prisma.drawing.findMany({
-      where: {
-        sourceFileId: { not: null },
-        pages: {
-          none: {}
-        }
-      },
-      include: {
-        pages: {
-          where: { pageNo: 1 },
-          take: 1
-        }
-      },
-      take: 100 // Limit to avoid overwhelming the system
+    // Check if drawing page already exists
+    const existingPage = await prisma.drawingPage.findFirst({
+      where: { drawingId: drawing.id, pageNo: 1 }
     });
     
-    console.log(`   Found ${unmappedDrawings.length} unmapped drawings`);
+    const extra = {
+      pdfPageNo,
+      sourceFile,
+      mappedAt: new Date().toISOString(),
+      mappingSource: 'hardcoded_aligned'
+    };
     
-    let inferredCount = 0;
-    
-    for (const drawing of unmappedDrawings) {
-      if (!drawing.sourceFileId) continue;
-      
-      const inferredPage = inferPageFromDrawingNumber(drawing.drawingNo, drawing.sourceFileId);
-      
-      if (inferredPage > 1) {
-        const existingPage = drawing.pages[0];
-        
-        if (existingPage) {
-          await prisma.drawingPage.update({
-            where: { id: existingPage.id },
-            data: {
-              extra: {
-                pdfPageNo: inferredPage,
-                sourceFile: drawing.sourceFileId,
-                mappedAt: new Date().toISOString(),
-                mappingSource: 'inferred'
-              }
-            }
-          });
-        } else {
-          await prisma.drawingPage.create({
-            data: {
-              drawingId: drawing.id,
-              pageNo: 1,
-              parseStatus: 'MAPPED',
-              extra: {
-                pdfPageNo: inferredPage,
-                sourceFile: drawing.sourceFileId,
-                mappedAt: new Date().toISOString(),
-                mappingSource: 'inferred'
-              }
-            }
-          });
+    if (existingPage) {
+      await prisma.drawingPage.update({
+        where: { id: existingPage.id },
+        data: {
+          extra,
+          ocrText: existingPage.ocrText || `Auto-mapped to ${sourceFile} page ${pdfPageNo}`
         }
-        
-        inferredCount++;
-        console.log(`   🔮 ${drawing.drawingNo} → Page ${inferredPage} (inferred)`);
-      }
+      });
+      totalUpdated++;
+    } else {
+      await prisma.drawingPage.create({
+        data: {
+          drawingId: drawing.id,
+          pageNo: 1,
+          parseStatus: 'MAPPED',
+          extra
+        }
+      });
+      totalCreated++;
     }
     
-    console.log(`\n\n✅ PDF Page Mapping Population Complete!`);
-    console.log(`\n📊 Final Summary:`);
-    console.log(`   Total Processed: ${totalProcessed}`);
-    console.log(`   Updated: ${totalUpdated}`);
-    console.log(`   Created: ${totalCreated}`);
-    console.log(`   Inferred: ${inferredCount}`);
-    console.log(`   Skipped: ${totalSkipped}`);
-    console.log(`   Total Mapped: ${totalUpdated + totalCreated + inferredCount}`);
-    
-    // Verification query
-    const verificationCount = await prisma.drawingPage.count({
-      where: {
-        extra: {
-          path: ['pdfPageNo'],
-          not: undefined
-        }
-      }
-    });
-    
-    console.log(`\n✅ Verification: ${verificationCount} drawing pages now have PDF page mappings`);
-    
-  } catch (error) {
-    console.error('\n❌ Error during PDF page mapping population:', error);
-    throw error;
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): number {
-  // Extract numeric part
-  const numMatch = drawingNo.match(/\d+/);
-  if (!numMatch) return 1;
-  
-  const num = parseInt(numMatch[0]);
-  
-  // For PIN drawings, typically each drawing is 2 pages (drawing + notes)
-  // Try to calculate based on sequence
-  if (sourceFile.includes('PIN')) {
-    // Find the base number for this file
-    if (sourceFile.includes('CAB_PIN DRAWINGS 2')) {
-      // 58124-58147 range, starting at page 1
-      const offset = num - 58124;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('CAB_PIN DRAWINGS')) {
-      // 58100-58123 range, starting at page 1
-      const offset = num - 58100;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('DMC_CEILING')) {
-      const offset = num - 58000;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('DMC UF')) {
-      const offset = num - 58050;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('TC_CEILING')) {
-      const offset = num - 58200;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('TC _UF')) {
-      const offset = num - 58250;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('MC_CEILING')) {
-      const offset = num - 58300;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
-    } else if (sourceFile.includes('MC_UF')) {
-      const offset = num - 58350;
-      return offset >= 0 ? (offset * 2) + 1 : 1;
+    if (totalProcessed % 50 === 0 || pdfPageNo > 1) {
+      console.log(`  Processed ${drawing.drawingNo} (${drawing.title}) -> ${sourceFile} page ${pdfPageNo}`);
     }
   }
   
-  return 1;
+  console.log(`\n✅ Mapping Population Complete!`);
+  console.log(`📊 Summary:`);
+  console.log(`   Total Processed: ${totalProcessed}`);
+  console.log(`   Updated: ${totalUpdated}`);
+  console.log(`   Created: ${totalCreated}`);
+  console.log(`   CAB Redirects: ${totalRedirected}`);
 }
 
-// Run the script
 populatePdfPageMappings()
   .then(() => {
     console.log('\n✅ Script completed successfully');
@@ -307,4 +313,7 @@ populatePdfPageMappings()
   .catch((error) => {
     console.error('\n❌ Script failed:', error);
     process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
   });

@@ -72,7 +72,12 @@ export default function PdfViewerEnhanced({
   // ─── OCR-style text highlighting ─────────────────────────────────────────
   const customTextRenderer = useCallback(({ str }: { str: string }) => {
     if (!activeHighlight.trim()) return str;
-    const escaped = activeHighlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Extract base number (e.g. 3001 from 3001A or 3001/1)
+    const baseMatch = activeHighlight.match(/(\d{3,5})/);
+    const base = baseMatch ? baseMatch[1] : activeHighlight.trim();
+    
+    const escaped = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`(${escaped})`, 'gi');
     if (!regex.test(str)) return str;
     return str.replace(
@@ -105,12 +110,12 @@ export default function PdfViewerEnhanced({
 
       // 2. Full text scan of every page (OCR-style)
       if (results.length === 0) {
-        const q = query.toLowerCase();
+        const qNormalized = query.toLowerCase().replace(/[\/\-\s]/g, '');
         for (let i = 1; i <= numPages; i++) {
           const page = await pdfDocument.getPage(i);
           const tc = await page.getTextContent();
-          const text = tc.items.map((it: any) => it.str).join(' ').toLowerCase();
-          if (text.includes(q)) results.push(i);
+          const text = tc.items.map((it: any) => it.str).join('').toLowerCase().replace(/[\/\-\s]/g, '');
+          if (text.includes(qNormalized)) results.push(i);
         }
       }
 

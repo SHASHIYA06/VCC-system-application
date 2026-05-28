@@ -130,24 +130,7 @@ function DrawingDetailContent() {
     }
   }
 
-  /** Resolve PDF source — DB file or inferred from drawing number */
-  function resolvePdfSrc(): string | null {
-    if (drawing?.sourceFile && drawing.sourceFile.endsWith('.pdf')) {
-      return `/api/pdf/${encodeURIComponent(drawing.sourceFile)}`;
-    }
-    // Infer from drawing number pattern
-    if (drawing?.drawingNo) {
-      const upper = drawing.drawingNo.toUpperCase();
-      if (upper.match(/942-?38[1-2]/)) return `/api/pdf/${encodeURIComponent('CAB_PIN DRAWINGS.pdf')}`;
-      if (upper.match(/942-?383/)) return `/api/pdf/${encodeURIComponent('DMC UF_PIN DRAWINGS.pdf')}`;
-      if (upper.match(/942-?384/)) return `/api/pdf/${encodeURIComponent('DMC_CEILING.pdf')}`;
-      if (upper.match(/942-?385/)) return `/api/pdf/${encodeURIComponent('TC _UF PIN DRAWINGS.pdf')}`;
-      if (upper.match(/942-?386/)) return `/api/pdf/${encodeURIComponent('TC_CEILING PIN DRAWINGS.pdf')}`;
-      if (upper.match(/942-?387/)) return `/api/pdf/${encodeURIComponent('MC_CEILING_PIN DRAWINGS.pdf')}`;
-      if (upper.match(/942-?38/) || upper.match(/942-?58/)) return `/api/pdf/${encodeURIComponent('KMRCL VCC Drawings_OCR.pdf')}`;
-    }
-    return null;
-  }
+
 
   const pdfViewerRef = useRef<HTMLDivElement>(null);
 
@@ -156,6 +139,22 @@ function DrawingDetailContent() {
       pdfViewerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
   };
+
+  /** Resolve PDF source — DB file or inferred from drawing number */
+  function resolvePdfSrc(): string | null {
+    if (drawing?.sourceFile && drawing.sourceFile.toLowerCase().endsWith('.pdf')) {
+      return `/api/pdf/${encodeURIComponent(drawing.sourceFile)}`;
+    }
+    if (drawing?.sourceFile) {
+      return `/api/pdf/${encodeURIComponent(drawing.sourceFile)}.pdf`;
+    }
+    if (drawing?.drawingNo) {
+      // Clean up drawing number to handle typical suffixes if they are separated
+      const dwg = drawing.drawingNo.toUpperCase().split('/')[0].split('A')[0].split('B')[0].split('C')[0].trim();
+      return `/api/pdf/${encodeURIComponent(dwg)}.pdf`;
+    }
+    return null;
+  }
 
   function openPdfViewer() {
     setPdfSearchQuery('');

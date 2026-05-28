@@ -353,7 +353,11 @@ export default function DashboardPage() {
         
         // Find mapped page if available
         if (data.drawing.sourceFile) {
-          const mappingRes = await fetch(`/api/drawings/pdf-mapping?drawing_no=${encodeURIComponent(data.drawing.drawingNo)}&source_file=${encodeURIComponent(data.drawing.sourceFile)}`);
+          const drawingToMap = data.drawing.pageSuffix 
+            ? `${data.drawing.drawingNo}${data.drawing.pageSuffix}` 
+            : data.drawing.drawingNo;
+            
+          const mappingRes = await fetch(`/api/drawings/pdf-mapping?drawing_no=${encodeURIComponent(drawingToMap)}&source_file=${encodeURIComponent(data.drawing.sourceFile)}`);
           if (mappingRes.ok) {
             const mappingData = await mappingRes.json();
             if (mappingData.pdfPageNo) {
@@ -480,9 +484,17 @@ export default function DashboardPage() {
       {/* Background glow elements */}
       <div className="glow-orb glow-orb-cyan" />
       <div className="glow-orb glow-orb-purple" />
+      
+      <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03] pointer-events-none mix-blend-screen"></div>
 
       {/* Title Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+      <motion.div 
+        initial={{ opacity: 0, y: -20, rotateX: 10 }}
+        animate={{ opacity: 1, y: 0, rotateX: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        style={{ perspective: 1000 }}
+        className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10"
+      >
         <div>
           <h1 className="text-4xl font-extrabold text-white tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
             Dashboard
@@ -496,10 +508,15 @@ export default function DashboardPage() {
           </span>
           System Synced to Neon PostgreSQL
         </div>
-      </div>
+      </motion.div>
 
       {/* Tabs Controller */}
-      <div className="flex bg-slate-950/80 p-1.5 rounded-xl border border-slate-800/80 max-w-lg relative z-10">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+        className="flex bg-slate-950/80 p-1.5 rounded-xl border border-slate-800/80 max-w-lg relative z-10 shadow-[0_0_15px_rgba(30,41,59,0.5)]"
+      >
         <button
           onClick={() => setActiveTab('explorer')}
           className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
@@ -533,7 +550,7 @@ export default function DashboardPage() {
           <ShieldAlert className="h-4 w-4" />
           Diagnostics & AI
         </button>
-      </div>
+      </motion.div>
 
       {/* TAB CONTENTS */}
       <AnimatePresence mode="wait">
