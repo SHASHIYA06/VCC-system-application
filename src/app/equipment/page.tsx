@@ -59,10 +59,11 @@ export default function EquipmentPage() {
   useEffect(() => {
     async function fetchEquipment() {
       try {
-        const res = await fetch('/api/equipment?connectors=true');
+        const res = await fetch('/api/equipment?connectors=true&limit=500');
         const data: EquipmentResponse = await res.json();
         setEquipmentData(data.equipment || []);
-      } catch {
+      } catch (err) {
+        console.error('Failed to fetch equipment:', err);
         setEquipmentData([]);
       } finally {
         setLoading(false);

@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   const carType = searchParams.get('car');
   const systemCode = searchParams.get('system');
   const search = searchParams.get('search') || searchParams.get('q');
+  const includeConnectors = searchParams.get('connectors') === 'true';
   const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 500);
 
   try {
@@ -25,6 +26,11 @@ export async function GET(request: NextRequest) {
       where,
       include: { 
         system: true,
+        wireEndpoints: {
+          include: {
+            connector: true
+          }
+        },
         _count: {
           select: { wireEndpoints: true }
         }
@@ -33,16 +39,25 @@ export async function GET(request: NextRequest) {
       orderBy: { deviceName: 'asc' },
     });
 
-    const equipment = devices.map(d => ({
-      id: d.id,
-      code: d.tagNo || d.deviceName,
-      name: d.deviceName,
-      system: d.system ? { code: d.system.code, name: d.system.name } : null,
-      carType: d.carType || '',
-      location: d.locationTag || '',
-      description: d.note || '',
-      connectorCount: d._count.wireEndpoints,
-    }));
+    const equipment = devices.map(d => {
+      // Count unique connectors from wire endpoints
+      const uniqueConnectors = new Set(
+        d.wireEndpoints
+          .map(we => we.connectorId)
+          .filter(Boolean) as string[]
+      ).size;
+
+      return {
+        id: d.id,
+        code: d.tagNo || d.deviceName,
+        name: d.deviceName,
+        system: d.system ? { code: d.system.code, name: d.system.name } : null,
+        carType: d.carType || '',
+        location: d.locationTag || '',
+        description: d.note || '',
+        connectorCount: includeConnectors ? uniqueConnectors : d._count.wireEndpoints,
+      };
+    });
 
     return NextResponse.json({
       equipment,
