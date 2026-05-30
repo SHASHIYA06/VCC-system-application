@@ -11,16 +11,47 @@ interface PdfViewerProps {
   initialPage?: number;
   title?: string;
   onClose?: () => void;
+  /**
+   * The page number where the requested drawing starts. If omitted the
+   * component will default to {@link initialPage}. This is used by the
+   * drawing list page to jump directly to the correct page inside a large
+   * OCR PDF.
+   */
+  startPage?: number;
+  /**
+   * When true the viewer should ignore {@link startPage} and simply display
+   * the schematic PDF. The schematic is a separate file that contains only
+   * the schematic view of the drawing.
+   */
+  isSchematic?: boolean;
 }
 
-export default function PdfViewer({ src, initialPage = 1, title, onClose }: PdfViewerProps) {
-  const [page, setPage] = useState(initialPage);
+export default function PdfViewer({ src, initialPage = 1, title, onClose, startPage, isSchematic = false }: PdfViewerProps) {
+  const [page, setPage] = useState(startPage ?? initialPage);
   const [loading, setLoading] = useState(true);
-  
+  const [totalPages, setTotalPages] = useState<number | null>(null);
+
   const pdfUrl = `${src}#page=${page}`;
 
+  // Reset to the start page whenever the source changes
   useEffect(() => {
-    setLoading(false);
+    setPage(startPage ?? initialPage);
+    setLoading(true);
+  }, [src, startPage, initialPage]);
+
+  // Load the PDF once to determine the total number of pages
+  useEffect(() => {
+    const loadPdf = async () => {
+      try {
+        const pdf = await import('pdfjs-dist/legacy/build/pdf').then(m => m.getDocument(src).promise);
+        setTotalPages(pdf.numPages);
+      } catch {
+        // If pdfjs fails we simply leave totalPages null
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPdf();
   }, [src]);
 
   function goToPrevPage() {
@@ -28,7 +59,7 @@ export default function PdfViewer({ src, initialPage = 1, title, onClose }: PdfV
   }
 
   function goToNextPage() {
-    setPage(page + 1);
+    if (totalPages && page < totalPages) setPage(page + 1);
   }
 
   function handlePageInput(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -58,14 +89,15 @@ export default function PdfViewer({ src, initialPage = 1, title, onClose }: PdfV
           </button>
           
           <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={1}
-              value={page}
-              onChange={(e) => setPage(Math.max(1, parseInt(e.target.value) || 1))}
-              onKeyDown={handlePageInput}
-              className="w-14 px-2 py-1 bg-slate-900 border border-slate-600 rounded text-white text-center text-sm font-mono"
-            />
+          <input
+            type="number"
+            min={1}
+            max={totalPages ?? undefined}
+            value={page}
+            onChange={(e) => setPage(Math.max(1, Math.min(totalPages ?? Infinity, parseInt(e.target.value) || 1)))}
+            onKeyDown={handlePageInput}
+            className="w-14 px-2 py-1 bg-slate-900 border border-slate-600 rounded text-white text-center text-sm font-mono"
+          />
             <span className="text-slate-400 text-sm">page</span>
           </div>
           
