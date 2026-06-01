@@ -39,19 +39,12 @@ export default function PdfViewer({ src, initialPage = 1, title, onClose, startP
     setLoading(true);
   }, [src, startPage, initialPage]);
 
-  // Load the PDF once to determine the total number of pages
+  // Since we use an iframe, we'll rely on iframe onLoad for loading state
+  // and don't need to parse the PDF for page count right now
   useEffect(() => {
-    const loadPdf = async () => {
-      try {
-        const pdf = await import('pdfjs-dist/legacy/build/pdf').then(m => m.getDocument(src).promise);
-        setTotalPages(pdf.numPages);
-      } catch {
-        // If pdfjs fails we simply leave totalPages null
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadPdf();
+    // Just set loading to false after a short delay
+    const timer = setTimeout(() => setLoading(false), 500);
+    return () => clearTimeout(timer);
   }, [src]);
 
   function goToPrevPage() {
