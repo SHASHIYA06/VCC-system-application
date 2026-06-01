@@ -142,16 +142,9 @@ function DrawingDetailContent() {
 
   /** Resolve PDF source — DB file or inferred from drawing number */
   function resolvePdfSrc(): string | null {
-    if (drawing?.sourceFile && drawing.sourceFile.toLowerCase().endsWith('.pdf')) {
-      return `/api/pdf/${encodeURIComponent(drawing.sourceFile)}`;
-    }
     if (drawing?.sourceFile) {
-      return `/api/pdf/${encodeURIComponent(drawing.sourceFile)}.pdf`;
-    }
-    if (drawing?.drawingNo) {
-      // Clean up drawing number to handle typical suffixes if they are separated
-      const dwg = drawing.drawingNo.toUpperCase().split('/')[0].split('A')[0].split('B')[0].split('C')[0].trim();
-      return `/api/pdf/${encodeURIComponent(dwg)}.pdf`;
+      // Ensure we use the correct filename from DB/mapping
+      return `/api/pdf/${encodeURIComponent(drawing.sourceFile)}`;
     }
     return null;
   }
