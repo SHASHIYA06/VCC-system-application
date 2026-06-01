@@ -15,7 +15,7 @@ import {
   Atom, Lightbulb, Target, Sliders
 } from 'lucide-react';
 
-const PdfViewerEnhanced = dynamic(() => import('@/components/pdf/PdfViewerEnhanced'), { 
+const PdfViewerEnhanced = dynamic(() => import('@/components/pdf/EnhancedPdfViewer'), { 
   ssr: false,
   loading: () => (
     <div className="w-full h-full min-h-[400px] flex items-center justify-center bg-slate-950/80 rounded-2xl border border-slate-800">

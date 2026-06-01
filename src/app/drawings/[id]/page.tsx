@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
-const PdfViewerEnhanced = dynamic(() => import('@/components/pdf/PdfViewerEnhanced'), { 
+const PdfViewerEnhanced = dynamic(() => import('@/components/pdf/EnhancedPdfViewer'), { 
   ssr: false,
   loading: () => (
     <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center">
@@ -548,13 +548,13 @@ function DrawingDetailContent() {
         </>
       )}
 
-      {showPdfViewer && resolvePdfSrc() && (
-        <div ref={pdfViewerRef} className="mt-8 border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl bg-slate-900 min-h-[600px] h-[750px] w-full">
+      {showPdfViewer && drawing && drawing.sourceFile && (
+        <div ref={pdfViewerRef} className="mt-8 border-2 border-cyan-500/30 rounded-2xl overflow-hidden shadow-2xl bg-slate-900 min-h-[600px] h-[800px] w-full">
           <PdfViewerEnhanced
-            src={resolvePdfSrc()!}
+            drawingNo={drawing.drawingNo}
+            title={drawing.title}
+            sourceFile={drawing.sourceFile}
             initialPage={pdfPage}
-            title={`${drawing?.drawingNo} - ${drawing?.title}`}
-            searchQuery={pdfSearchQuery}
             onClose={() => setShowPdfViewer(false)}
             inline={true}
           />
