@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       connectorCode: conn.connectorCode,
       connectorTypeCode: conn.connectorTypeCode,
       connectorType: conn.connectorType?.description || conn.connectorTypeCode || 'Standard',
-      pinCount: conn.pinCount || conn.pins.length,
+      pinCount: conn.pins.length, // Use actual pins array length
       description: conn.description || `${conn.connectorCode} connector`,
       scope: conn.scope,
       carType: conn.carType,

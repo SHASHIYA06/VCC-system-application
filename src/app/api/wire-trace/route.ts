@@ -22,18 +22,26 @@ export async function GET(request: NextRequest) {
     
     // Find the wire record using case-insensitive and flexible matching
     const normalizedWireNo = wireNo.trim();
-    const numBase = normalizedWireNo.replace(/[a-zA-Z\/\-]+$/, '');
+    
+    // Handle wire variants: 3001a, 3001A, 3001/1, 3001/2, 3001/3, Y4181a, etc.
+    // Extract base number (e.g., 3001 from 3001a, 3001/1, Y4181a)
+    const baseMatch = normalizedWireNo.match(/^[A-Z]*([0-9]+)[A-Z]*[\/]?[0-9]*/i);
+    const baseWireNo = baseMatch ? baseMatch[0] : normalizedWireNo;
     
     const wireWhere: any = {
       OR: [
         { wireNo: normalizedWireNo },
         { wireNo: { equals: normalizedWireNo, mode: 'insensitive' } },
-        { wireAlias: { equals: normalizedWireNo, mode: 'insensitive' } }
+        { wireAlias: { equals: normalizedWireNo, mode: 'insensitive' } },
+        // Match base wire number with variants
+        { wireNo: { startsWith: baseWireNo } },
+        { wireNo: { contains: baseWireNo } },
       ]
     };
     
-    if (numBase && numBase !== normalizedWireNo) {
-      wireWhere.OR.push({ wireNo: { startsWith: numBase } });
+    // Also try to match by signal name if wire not found
+    if (!baseMatch) {
+      wireWhere.OR.push({ signalName: { contains: normalizedWireNo, mode: 'insensitive' } });
     }
     
     const wire = await prisma.wire.findFirst({
