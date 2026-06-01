@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
 
 function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): number {
   // Strip prefix and handle alphabetic suffixes
-  const cleanNo = drawingNo.replace(/^942[-_]/i, '').replace(/[A-Z]+$/, '');
+  const cleanNo = drawingNo.replace(/^942[-_]/i, '').replace(/[A-Za-z]+$/, '');
   const numMatch = cleanNo.match(/\d+/);
   if (!numMatch) return 1;
   const num = parseInt(numMatch[0]);

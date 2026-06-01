@@ -81,7 +81,8 @@ function resolveDrawingToPdf(drawingNo: string): { file: string; isPin: boolean 
   const cleanNo = upper.replace(/[A-Z]+$/, '');
   
   // PIN drawings: 942-381xx = CAB, 942-382xx = CAB Part 2, 942-383xx = DMC_UF, etc.
-  if (upper.match(/942[-]?38[1-2]/i)) return { file: 'CAB_PIN DRAWINGS 2.pdf', isPin: true };
+  if (upper.match(/942[-]?381/i)) return { file: 'CAB_PIN DRAWINGS.pdf', isPin: true };
+  if (upper.match(/942[-]?382/i)) return { file: 'CAB_PIN DRAWINGS 2.pdf', isPin: true };
   if (upper.match(/942[-]?383/i)) return { file: 'DMC UF_PIN DRAWINGS.pdf', isPin: true };
   if (upper.match(/942[-]?384/i)) return { file: 'DMC_CEILING.pdf', isPin: true };
   if (upper.match(/942[-]?385/i)) return { file: 'TC _UF PIN DRAWINGS.pdf', isPin: true };
