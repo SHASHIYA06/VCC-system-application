@@ -331,14 +331,57 @@ async function calculateStatistics(systemCode?: string): Promise<TopologyStatist
  */
 export async function getSystemTopology(systemCode?: string): Promise<SystemTopology> {
   try {
-    const [systems, deviceNodes, connectorNodes, wireEdges, connectorEdges, statistics] = await Promise.all([
-      getSystemsInfo(),
-      getDeviceNodes(systemCode),
-      getConnectorNodes(systemCode),
-      getWireEdges(systemCode),
-      getConnectorEdges(systemCode),
-      calculateStatistics(systemCode),
-    ]);
+    // Fetch data with error handling for each component
+    let systems: SystemInfo[] = [];
+    let deviceNodes: SystemNode[] = [];
+    let connectorNodes: SystemNode[] = [];
+    let wireEdges: SystemEdge[] = [];
+    let connectorEdges: SystemEdge[] = [];
+    let statistics: TopologyStatistics = {
+      totalDevices: 0,
+      totalConnections: 0,
+      totalWires: 0,
+      systemCount: 0,
+      connectorCount: 0,
+      devicesBySystem: {},
+      connectionsByType: {},
+    };
+
+    try {
+      systems = await getSystemsInfo();
+    } catch (err) {
+      console.warn('Warning: Could not fetch systems info:', err);
+    }
+
+    try {
+      deviceNodes = await getDeviceNodes(systemCode);
+    } catch (err) {
+      console.warn('Warning: Could not fetch device nodes:', err);
+    }
+
+    try {
+      connectorNodes = await getConnectorNodes(systemCode);
+    } catch (err) {
+      console.warn('Warning: Could not fetch connector nodes:', err);
+    }
+
+    try {
+      wireEdges = await getWireEdges(systemCode);
+    } catch (err) {
+      console.warn('Warning: Could not fetch wire edges:', err);
+    }
+
+    try {
+      connectorEdges = await getConnectorEdges(systemCode);
+    } catch (err) {
+      console.warn('Warning: Could not fetch connector edges:', err);
+    }
+
+    try {
+      statistics = await calculateStatistics(systemCode);
+    } catch (err) {
+      console.warn('Warning: Could not calculate statistics:', err);
+    }
 
     const nodes = [...deviceNodes, ...connectorNodes];
     const edges = [...wireEdges, ...connectorEdges];
@@ -351,7 +394,21 @@ export async function getSystemTopology(systemCode?: string): Promise<SystemTopo
     };
   } catch (error) {
     console.error('Error getting system topology:', error);
-    throw error;
+    // Return empty topology instead of throwing
+    return {
+      nodes: [],
+      edges: [],
+      systems: [],
+      statistics: {
+        totalDevices: 0,
+        totalConnections: 0,
+        totalWires: 0,
+        systemCount: 0,
+        connectorCount: 0,
+        devicesBySystem: {},
+        connectionsByType: {},
+      },
+    };
   }
 }
 
@@ -366,13 +423,40 @@ export async function getDeviceConnections(deviceId: string): Promise<SystemTopo
     });
 
     if (!device) {
-      throw new Error(`Device ${deviceId} not found`);
+      console.warn(`Device ${deviceId} not found`);
+      return {
+        nodes: [],
+        edges: [],
+        systems: [],
+        statistics: {
+          totalDevices: 0,
+          totalConnections: 0,
+          totalWires: 0,
+          systemCount: 0,
+          connectorCount: 0,
+          devicesBySystem: {},
+          connectionsByType: {},
+        },
+      };
     }
 
     return getSystemTopology(device.system?.code);
   } catch (error) {
     console.error('Error getting device connections:', error);
-    throw error;
+    return {
+      nodes: [],
+      edges: [],
+      systems: [],
+      statistics: {
+        totalDevices: 0,
+        totalConnections: 0,
+        totalWires: 0,
+        systemCount: 0,
+        connectorCount: 0,
+        devicesBySystem: {},
+        connectionsByType: {},
+      },
+    };
   }
 }
 
@@ -394,17 +478,44 @@ export async function getWirePath(wireNo: string): Promise<SystemTopology> {
     });
 
     if (!wire) {
-      throw new Error(`Wire ${wireNo} not found`);
+      console.warn(`Wire ${wireNo} not found`);
+      return {
+        nodes: [],
+        edges: [],
+        systems: [],
+        statistics: {
+          totalDevices: 0,
+          totalConnections: 0,
+          totalWires: 0,
+          systemCount: 0,
+          connectorCount: 0,
+          devicesBySystem: {},
+          connectionsByType: {},
+        },
+      };
     }
 
     // Get system from first endpoint
     const firstEndpoint = wire.endpoints[0];
-    const systemCode = firstEndpoint.device?.system?.code || firstEndpoint.connector?.drawing?.system?.code;
+    const systemCode = firstEndpoint?.device?.system?.code || firstEndpoint?.connector?.drawing?.system?.code;
 
     return getSystemTopology(systemCode);
   } catch (error) {
     console.error('Error getting wire path:', error);
-    throw error;
+    return {
+      nodes: [],
+      edges: [],
+      systems: [],
+      statistics: {
+        totalDevices: 0,
+        totalConnections: 0,
+        totalWires: 0,
+        systemCount: 0,
+        connectorCount: 0,
+        devicesBySystem: {},
+        connectionsByType: {},
+      },
+    };
   }
 }
 
@@ -425,7 +536,7 @@ export async function searchTopologyNodes(query: string, systemCode?: string): P
     );
   } catch (error) {
     console.error('Error searching topology nodes:', error);
-    throw error;
+    return [];
   }
 }
 
