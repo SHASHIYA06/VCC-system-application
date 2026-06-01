@@ -33,20 +33,28 @@ async function main() {
     const extra = page?.extra as any;
     const pdfPageNo = extra?.pdfPageNo || 'Not set';
     
-    console.log(`${drawing.drawingNo}: Page ${page?.pageNo || 1} (PDF Page: ${pdfPageNo})`);
+    if (page) {
+      console.log(`${drawing.drawingNo}: Page ${page.pageNo} (PDF Page: ${pdfPageNo})`);
+    } else {
+      console.log(`${drawing.drawingNo}: No pages found`);
+    }
   }
 
-  // Check total mapped drawings
-  const totalMapped = await prisma.drawingPage.count({
+  // Check total mapped drawings (distinct drawing IDs)
+  const totalMappedDrawings = await prisma.drawingPage.findMany({
     where: {
       extra: {
         path: ['pdfPageNo'],
         not: null,
       },
     },
+    select: {
+      drawingId: true
+    },
+    distinct: ['drawingId']
   });
 
-  console.log(`\nTotal mapped drawings: ${totalMapped}`);
+  console.log(`\nTotal mapped drawings: ${totalMappedDrawings.length}`);
 }
 
 main()
