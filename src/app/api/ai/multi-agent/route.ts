@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { executeMultiAgentQuery, executeSingleAgentQuery } from '@/lib/ai/multi-agent-rag';
+
+// Lazy-load the multi-agent functions only when actually needed
+async function loadMultiAgentFunctions() {
+  if (!process.env.OPENAI_API_KEY) {
+    return null;
+  }
+  const { executeMultiAgentQuery, executeSingleAgentQuery } = await import('@/lib/ai/multi-agent-rag');
+  return { executeMultiAgentQuery, executeSingleAgentQuery };
+}
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if OpenAI API key is available
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json(
+        {
+          error: 'Multi-agent AI system is not configured. Please set OPENAI_API_KEY environment variable.',
+          status: 'unconfigured',
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const { query, agentType = null, timeout = 30000 } = body;
 
@@ -12,6 +31,17 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Lazy-load the multi-agent functions
+    const agents = await loadMultiAgentFunctions();
+    if (!agents) {
+      return NextResponse.json(
+        { error: 'Multi-agent AI system is not available' },
+        { status: 503 }
+      );
+    }
+
+    const { executeMultiAgentQuery, executeSingleAgentQuery } = agents;
 
     // Set timeout for the query execution
     const controller = new AbortController();
