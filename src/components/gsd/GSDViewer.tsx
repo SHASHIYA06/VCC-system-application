@@ -12,7 +12,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { SystemNode, SystemEdge, SystemTopology } from '@/lib/gsd/topology';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 interface GSDViewerProps {
   system?: string;
@@ -52,66 +52,78 @@ export const GSDViewer: React.FC<GSDViewerProps> = ({
 
         const response = await fetch(`/api/gsd?${params.toString()}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch GSD topology');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to fetch GSD topology (${response.status})`);
         }
 
         const data = await response.json();
-        if (data.success) {
-          setTopology(data.data);
+        if (!data.success) {
+          throw new Error(data.error || 'Unknown error fetching topology');
+        }
 
-          // Convert nodes
-          const xyNodes = data.data.nodes.map((node: SystemNode) => ({
-            id: node.id,
-            data: {
-              label: node.label,
-              type: node.type,
-              metadata: node.metadata,
-            },
-            position: node.position,
-            style: {
-              background: node.color || '#3b82f6',
-              color: '#fff',
-              border: '2px solid #1e40af',
-              borderRadius: node.type === 'connector' ? '4px' : '50%',
-              padding: '10px',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              textAlign: 'center',
-              width: node.type === 'connector' ? '60px' : '80px',
-              height: node.type === 'connector' ? '40px' : '80px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            } as React.CSSProperties,
-          }));
+        if (!data.data || !data.data.nodes) {
+          throw new Error('Invalid topology data structure');
+        }
 
-          // Convert edges
-          const xyEdges = data.data.edges.map((edge: SystemEdge) => ({
-            id: edge.id,
-            source: edge.source,
-            target: edge.target,
-            label: edge.label,
-            animated: edge.animated || false,
-            style: {
-              stroke: edge.color || '#6b7280',
-              strokeWidth: 2,
-            },
-            markerEnd: {
-              type: 'arrowclosed',
-              color: edge.color || '#6b7280',
-            },
-          }));
+        setTopology(data.data);
 
-          setNodes(xyNodes);
-          setEdges(xyEdges);
-        } else {
-          throw new Error(data.error || 'Unknown error');
+        // Convert nodes with safety checks
+        const xyNodes = (data.data.nodes || []).map((node: SystemNode) => ({
+          id: node.id || `node-${Math.random()}`,
+          data: {
+            label: node.label || 'Unknown',
+            type: node.type || 'device',
+            metadata: node.metadata || {},
+          },
+          position: node.position || { x: 0, y: 0 },
+          style: {
+            background: node.color || '#3b82f6',
+            color: '#fff',
+            border: '2px solid #1e40af',
+            borderRadius: node.type === 'connector' ? '4px' : '50%',
+            padding: '10px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            textAlign: 'center' as const,
+            width: node.type === 'connector' ? '60px' : '80px',
+            height: node.type === 'connector' ? '40px' : '80px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          } as React.CSSProperties,
+        }));
+
+        // Convert edges with safety checks
+        const xyEdges = (data.data.edges || []).map((edge: SystemEdge) => ({
+          id: edge.id || `edge-${Math.random()}`,
+          source: edge.source || '',
+          target: edge.target || '',
+          label: edge.label || '',
+          animated: edge.animated || false,
+          style: {
+            stroke: edge.color || '#6b7280',
+            strokeWidth: 2,
+          },
+          markerEnd: {
+            type: 'arrowclosed' as const,
+            color: edge.color || '#6b7280',
+          },
+        }));
+
+        setNodes(xyNodes);
+        setEdges(xyEdges);
+
+        if (xyNodes.length === 0 || xyEdges.length === 0) {
+          setError('No nodes or edges available in topology data');
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
         console.error('Error fetching GSD topology:', err);
+        setNodes([]);
+        setEdges([]);
       } finally {
         setLoading(false);
       }
@@ -122,7 +134,8 @@ export const GSDViewer: React.FC<GSDViewerProps> = ({
 
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, node: any) => {
-      const gsdNode = topology?.nodes.find((n) => n.id === node.id);
+      if (!topology) return;
+      const gsdNode = topology.nodes.find((n) => n.id === node.id);
       if (gsdNode) {
         setSelectedNode(gsdNode);
         onNodeClick?.(gsdNode);
@@ -133,7 +146,8 @@ export const GSDViewer: React.FC<GSDViewerProps> = ({
 
   const handleEdgeClick = useCallback(
     (event: React.MouseEvent, edge: any) => {
-      const gsdEdge = topology?.edges.find((e) => e.id === edge.id);
+      if (!topology) return;
+      const gsdEdge = topology.edges.find((e) => e.id === edge.id);
       if (gsdEdge) {
         onEdgeClick?.(gsdEdge);
       }
@@ -152,12 +166,18 @@ export const GSDViewer: React.FC<GSDViewerProps> = ({
     );
   }
 
-  if (error) {
+  if (error || !nodes || nodes.length === 0) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
-        <div className="flex flex-col items-center gap-4 p-6 bg-red-900/20 border border-red-500/50 rounded-lg">
-          <p className="text-red-400 font-semibold">Error Loading GSD</p>
-          <p className="text-red-300 text-sm">{error}</p>
+        <div className="flex flex-col items-center gap-4 p-6 bg-amber-900/20 border border-amber-500/50 rounded-lg max-w-md">
+          <AlertTriangle className="w-8 h-8 text-amber-400" />
+          <p className="text-amber-400 font-semibold text-center">GSD Topology Unavailable</p>
+          <p className="text-amber-300 text-sm text-center">
+            {error || 'No topology data available. Check database connection and system configuration.'}
+          </p>
+          <p className="text-amber-200/70 text-xs text-center mt-2">
+            Ensure systems, devices, and connections are properly configured in the database.
+          </p>
         </div>
       </div>
     );
@@ -176,21 +196,23 @@ export const GSDViewer: React.FC<GSDViewerProps> = ({
       >
         <Background color="#1e293b" gap={16} />
         <Controls />
-        <MiniMap
-          style={{
-            background: '#0f172a',
-            border: '1px solid #06b6d4',
-          }}
-          maskColor="rgba(0, 0, 0, 0.3)"
-        />
+        {nodes.length > 0 && (
+          <MiniMap
+            style={{
+              background: '#0f172a',
+              border: '1px solid #06b6d4',
+            }}
+            maskColor="rgba(0, 0, 0, 0.3)"
+          />
+        )}
 
         {/* Info Panel */}
         <Panel position="top-left" className="bg-slate-900/80 border border-cyan-500/30 rounded-lg p-4 backdrop-blur">
           <div className="text-sm text-slate-300">
             <p className="font-semibold text-cyan-400 mb-2">GSD Topology</p>
-            <p>Nodes: {topology?.statistics.totalDevices || 0}</p>
-            <p>Connections: {topology?.statistics.totalConnections || 0}</p>
-            <p>Wires: {topology?.statistics.totalWires || 0}</p>
+            <p>Nodes: {topology?.statistics?.totalDevices || 0}</p>
+            <p>Connections: {topology?.statistics?.totalConnections || 0}</p>
+            <p>Wires: {topology?.statistics?.totalWires || 0}</p>
           </div>
         </Panel>
 
@@ -201,7 +223,7 @@ export const GSDViewer: React.FC<GSDViewerProps> = ({
               <p className="font-semibold text-cyan-400 mb-2">{selectedNode.label}</p>
               <p className="text-xs text-slate-400 mb-2">Type: {selectedNode.type}</p>
               <p className="text-xs text-slate-400 mb-2">System: {selectedNode.system}</p>
-              {Object.entries(selectedNode.metadata).map(([key, value]) => (
+              {selectedNode.metadata && Object.entries(selectedNode.metadata).map(([key, value]) => (
                 <p key={key} className="text-xs text-slate-400">
                   {key}: {String(value)}
                 </p>

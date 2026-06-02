@@ -89,22 +89,31 @@ function generatePosition(index: number, total: number, radius: number = 300): {
  * Get all systems with their device counts
  */
 async function getSystemsInfo(): Promise<SystemInfo[]> {
-  const systems = await prisma.system.findMany({
-    include: {
-      _count: {
-        select: { devices: true, drawings: true },
+  try {
+    const systems = await prisma.system.findMany({
+      include: {
+        _count: {
+          select: { devices: true, drawings: true },
+        },
       },
-    },
-    orderBy: { sortOrder: 'asc' },
-  });
+      orderBy: { sortOrder: 'asc' },
+    });
 
-  return systems.map((sys) => ({
-    code: sys.code,
-    name: sys.name,
-    devices: sys._count.devices,
-    connections: sys._count.drawings * 5, // Approximate
-    color: SYSTEM_COLORS[sys.code] || SYSTEM_COLORS.DEFAULT,
-  }));
+    if (!systems || systems.length === 0) {
+      throw new Error('No systems found in database');
+    }
+
+    return systems.map((sys) => ({
+      code: sys.code,
+      name: sys.name,
+      devices: sys._count.devices,
+      connections: sys._count.drawings * 5, // Approximate
+      color: SYSTEM_COLORS[sys.code] || SYSTEM_COLORS.DEFAULT,
+    }));
+  } catch (error) {
+    console.error('Error fetching systems:', error);
+    throw new Error(`Failed to fetch systems info: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 /**

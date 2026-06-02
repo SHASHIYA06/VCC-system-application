@@ -1,19 +1,20 @@
 import { prisma } from '@/lib/prisma';
-import { OpenAI } from 'openai';
 
 /**
  * Multi-Agent RAG System
  * Coordinates multiple specialized agents for comprehensive VCC system analysis
  */
 
-// Lazy initialize OpenAI client
-let openaiClient: OpenAI | null = null;
+// Lazy initialize OpenAI client - IMPORTANT: DO NOT import OpenAI at module level
+let openaiClient: any = null;
 
-function getOpenAIClient(): OpenAI {
+async function getOpenAIClient(): Promise<any> {
   if (!openaiClient) {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY environment variable is not set');
     }
+    // Import OpenAI only when needed at runtime
+    const { OpenAI } = await import('openai');
     openaiClient = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
@@ -45,7 +46,7 @@ export interface MultiAgentResponse {
 async function drawingExpertAgent(query: string): Promise<AgentResponse> {
   const startTime = Date.now();
   try {
-    const openai = getOpenAIClient();
+    const openai = await getOpenAIClient();
 
     // Search relevant drawings
     const drawings = await prisma.drawing.findMany({
@@ -107,7 +108,7 @@ async function drawingExpertAgent(query: string): Promise<AgentResponse> {
 async function wireExpertAgent(query: string): Promise<AgentResponse> {
   const startTime = Date.now();
   try {
-    const openai = getOpenAIClient();
+    const openai = await getOpenAIClient();
 
     // Search relevant wires
     const wires = await prisma.wire.findMany({
@@ -169,7 +170,7 @@ async function wireExpertAgent(query: string): Promise<AgentResponse> {
 async function systemExpertAgent(query: string): Promise<AgentResponse> {
   const startTime = Date.now();
   try {
-    const openai = getOpenAIClient();
+    const openai = await getOpenAIClient();
 
     // Get system information
     const systems = await prisma.system.findMany({
@@ -231,7 +232,7 @@ async function systemExpertAgent(query: string): Promise<AgentResponse> {
 async function deviceExpertAgent(query: string): Promise<AgentResponse> {
   const startTime = Date.now();
   try {
-    const openai = getOpenAIClient();
+    const openai = await getOpenAIClient();
 
     // Search devices and connectors
     const devices = await prisma.device.findMany({
@@ -300,7 +301,7 @@ async function deviceExpertAgent(query: string): Promise<AgentResponse> {
 async function diagnosticExpertAgent(query: string): Promise<AgentResponse> {
   const startTime = Date.now();
   try {
-    const openai = getOpenAIClient();
+    const openai = await getOpenAIClient();
 
     // Check for wires with incomplete connections (potential issues)
     const allWires = await prisma.wire.findMany({
@@ -365,7 +366,7 @@ async function unifiedCoordinator(
   agentResponses: AgentResponse[]
 ): Promise<string> {
   try {
-    const openai = getOpenAIClient();
+    const openai = await getOpenAIClient();
 
     const synthesisPrompt = `
 You are the VCC system coordinator. Synthesize the following expert opinions into a clear, comprehensive answer.

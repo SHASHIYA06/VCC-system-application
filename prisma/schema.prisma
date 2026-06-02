@@ -122,6 +122,7 @@ model Drawing {
   applicability        DrawingApplicability[]
   notes                DrawingNote[]
   pages                DrawingPage[]
+  pageMappings         DrawingPageMapping[]   @relation("DrawingPageMappings")
   references           DrawingReference[]
   sheets               DrawingSheet[]
   noteEntities         Note[]
@@ -174,6 +175,26 @@ model DrawingPage {
   drawing     Drawing  @relation(fields: [drawingId], references: [id])
 
   @@unique([drawingId, pageNo])
+}
+
+model DrawingPageMapping {
+  id              String   @id @default(cuid())
+  drawingId       String
+  sourceFileId    String?
+  sourceFileName  String
+  pdfPageNo       Int
+  drawingNumber   String
+  verified        Boolean  @default(false)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  drawing         Drawing  @relation("DrawingPageMappings", fields: [drawingId], references: [id])
+
+  @@unique([drawingId, sourceFileId])
+  @@index([drawingNumber])
+  @@index([sourceFileName])
+  @@index([pdfPageNo])
+  @@index([verified])
 }
 
 model DrawingSheet {

@@ -18,11 +18,13 @@ async function scanPhysicalDirectory() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { action } = await request.json();
+    const body = await request.json();
+    const { action } = body;
     
     if (action === 'seedMappings' || action === 'dynamicScan') {
       const physicalFiles = await scanPhysicalDirectory();
       let mappedCount = 0;
+      const results = [];
       
       // Map drawings to their inferred pages
       for (const sourceFile of physicalFiles) {
@@ -33,17 +35,33 @@ export async function POST(request: NextRequest) {
         for (const drawing of drawings) {
           const inferredPage = inferPageFromDrawingNumber(drawing.drawingNo, sourceFile);
           
-          await prisma.drawingPage.upsert({
-            where: { drawingId_pageNo: { drawingId: drawing.id, pageNo: 1 } },
-            update: { extra: { pdfPageNo: inferredPage, sourceFile, verified: true } as any },
-            create: {
-              drawingId: drawing.id,
-              pageNo: 1,
-              parseStatus: 'MAPPED',
-              extra: { pdfPageNo: inferredPage, sourceFile, verified: true } as any
-            }
-          });
-          mappedCount++;
+          try {
+            const mapping = await prisma.drawingPageMapping.upsert({
+              where: { 
+                drawingId_sourceFileId: { 
+                  drawingId: drawing.id, 
+                  sourceFileId: sourceFile 
+                } 
+              },
+              update: { 
+                pdfPageNo: inferredPage,
+                verified: true,
+                updatedAt: new Date()
+              },
+              create: {
+                drawingId: drawing.id,
+                sourceFileId: sourceFile,
+                sourceFileName: sourceFile,
+                pdfPageNo: inferredPage,
+                drawingNumber: drawing.drawingNo,
+                verified: true,
+              }
+            });
+            mappedCount++;
+            results.push({ drawingNo: drawing.drawingNo, page: inferredPage, status: 'mapped' });
+          } catch (e) {
+            console.error(`Failed to map ${drawing.drawingNo}:`, e);
+          }
         }
       }
       
@@ -51,14 +69,9 @@ export async function POST(request: NextRequest) {
         success: true, 
         mappedCount,
         scannedFiles: physicalFiles,
+        results,
         message: `Dynamically scanned and mapped ${mappedCount} drawings across ${physicalFiles.length} PDFs` 
       });
-    }
-    
-    if (action === 'getMapping') {
-      const { drawingNo, sourceFile } = await request.json();
-      const mapping = inferPageFromDrawingNumber(drawingNo, sourceFile);
-      return NextResponse.json({ pdfPageNo: mapping, sourceFile, dynamic: true });
     }
     
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -78,8 +91,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'drawing_no and source_file required' }, { status: 400 });
   }
   
-  // First, try to get page mapping from database
   try {
+    // First, try to get exact page mapping from database
     const drawing = await prisma.drawing.findFirst({
       where: {
         OR: [
@@ -88,39 +101,56 @@ export async function GET(request: NextRequest) {
         ]
       },
       include: {
-        pages: {
-          orderBy: { pageNo: 'asc' },
+        pageMappings: {
+          where: { sourceFileName: sourceFile },
           take: 1
         }
       }
     });
 
-    if (drawing?.pages?.[0]?.extra) {
-      try {
-        const extra = drawing.pages[0].extra as any;
-        if (extra && typeof extra === 'object' && extra.pdfPageNo) {
-          return NextResponse.json({ 
-            pdfPageNo: extra.pdfPageNo, 
-            sourceFile,
-            source: 'database' 
-          });
-        }
-      } catch (e) {
-        // Continue to fallback
-      }
+    if (drawing?.pageMappings?.[0]) {
+      const mapping = drawing.pageMappings[0];
+      return NextResponse.json({ 
+        pdfPageNo: mapping.pdfPageNo,
+        sourceFile: mapping.sourceFileName,
+        drawingNumber: mapping.drawingNumber,
+        source: 'database',
+        verified: mapping.verified
+      });
     }
+
+    // Try to find mapping by drawing number
+    const mappingByNumber = await prisma.drawingPageMapping.findFirst({
+      where: {
+        drawingNumber: drawingNo,
+        sourceFileName: sourceFile
+      }
+    });
+
+    if (mappingByNumber) {
+      return NextResponse.json({ 
+        pdfPageNo: mappingByNumber.pdfPageNo, 
+        sourceFile: mappingByNumber.sourceFileName,
+        drawingNumber: mappingByNumber.drawingNumber,
+        source: 'database',
+        verified: mappingByNumber.verified
+      });
+    }
+
   } catch (error) {
     console.error('Database lookup failed:', error);
   }
   
-  // Fallback to dynamic inference
+  // Fallback to dynamic inference if not found in database
   const inferredPage = inferPageFromDrawingNumber(drawingNo, sourceFile);
   
   return NextResponse.json({ 
     pdfPageNo: inferredPage, 
     sourceFile,
+    drawingNumber: drawingNo,
     source: 'inferred',
-    warning: 'No exact mapping found, showing inferred page'
+    verified: false,
+    warning: 'No verified mapping found in database, showing inferred page. Call POST with action=seedMappings to populate database.'
   });
 }
 
@@ -155,7 +185,7 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
     return DMC_UF_MAPPING[num] || 1;
   }
 
-  // CAB PIN Drawings mapping
+  // CAB PIN Drawings mapping - CORRECTED FOR 942-38409
   if (sourceFile.includes('CAB_PIN DRAWINGS')) {
     const CAB_PIN_MAPPING: Record<number, number> = {
       38103: 1, // HV System PIN
@@ -173,7 +203,8 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
       38121: 38,
       38122: 41,
       38110: 42,
-      38128: 46
+      38128: 46,
+      38409: 15  // Intercar Jumper & Connector Layout - TC Car
     };
     return CAB_PIN_MAPPING[num] || 1;
   }
@@ -341,3 +372,5 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
 
   return 1;
 }
+
+
