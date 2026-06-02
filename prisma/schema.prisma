@@ -132,6 +132,9 @@ model Drawing {
   @@unique([projectId, drawingNo, revision])
   @@index([drawingNo])
   @@index([systemId])
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model DrawingApplicability {
@@ -431,6 +434,12 @@ model Wire {
   wireAlias          String?        @unique
   endpoints          WireEndpoint[]
   drawings           DrawingWire[]
+
+  @@index([wireNo])
+  @@index([signalName])
+  @@index([sourceEquipment])
+  @@index([destEquipment])
+  @@index([createdAt])
 }
 
 model DrawingWire {
@@ -606,4 +615,96 @@ enum ConnectorScope {
   COMMUNICATION
   DEVICE
   DIAGNOSTIC
+}
+
+enum UserRole {
+  ADMIN
+  ANALYST
+  VIEWER
+  GUEST
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  READ
+  EXPORT
+  SYNC
+  VALIDATE
+  ANALYZE
+}
+
+// ─── Authentication & Access Control ───────────────────────────────────────
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  name          String?
+  passwordHash  String?
+  role          UserRole     @default(VIEWER)
+  isActive      Boolean      @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  apiKeys       ApiKey[]
+  auditLogs     AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  keyHash   String   @unique
+  name      String
+  scopes    String[] @default(["read"])
+  lastUsed  DateTime?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+// ─── Audit Trail ───────────────────────────────────────────────────────────
+
+model AuditLog {
+  id            String       @id @default(cuid())
+  userId        String?
+  action        AuditAction
+  entityType    String
+  entityId      String?
+  changes       Json?
+  ipAddress     String?
+  userAgent     String?
+  status        String       @default("SUCCESS")
+  errorMessage  String?
+  executionTime Int?
+  createdAt     DateTime     @default(now())
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+// ─── Performance Indexes ───────────────────────────────────────────────────
+
+model QueryPerformance {
+  id              String   @id @default(cuid())
+  queryType       String
+  executionTime   Int
+  rowsAffected    Int?
+  cacheHit        Boolean  @default(false)
+  queryHash       String
+  createdAt       DateTime @default(now())
+
+  @@index([queryType])
+  @@index([executionTime])
+  @@index([createdAt])
 }
