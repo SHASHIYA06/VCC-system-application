@@ -1,0 +1,34 @@
+{
+  "project": {
+    "name": "VCC System Application",
+    "description": "Vehicle Control Cabinet (VCC) train system electrical schematic documentation and analysis platform",
+    "root": ".",
+    "language": "typescript",
+    "framework": "next.js"
+  },
+  "providers": {
+    "default": "anthropic",
+    "models": {
+      "planning": "claude-opus-4",
+      "coding": "claude-opus-4",
+      "verification": "claude-opus-4",
+      "quick": "claude-haiku-4"
+    }
+  },
+  "git": {
+    "autoWorktree": true,
+    "defaultBranch": "main",
+    "commitMessagePrefix": "gsd:"
+  },
+  "workspace": {
+    "stateDir": ".gsd",
+    "maxConcurrentTasks": 3,
+    "autoSave": true
+  },
+  "features": {
+    "autonomousMode": true,
+    "workflowTracking": true,
+    "artifactGeneration": true,
+    "verificationSteps": true
+  }
+}

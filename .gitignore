@@ -44,3 +44,13 @@ next-env.d.ts
 vcc-explorer.worktrees/
 vcc-explorer/
 layra-sidecar/
+
+# GSD Pi workspace (local-only)
+.gsd/sessions/
+.gsd/agent/managed-resources.json
+.gsd/agent/cache/
+.gsd/.update-check
+
+# Keep these tracked:
+!.gsd/config.json
+!.gsd/project/
