@@ -6,6 +6,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        // Design System: Fira Code (headings) + Fira Sans (body)
+        mono: ['"Fira Code"', 'monospace'],
+        sans: ['"Fira Sans"', 'sans-serif'],
+      },
       colors: {
         // Custom VCC color palette
         primary: {

@@ -22,7 +22,7 @@ export function StatCard({
   subtext,
   trend,
   trendValue,
-  color = 'cyan',
+  color = 'blue',
   className = '',
   dataSource = 'database',
 }: StatCardProps) {
@@ -53,38 +53,40 @@ export function StatCard({
   };
 
   const glowShadows = {
-    cyan: 'hover:shadow-[0_0_35px_rgba(6,182,212,0.25)]',
-    blue: 'hover:shadow-[0_0_35px_rgba(59,130,246,0.25)]',
-    purple: 'hover:shadow-[0_0_35px_rgba(168,85,247,0.25)]',
-    green: 'hover:shadow-[0_0_35px_rgba(16,185,129,0.25)]',
-    orange: 'hover:shadow-[0_0_35px_rgba(249,115,22,0.25)]',
-    red: 'hover:shadow-[0_0_35px_rgba(239,68,68,0.25)]',
-    amber: 'hover:shadow-[0_0_35px_rgba(245,158,11,0.25)]',
-    pink: 'hover:shadow-[0_0_35px_rgba(236,72,153,0.25)]',
-    indigo: 'hover:shadow-[0_0_35px_rgba(99,102,241,0.25)]',
-    slate: 'hover:shadow-[0_0_35px_rgba(148,163,184,0.25)]',
-    violet: 'hover:shadow-[0_0_35px_rgba(139,92,246,0.25)]',
-    emerald: 'hover:shadow-[0_0_35px_rgba(16,185,129,0.25)]',
+    cyan: 'hover:shadow-[0_0_35px_rgba(34,211,238,0.2)] hover:border-cyan-200',
+    blue: 'hover:shadow-[0_0_35px_rgba(59,130,246,0.2)] hover:border-blue-200',
+    purple: 'hover:shadow-[0_0_35px_rgba(168,85,247,0.2)] hover:border-purple-200',
+    green: 'hover:shadow-[0_0_35px_rgba(16,185,129,0.2)] hover:border-green-200',
+    orange: 'hover:shadow-[0_0_35px_rgba(249,115,22,0.2)] hover:border-orange-200',
+    red: 'hover:shadow-[0_0_35px_rgba(239,68,68,0.2)] hover:border-red-200',
+    amber: 'hover:shadow-[0_0_35px_rgba(245,158,11,0.2)] hover:border-amber-200',
+    pink: 'hover:shadow-[0_0_35px_rgba(236,72,153,0.2)] hover:border-pink-200',
+    indigo: 'hover:shadow-[0_0_35px_rgba(99,102,241,0.2)] hover:border-indigo-200',
+    slate: 'hover:shadow-[0_0_35px_rgba(148,163,184,0.2)] hover:border-slate-300',
+    violet: 'hover:shadow-[0_0_35px_rgba(139,92,246,0.2)] hover:border-violet-200',
+    emerald: 'hover:shadow-[0_0_35px_rgba(16,185,129,0.2)] hover:border-emerald-200',
   };
+
+  // Design System colors: Light backgrounds with professional styling
   const colorStyles = {
-    cyan: 'from-cyan-500/20 to-blue-500/20 border-cyan-500/30 text-cyan-400',
-    blue: 'from-blue-500/20 to-indigo-500/20 border-blue-500/30 text-blue-400',
-    purple: 'from-purple-500/20 to-pink-500/20 border-purple-500/30 text-purple-400',
-    green: 'from-green-500/20 to-emerald-500/20 border-green-500/30 text-green-400',
-    orange: 'from-orange-500/20 to-amber-500/20 border-orange-500/30 text-orange-400',
-    red: 'from-red-500/20 to-rose-500/20 border-red-500/30 text-red-400',
-    amber: 'from-amber-500/20 to-yellow-500/20 border-amber-500/30 text-amber-400',
-    pink: 'from-pink-500/20 to-rose-500/20 border-pink-500/30 text-pink-400',
-    indigo: 'from-indigo-500/20 to-purple-500/20 border-indigo-500/30 text-indigo-400',
-    slate: 'from-slate-500/20 to-slate-700/20 border-slate-500/30 text-slate-400',
-    violet: 'from-violet-500/20 to-fuchsia-500/20 border-violet-500/30 text-violet-400',
-    emerald: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30 text-emerald-400',
+    cyan: 'bg-cyan-50/80 border-cyan-200/60 text-cyan-600',
+    blue: 'bg-blue-50/80 border-blue-200/60 text-blue-600',
+    purple: 'bg-purple-50/80 border-purple-200/60 text-purple-600',
+    green: 'bg-green-50/80 border-green-200/60 text-green-600',
+    orange: 'bg-orange-50/80 border-orange-200/60 text-orange-600',
+    red: 'bg-red-50/80 border-red-200/60 text-red-600',
+    amber: 'bg-amber-50/80 border-amber-200/60 text-amber-600',
+    pink: 'bg-pink-50/80 border-pink-200/60 text-pink-600',
+    indigo: 'bg-indigo-50/80 border-indigo-200/60 text-indigo-600',
+    slate: 'bg-slate-50/80 border-slate-200/60 text-slate-600',
+    violet: 'bg-violet-50/80 border-violet-200/60 text-violet-600',
+    emerald: 'bg-emerald-50/80 border-emerald-200/60 text-emerald-600',
   };
 
   const trendColors = {
-    up: 'text-green-400',
-    down: 'text-red-400',
-    neutral: 'text-slate-400',
+    up: 'text-green-600',
+    down: 'text-red-600',
+    neutral: 'text-slate-500',
   };
 
   return (
@@ -109,22 +111,24 @@ export function StatCard({
         damping: 20
       }}
       className={`
-        relative overflow-hidden rounded-2xl
-        bg-gradient-to-br ${colorStyles[color]}
-        border glass-card-morph
-        p-6 transition-all duration-300
+        relative overflow-hidden rounded-lg
+        ${colorStyles[color]}
+        border backdrop-blur-sm
+        p-6 transition-all duration-200
         ${glowShadows[color]}
+        cursor-pointer
         ${className}
       `}
     >
-      {/* Animated background gradient */}
+      {/* Animated background gradient - subtle on hover */}
       <motion.div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100"
+        className="absolute inset-0 opacity-0"
         animate={{
+          opacity: isHovered ? 0.05 : 0,
           background: [
-            'radial-gradient(circle at 0% 0%, rgba(255,255,255,0.1) 0%, transparent 50%)',
-            'radial-gradient(circle at 100% 100%, rgba(255,255,255,0.1) 0%, transparent 50%)',
-            'radial-gradient(circle at 0% 0%, rgba(255,255,255,0.1) 0%, transparent 50%)',
+            'radial-gradient(circle at 0% 0%, rgba(0,0,0,0.1) 0%, transparent 50%)',
+            'radial-gradient(circle at 100% 100%, rgba(0,0,0,0.1) 0%, transparent 50%)',
+            'radial-gradient(circle at 0% 0%, rgba(0,0,0,0.1) 0%, transparent 50%)',
           ],
         }}
         transition={{ duration: 4, repeat: Infinity }}
@@ -134,17 +138,17 @@ export function StatCard({
         {/* Top Row: Icon on left, Value & Subtext on right */}
         <div className="flex items-start justify-between w-full">
           {/* Icon in a styled container */}
-          <div className="inline-flex p-3 rounded-xl bg-white/10 backdrop-blur-sm">
+          <div className="inline-flex p-3 rounded-lg bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors duration-150">
             {icon}
           </div>
           
           {/* Value and Subtext */}
           <div className="text-right">
-            <h3 className="text-3xl font-extrabold text-white tracking-tight">
+            <h3 className="text-3xl font-bold text-slate-900 tracking-tight">
               {typeof value === 'number' ? value.toLocaleString() : value}
             </h3>
             {subtext && (
-              <p className="text-xs text-slate-400 mt-1 font-medium">
+              <p className="text-xs text-slate-600 mt-1 font-medium">
                 {subtext}
               </p>
             )}
@@ -153,11 +157,11 @@ export function StatCard({
 
         {/* Bottom Row: Label and Sparkline / Live Indicator */}
         <div className="mt-4 pt-2 flex flex-col w-full">
-          <p className="text-lg font-bold text-white tracking-wide">{label}</p>
+          <p className="text-lg font-semibold text-slate-900">{label}</p>
           
           {/* Animated Sparkline */}
           <div className="mt-2 h-6 w-full relative opacity-40">
-            <svg viewBox="0 0 100 20" className="w-full h-full overflow-visible preserve-3d" preserveAspectRatio="none">
+            <svg viewBox="0 0 100 20" className="w-full h-full overflow-visible" preserveAspectRatio="none">
               <motion.path
                 d="M0 15 Q 10 5, 20 10 T 40 12 T 60 5 T 80 15 T 100 2"
                 fill="none"
@@ -180,10 +184,10 @@ export function StatCard({
           </div>
 
           {dataSource === 'database' && (
-            <p className="text-[10px] text-green-400/80 flex items-center gap-1.5 mt-2 font-semibold">
+            <p className="text-[10px] text-green-600 flex items-center gap-1.5 mt-2 font-semibold">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-600 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-700"></span>
               </span>
               Live DB Sync
             </p>
