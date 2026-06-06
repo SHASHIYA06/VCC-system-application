@@ -9,6 +9,7 @@ interface Card3DProps {
   interactive?: boolean;
   glowColor?: 'cyan' | 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'red' | 'amber';
   variant?: 'default' | 'premium' | 'glass' | 'flat' | 'elevated';
+  onClick?: () => void;
 }
 
 export function Card3D({
@@ -17,6 +18,7 @@ export function Card3D({
   interactive = true,
   glowColor = 'cyan',
   variant = 'default',
+  onClick,
 }: Card3DProps) {
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
@@ -86,6 +88,7 @@ export function Card3D({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onMouseEnter={handleMouseEnter}
+      onClick={onClick}
       style={{
         transformStyle: 'preserve-3d',
         perspective: 1000,
