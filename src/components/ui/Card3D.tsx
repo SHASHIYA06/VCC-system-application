@@ -6,21 +6,17 @@ import { motion } from 'framer-motion';
 interface Card3DProps {
   children: ReactNode;
   className?: string;
-  glowColor?: 'cyan' | 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'amber' | 'pink' | 'indigo' | 'slate' | 'violet' | 'emerald';
-  onClick?: () => void;
-  href?: string;
-  variant?: 'default' | 'elevated' | 'flat' | 'outline';
   interactive?: boolean;
+  glowColor?: 'cyan' | 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'red' | 'amber';
+  variant?: 'default' | 'premium' | 'glass' | 'flat' | 'elevated';
 }
 
-export function Card3D({ 
-  children, 
-  className = '', 
-  glowColor = 'cyan', 
-  onClick, 
-  href,
+export function Card3D({
+  children,
+  className = '',
+  interactive = true,
+  glowColor = 'cyan',
   variant = 'default',
-  interactive = true
 }: Card3DProps) {
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
@@ -37,8 +33,8 @@ export function Card3D({
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     
-    const rotateXValue = ((y - centerY) / centerY) * -8;
-    const rotateYValue = ((x - centerX) / centerX) * 8;
+    const rotateXValue = ((y - centerY) / centerY) * -10;
+    const rotateYValue = ((x - centerX) / centerX) * 10;
     
     setRotateX(rotateXValue);
     setRotateY(rotateYValue);
@@ -50,63 +46,103 @@ export function Card3D({
     setIsHovered(false);
   };
 
-  const glowColors = {
-    cyan: 'shadow-cyan-500/50 hover:shadow-cyan-400/70',
-    blue: 'shadow-blue-500/50 hover:shadow-blue-400/70',
-    purple: 'shadow-purple-500/50 hover:shadow-purple-400/70',
-    green: 'shadow-green-500/50 hover:shadow-green-400/70',
-    orange: 'shadow-orange-500/50 hover:shadow-orange-400/70',
-    red: 'shadow-red-500/50 hover:shadow-red-400/70',
-    amber: 'shadow-amber-500/50 hover:shadow-amber-400/70',
-    pink: 'shadow-pink-500/50 hover:shadow-pink-400/70',
-    indigo: 'shadow-indigo-500/50 hover:shadow-indigo-400/70',
-    slate: 'shadow-slate-500/50 hover:shadow-slate-400/70',
-    violet: 'shadow-violet-500/50 hover:shadow-violet-400/70',
-    emerald: 'shadow-emerald-500/50 hover:shadow-emerald-400/70',
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const glowStyles = {
+    cyan: 'hover:shadow-glow-lg hover:border-cyan-400/50',
+    blue: 'hover:shadow-[0_0_40px_rgba(59,130,246,0.4)] hover:border-blue-400/50',
+    purple: 'hover:shadow-[0_0_40px_rgba(168,85,247,0.4)] hover:border-purple-400/50',
+    green: 'hover:shadow-[0_0_40px_rgba(16,185,129,0.4)] hover:border-green-400/50',
+    orange: 'hover:shadow-[0_0_40px_rgba(249,115,22,0.4)] hover:border-orange-400/50',
+    pink: 'hover:shadow-[0_0_40px_rgba(236,72,153,0.4)] hover:border-pink-400/50',
+    red: 'hover:shadow-[0_0_40px_rgba(239,68,68,0.4)] hover:border-red-400/50',
+    amber: 'hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] hover:border-amber-400/50',
   };
 
   const variantStyles = {
-    default: 'glass-card-morph',
-    elevated: 'bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 shadow-2xl',
-    flat: 'bg-slate-900/40 backdrop-blur-md border border-slate-800/30',
-    outline: 'bg-transparent backdrop-blur-sm border-2 border-slate-600/50',
+    default: 'glass-card-premium backdrop-blur-4xl border border-glass-border shadow-premium',
+    premium: 'glass-card-premium backdrop-blur-4xl border border-glass-medium shadow-premium bg-gradient-to-br from-white/10 to-white/5',
+    glass: 'glass-card-premium backdrop-blur-4xl border border-glass-light shadow-depth bg-gradient-to-br from-white/5 to-transparent',
+    flat: 'glass-card-premium backdrop-blur-3xl border border-glass-light shadow-depth bg-gradient-to-br from-white/3 to-transparent',
+    elevated: 'glass-card-premium backdrop-blur-4xl border border-glass-medium shadow-premium hover:shadow-glow-lg bg-gradient-to-br from-white/8 to-white/3',
   };
 
-  const content = (
+  return (
     <motion.div
-      className={`relative perspective-1000 ${className}`}
+      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+      animate={{ 
+        opacity: 1, 
+        scale: 1, 
+        y: 0,
+        rotateX: interactive && isHovered ? rotateX : 0,
+        rotateY: interactive && isHovered ? rotateY : 0,
+      }}
+      whileHover={interactive ? {
+        translateY: -8,
+        scale: 1.02,
+      } : {}}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onMouseEnter={() => setIsHovered(true)}
-      onClick={onClick}
+      onMouseEnter={handleMouseEnter}
       style={{
         transformStyle: 'preserve-3d',
-      }}
-      animate={{
-        rotateX: interactive ? rotateX : 0,
-        rotateY: interactive ? rotateY : 0,
+        perspective: 1000,
       }}
       transition={{
         type: 'spring',
         stiffness: 300,
-        damping: 20,
+        damping: 25,
       }}
+      className={`
+        relative overflow-hidden rounded-5xl
+        ${variantStyles[variant]}
+        ${interactive ? glowStyles[glowColor] : ''}
+        ${interactive ? 'cursor-pointer' : ''}
+        transition-all duration-500 ease-smooth
+        gpu-accelerated
+        ${className}
+      `}
     >
-      <motion.div
-        className={`${variantStyles[variant]} ${glowColors[glowColor]} transition-all duration-300 ${interactive ? 'cursor-pointer' : ''}`}
-        animate={{
-          y: isHovered && interactive ? -4 : 0,
-        }}
-        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      >
+      {/* Premium holographic mesh background */}
+      <div className="absolute inset-0 bg-gradient-mesh opacity-[0.02] animate-mesh-rotate pointer-events-none" />
+      
+      {/* Premium light reflection */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-50" />
+
+      {/* Particle effect on hover */}
+      {interactive && (
+        <motion.div
+          className="absolute inset-0 opacity-0"
+          animate={{
+            opacity: isHovered ? 0.1 : 0,
+          }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="particles">
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="particle"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 8}s`,
+                  animationDuration: `${6 + Math.random() * 4}s`,
+                }}
+              />
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Content */}
+      <div className="relative z-10">
         {children}
-      </motion.div>
+      </div>
+
+      {/* Premium bottom accent */}
+      <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
     </motion.div>
   );
-
-  if (href) {
-    return <a href={href}>{content}</a>;
-  }
-
-  return content;
 }

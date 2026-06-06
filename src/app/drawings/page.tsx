@@ -156,18 +156,19 @@ function DrawingsContent() {
                     const subsystem = dwg.remarks?.split('|')[1] || systemCode;
                     
                     return (
-                      <Card3D key={dwg.id} variant="flat" interactive={true} className="p-4" href={`/drawings/${dwg.drawingNo}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <Link href={`/drawings/${dwg.drawingNo}`} className="font-mono text-cyan-400 font-bold">
-                            {dwg.drawingNo}
-                          </Link>
-                          <span className="text-xs text-slate-500">Rev {dwg.revision || 'A'}</span>
-                        </div>
-                        <div className="text-sm text-white mb-2">{dwg.title}</div>
-                        <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                          <span className="px-2 py-0.5 bg-slate-700/50 rounded">{subsystem}</span>
-                          <span>{dwg.totalSheets} sheets</span>
-                        </div>
+                      <Link key={dwg.id} href={`/drawings/${dwg.drawingNo}`} className="block">
+                        <Card3D variant="flat" interactive={true} className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-mono text-cyan-400 font-bold">
+                              {dwg.drawingNo}
+                            </span>
+                            <span className="text-xs text-slate-500">Rev {dwg.revision || 'A'}</span>
+                          </div>
+                          <div className="text-sm text-white mb-2">{dwg.title}</div>
+                          <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+                            <span className="px-2 py-0.5 bg-slate-700/50 rounded">{subsystem}</span>
+                            <span>{dwg.totalSheets} sheets</span>
+                          </div>
                         
                         {(dwg.connectorCount || dwg.trainlineCount) ? (
                           <div className="space-y-1 text-xs text-slate-500">
@@ -189,7 +190,8 @@ function DrawingsContent() {
                         <div className="mt-4 text-xs text-cyan-400 font-medium flex items-center gap-1 group-hover:text-cyan-300">
                           View Details <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
                         </div>
-                      </Card3D>
+                        </Card3D>
+                      </Link>
                     );
                   })}
                 </div>

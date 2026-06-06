@@ -7,21 +7,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card3D, GlassButton, StatCard, GlassPanel } from '@/components/ui';
 import {
   Train, ShieldCheck, ShieldAlert, Zap, Wind, Radio, Battery, Settings, DoorOpen,
-  Activity, Box, Link2, Search, ChevronRight, Layers,
-  Cpu, Cable, FileText, AlertTriangle, Eye, X, Database, Map,
-  TrendingUp, Sparkles, Bot, Brain, GitBranch, Network,
-  CheckCircle2, Clock, Loader2, BarChart3, Gauge, Wifi,
-  BookOpen, Wrench, Car, ArrowUpRight, RefreshCw, Play,
-  Atom, Lightbulb, Target, Sliders
+  Activity, Box, Link2, Search, ChevronRight, Layers, Sparkles, Rocket, Cpu, 
+  Cable, FileText, AlertTriangle, Eye, X, Database, Map, TrendingUp, Bot, Brain, 
+  GitBranch, Network, CheckCircle2, Clock, Loader2, BarChart3, Gauge, Wifi,
+  BookOpen, Wrench, Car, ArrowUpRight, RefreshCw, Play, Atom, Lightbulb, 
+  Target, Sliders, Command, Zap as Lightning, Star
 } from 'lucide-react';
 
 const PdfViewerEnhanced = dynamic(() => import('@/components/pdf/EnhancedPdfViewer'), { 
   ssr: false,
   loading: () => (
-    <div className="w-full h-full min-h-[400px] flex items-center justify-center bg-slate-950/80 rounded-2xl border border-slate-800">
+    <div className="w-full h-full min-h-[400px] flex items-center justify-center glass-card-premium">
       <div className="text-center">
-        <Loader2 className="h-10 w-10 text-cyan-400 animate-spin mx-auto mb-2" />
-        <p className="text-slate-400 text-xs font-mono">Mounting PDF Renderer...</p>
+        <div className="loading-advanced mx-auto mb-6"></div>
+        <p className="text-white/80 text-sm font-mono uppercase tracking-wider">Initializing Holographic PDF Renderer...</p>
+        <div className="mt-4 h-1 w-32 mx-auto bg-white/10 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-accent rounded-full animate-pulse"></div>
+        </div>
       </div>
     </div>
   )
@@ -30,10 +32,15 @@ const PdfViewerEnhanced = dynamic(() => import('@/components/pdf/EnhancedPdfView
 const GraphViewer = dynamic(() => import('@/components/ui/GraphViewer'), { 
   ssr: false,
   loading: () => (
-    <div className="w-full h-[600px] flex items-center justify-center bg-slate-950/80 rounded-2xl border border-slate-800">
+    <div className="w-full h-[600px] flex items-center justify-center glass-card-premium">
       <div className="text-center">
-        <Loader2 className="h-10 w-10 text-cyan-400 animate-spin mx-auto mb-2" />
-        <p className="text-slate-400 text-xs font-mono">Loading Interactive Graph Viewer...</p>
+        <div className="loading-advanced mx-auto mb-6"></div>
+        <p className="text-white/80 text-sm font-mono uppercase tracking-wider">Loading Quantum Graph Network...</p>
+        <div className="mt-4 flex justify-center space-x-2">
+          <div className="particle w-2 h-2 bg-accent-500 rounded-full animate-pulse"></div>
+          <div className="particle w-2 h-2 bg-purple-500 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+          <div className="particle w-2 h-2 bg-accent-500 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+        </div>
       </div>
     </div>
   )
@@ -208,9 +215,9 @@ const QUICK_LINKS = [
 ];
 
 const CAR_TYPES = [
-  { type: 'DMC', name: 'Driving Motor Car', color: 'from-blue-600 to-cyan-600', icon: '🚃', desc: 'Driver cab + traction' },
-  { type: 'TC',  name: 'Trailer Car',        color: 'from-purple-600 to-violet-600', icon: '🚋', desc: 'Passenger only' },
-  { type: 'MC',  name: 'Motor Car',          color: 'from-orange-600 to-amber-600', icon: '🚄', desc: 'Motor + passenger' },
+  { type: 'DMC', name: 'Driving Motor Car', color: 'from-blue-600 to-cyan-600', icon: Train, desc: 'Driver cab + traction' },
+  { type: 'TC',  name: 'Trailer Car',        color: 'from-purple-600 to-violet-600', icon: Activity, desc: 'Passenger only' },
+  { type: 'MC',  name: 'Motor Car',          color: 'from-orange-600 to-amber-600', icon: Zap, desc: 'Motor + passenger' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -469,10 +476,38 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-400 font-medium">Loading Dashboard Metrics...</p>
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        {/* Premium background effects */}
+        <div className="glow-orb glow-orb-cyan" />
+        <div className="glow-orb glow-orb-purple" />
+        <div className="absolute inset-0 bg-gradient-mesh opacity-[0.03] animate-mesh-rotate" />
+        
+        <div className="text-center glass-card-premium p-12 rounded-5xl border border-glass-border shadow-premium">
+          <div className="loading-advanced mx-auto mb-6" />
+          <motion.p 
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-white font-mono font-bold uppercase tracking-widest text-lg"
+          >
+            Initializing Quantum Dashboard...
+          </motion.p>
+          <div className="mt-6 flex justify-center space-x-3">
+            {[...Array(5)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="w-3 h-3 bg-accent-500 rounded-full"
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                  opacity: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                }}
+              />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -496,15 +531,15 @@ export default function DashboardPage() {
         className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10"
       >
         <div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+          <h1 className="text-5xl font-extrabold font-mono text-neon tracking-tight uppercase">
             Dashboard
           </h1>
-          <p className="text-slate-400 mt-1">Welcome back, Alex! 👋</p>
+          <p className="text-white/70 mt-2 font-sans">Welcome back to the VCC System! ✨</p>
         </div>
-        <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-slate-900/60 border border-slate-800 text-xs text-cyan-400 font-semibold shadow-lg shadow-cyan-500/5">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+        <div className="flex items-center gap-3 px-4 py-2 rounded-5xl glass-card-premium border border-glass-border text-sm text-green-400 font-bold shadow-glow-sm">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
           </span>
           System Synced to Neon PostgreSQL
         </div>
@@ -515,39 +550,39 @@ export default function DashboardPage() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.2, duration: 0.5 }}
-        className="flex bg-slate-950/80 p-1.5 rounded-xl border border-slate-800/80 max-w-lg relative z-10 shadow-[0_0_15px_rgba(30,41,59,0.5)]"
+        className="flex glass-card-premium backdrop-blur-4xl p-2 rounded-5xl border border-glass-border max-w-2xl relative z-10 shadow-premium"
       >
         <button
           onClick={() => setActiveTab('explorer')}
-          className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-3 px-6 rounded-4xl text-sm font-bold font-mono transition-all flex items-center justify-center gap-3 uppercase tracking-wider ${
             activeTab === 'explorer' 
-              ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-blue-500/20' 
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-gradient-accent text-white shadow-glow-lg border border-white/20 transform scale-105' 
+              : 'text-white/70 hover:text-white hover:bg-white/10'
           }`}
         >
-          <Cpu className="h-4 w-4" />
+          <Cpu className="h-5 w-5" />
           System Explorer
         </button>
         <button
           onClick={() => setActiveTab('gsd')}
-          className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-3 px-6 rounded-4xl text-sm font-bold font-mono transition-all flex items-center justify-center gap-3 uppercase tracking-wider ${
             activeTab === 'gsd' 
-              ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-blue-500/20' 
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-gradient-accent text-white shadow-glow-lg border border-white/20 transform scale-105' 
+              : 'text-white/70 hover:text-white hover:bg-white/10'
           }`}
         >
-          <Network className="h-4 w-4" />
+          <Network className="h-5 w-5" />
           GSD Topology
         </button>
         <button
           onClick={() => setActiveTab('diagnostics')}
-          className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-3 px-6 rounded-4xl text-sm font-bold font-mono transition-all flex items-center justify-center gap-3 uppercase tracking-wider ${
             activeTab === 'diagnostics' 
-              ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-blue-500/20' 
-              : 'text-slate-400 hover:text-white'
+              ? 'bg-gradient-accent text-white shadow-glow-lg border border-white/20 transform scale-105' 
+              : 'text-white/70 hover:text-white hover:bg-white/10'
           }`}
         >
-          <ShieldAlert className="h-4 w-4" />
+          <ShieldAlert className="h-5 w-5" />
           Diagnostics & AI
         </button>
       </motion.div>
@@ -577,32 +612,36 @@ export default function DashboardPage() {
               >
                 <div className="flex flex-col md:flex-row gap-4 items-center w-full">
                   <div className="relative flex-1 w-full">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-550" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-accent-400" />
                     <input
                       type="text"
                       placeholder="Enter Drawing Number, e.g., 942-58120, 942-38301"
                       value={drawingSearch}
                       onChange={e => setDrawingSearch(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && searchDrawing()}
-                      className="w-full pl-11 pr-4 py-3 text-sm bg-slate-950/80 border border-slate-800/80 focus:border-cyan-500 rounded-xl text-white placeholder-slate-500 focus:outline-none transition-all"
+                      className="input-premium w-full pl-12 pr-4 py-4 text-sm bg-glass-light backdrop-blur-xl border border-glass-border focus:border-accent-500 rounded-2xl text-white placeholder-white/50 focus:outline-none transition-all shadow-inner-glow focus:shadow-glow-sm"
                     />
                   </div>
                   <GlassButton
                     variant="primary"
-                    size="md"
+                    size="lg"
                     onClick={searchDrawing}
                     disabled={drawingLoading}
-                    className="w-full md:w-auto md:px-8 py-3 shrink-0"
+                    className="w-full md:w-auto px-8 py-4 shrink-0"
                   >
-                    {drawingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Find Drawing'}
+                    {drawingLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Find Drawing'}
                   </GlassButton>
                 </div>
 
                 {drawingError && (
-                  <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2 mt-4">
-                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="p-4 rounded-2xl glass-card-premium border border-red-400/30 text-red-300 text-sm flex items-center gap-3 mt-4 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                  >
+                    <AlertTriangle className="h-5 w-5 shrink-0 text-red-400" />
                     <span>{drawingError}</span>
-                  </div>
+                  </motion.div>
                 )}
 
                 <AnimatePresence mode="wait">
@@ -614,58 +653,62 @@ export default function DashboardPage() {
                       exit={{ opacity: 0, y: -10 }}
                       className="mt-6"
                     >
-                      <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Search Result</h4>
-                      <div className="relative overflow-hidden rounded-2xl border-2 border-cyan-400/80 bg-gradient-to-r from-cyan-500/10 to-transparent p-6 md:p-8 shadow-[0_0_30px_rgba(34,211,238,0.15)] backdrop-blur-xl">
+                      <h4 className="text-xs font-bold text-white/60 mb-4 uppercase tracking-wider flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-accent-400" />
+                        Search Result
+                      </h4>
+                      <div className="relative overflow-hidden rounded-5xl border-2 border-accent-400/60 glass-card-premium p-8 shadow-glow-lg backdrop-blur-4xl">
                         <div className="absolute top-0 right-0 p-4">
-                          <span className="px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-bold tracking-wider uppercase">
+                          <span className="px-4 py-2 rounded-full bg-gradient-accent text-white text-xs font-bold tracking-wider uppercase shadow-glow-sm">
                             {activeDrawing.drawingNo === 'CAB_PIN DRAWINGS' ? 'Mockup Preview' : 'Database Match'}
                           </span>
                         </div>
 
-                        <h3 className="text-2xl font-extrabold text-white tracking-tight mb-4">
+                        <h3 className="text-3xl font-extrabold font-mono text-neon tracking-tight mb-6 uppercase">
                           {activeDrawing.drawingNo}
                         </h3>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm mb-6 max-w-3xl">
-                          <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm mb-8 max-w-4xl">
+                          <div className="space-y-4">
                             <div>
-                              <span className="text-slate-400 mr-2">Type:</span>
-                              <span className="text-slate-200 font-semibold">{activeDrawing.drawingType || 'Electrical Schematic'}</span>
+                              <span className="text-white/60 mr-3 font-mono">Type:</span>
+                              <span className="text-white font-bold">{activeDrawing.drawingType || 'Electrical Schematic'}</span>
                             </div>
                             <div>
-                              <span className="text-slate-400 mr-2">Car Type:</span>
-                              <span className="text-slate-200 font-semibold">{activeDrawing.carType || 'TC / DMC / MC'}</span>
+                              <span className="text-white/60 mr-3 font-mono">Car Type:</span>
+                              <span className="text-white font-bold">{activeDrawing.carType || 'TC / DMC / MC'}</span>
                             </div>
                           </div>
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             <div>
-                              <span className="text-slate-400 mr-2">Title:</span>
-                              <span className="text-slate-200 font-semibold">{activeDrawing.title}</span>
+                              <span className="text-white/60 mr-3 font-mono">Title:</span>
+                              <span className="text-white font-bold">{activeDrawing.title}</span>
                             </div>
                             <div>
-                              <span className="text-slate-400 mr-2">System:</span>
-                              <span className="text-slate-200 font-semibold">
+                              <span className="text-white/60 mr-3 font-mono">System:</span>
+                              <span className="text-white font-bold">
                                 {activeDrawing.drawingNo === 'CAB_PIN DRAWINGS' ? 'CAB' : (activeDrawing.systemCode || 'General')}
                               </span>
                             </div>
                             <div>
-                              <span className="text-slate-400 mr-2">Pages:</span>
-                              <span className="text-slate-200 font-semibold">{activeDrawing.pageCount}</span>
+                              <span className="text-white/60 mr-3 font-mono">Pages:</span>
+                              <span className="text-white font-bold">{activeDrawing.pageCount}</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4 pt-2">
-                          <button
+                        <div className="flex items-center gap-6 pt-4">
+                          <GlassButton
+                            variant="primary"
+                            size="lg"
                             onClick={() => setShowInlinePdf(!showInlinePdf)}
-                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl font-bold tracking-wide shadow-lg shadow-blue-500/25 transition-all duration-200 cursor-pointer"
                           >
-                            <FileText className="h-4 w-4" /> 
-                            {showInlinePdf ? 'Hide Inline PDF' : 'View PDF'}
-                          </button>
+                            <FileText className="h-5 w-5" /> 
+                            {showInlinePdf ? 'Hide PDF Viewer' : 'View PDF'}
+                          </GlassButton>
                           
                           {activeDrawing.sourceFile && (
-                            <span className="text-xs text-slate-500 italic">
+                            <span className="text-xs text-white/50 font-mono">
                               Source: {activeDrawing.sourceFile}
                             </span>
                           )}
@@ -673,34 +716,34 @@ export default function DashboardPage() {
 
                         {/* Connector Wire Details */}
                       {activeDrawing.relatedWires && activeDrawing.relatedWires.length > 0 && (
-                        <div className="mt-5 pt-4 border-t border-cyan-500/20">
-                          <p className="text-xs text-slate-400 mb-2 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                            <Cable className="h-3.5 w-3.5 text-cyan-400" />
+                        <div className="mt-8 pt-6 border-t border-accent-500/20">
+                          <p className="text-sm text-white/70 mb-4 font-bold uppercase tracking-wider flex items-center gap-2">
+                            <Cable className="h-4 w-4 text-accent-400" />
                             Connected Wire Details
                           </p>
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-xs font-mono">
-                              <thead>
-                                <tr className="border-b border-slate-800">
-                                  <th className="text-left text-slate-500 py-1.5 pr-3 font-bold uppercase tracking-wider">Wire No.</th>
-                                  <th className="text-left text-slate-500 py-1.5 pr-3 font-bold uppercase tracking-wider">Signal Name</th>
-                                  <th className="text-left text-slate-500 py-1.5 pr-3 font-bold uppercase tracking-wider">Color</th>
-                                  <th className="text-left text-slate-500 py-1.5 font-bold uppercase tracking-wider">Source → Dest</th>
+                          <div className="glass-card-premium backdrop-blur-xl border border-glass-border rounded-2xl overflow-hidden">
+                            <table className="w-full text-sm font-mono">
+                              <thead className="bg-gradient-to-r from-accent-500/20 to-purple-500/20">
+                                <tr>
+                                  <th className="text-left text-white py-3 px-4 font-bold uppercase tracking-wider">Wire No.</th>
+                                  <th className="text-left text-white py-3 px-4 font-bold uppercase tracking-wider">Signal Name</th>
+                                  <th className="text-left text-white py-3 px-4 font-bold uppercase tracking-wider">Color</th>
+                                  <th className="text-left text-white py-3 px-4 font-bold uppercase tracking-wider">Source → Dest</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {activeDrawing.relatedWires.slice(0, 15).map((w, i) => (
-                                  <tr key={i} className="border-b border-slate-900/60 hover:bg-slate-900/30 transition-colors">
-                                    <td className="py-1.5 pr-3">
-                                      <Link href={`/wires?wire=${w.wireNo}`} className="text-cyan-400 hover:text-cyan-300 transition-colors">
+                                  <tr key={i} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                                    <td className="py-3 px-4">
+                                      <Link href={`/wires?wire=${w.wireNo}`} className="text-accent-400 hover:text-accent-300 transition-colors font-bold">
                                         {w.wireNo}
                                       </Link>
                                     </td>
-                                    <td className="py-1.5 pr-3 text-slate-300">{w.signalName || '—'}</td>
-                                    <td className="py-1.5 pr-3">
-                                      <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">{w.wireColor || '—'}</span>
+                                    <td className="py-3 px-4 text-white/90">{w.signalName || '—'}</td>
+                                    <td className="py-3 px-4">
+                                      <span className="px-3 py-1 rounded-full bg-gradient-accent text-white text-xs font-bold">{w.wireColor || '—'}</span>
                                     </td>
-                                    <td className="py-1.5 text-slate-500">
+                                    <td className="py-3 px-4 text-white/70">
                                       {(w as any).sourceConnector || '—'} → {(w as any).destConnector || '—'}
                                     </td>
                                   </tr>
@@ -708,7 +751,9 @@ export default function DashboardPage() {
                               </tbody>
                             </table>
                             {activeDrawing.relatedWires.length > 15 && (
-                              <p className="text-[10px] text-slate-500 mt-2">+{activeDrawing.relatedWires.length - 15} more wire details available</p>
+                              <div className="p-3 bg-gradient-to-r from-purple-500/10 to-accent-500/10 text-center">
+                                <p className="text-xs text-white/60 font-mono">+{activeDrawing.relatedWires.length - 15} more wire details available</p>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -766,8 +811,8 @@ export default function DashboardPage() {
 
             {/* Statistics Cards (6 Cards with 3D Spring Tilt) */}
             <div>
-              <h2 className="text-xl font-bold text-white mb-6 tracking-tight flex items-center gap-2">
-                <Database className="h-5 w-5 text-cyan-400" />
+              <h2 className="text-2xl font-bold font-mono text-neon mb-8 tracking-tight flex items-center gap-3 uppercase">
+                <Database className="h-6 w-6 text-accent-400" />
                 Vehicle Interface Stats
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -838,37 +883,41 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* Fleet Overview (2/3 width) */}
-              <Card3D interactive={false} glowColor="cyan" className="lg:col-span-2">
-                <div className="p-6">
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center text-lg">
-                      🚃
-                    </div>
+              <Card3D interactive={true} glowColor="cyan" className="lg:col-span-2">
+                <div className="p-8">
+                  <div className="flex items-center gap-4 mb-8">
+                    <motion.div 
+                      whileHover={{ rotate: 15, scale: 1.1 }}
+                      className="w-14 h-14 rounded-2xl bg-gradient-accent flex items-center justify-center text-white shadow-glow-sm"
+                    >
+                      <Train className="h-7 w-7" />
+                    </motion.div>
                     <div>
-                      <h3 className="text-lg font-bold text-white">Car Fleet Overview</h3>
-                      <p className="text-xs text-slate-400">Classified wiring allocations by car type</p>
+                      <h3 className="text-xl font-bold font-mono text-neon uppercase">Car Fleet Overview</h3>
+                      <p className="text-sm text-white/60 font-sans">Classified wiring allocations by car type</p>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {CAR_TYPES.map(car => {
                       const count = stats?.byCarType?.[car.type] || (car.type === 'DMC' ? 7800 : car.type === 'TC' ? 5600 : 5616);
                       return (
                         <Link key={car.type} href={`/cars/${car.type}`} className="block">
                           <motion.div 
-                            whileHover={{ scale: 1.02, y: -2 }}
-                            className="p-4 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between h-full min-h-[120px] group"
+                            whileHover={{ scale: 1.05, y: -5, rotateX: 5 }}
+                            className="p-6 rounded-3xl glass-card-premium backdrop-blur-4xl border border-glass-border hover:shadow-glow-sm transition-all flex flex-col justify-between h-full min-h-[140px] group gpu-accelerated"
+                            style={{ transformStyle: 'preserve-3d' }}
                           >
                             <div className="flex items-start justify-between">
-                              <span className="text-2xl">{car.icon}</span>
+                              <car.icon className="h-8 w-8 text-accent-400 group-hover:text-accent-300 transition-colors" />
                               <div className="text-right">
-                                <span className="text-2xl font-extrabold text-white font-mono">{count}</span>
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider block">wires</span>
+                                <span className="text-3xl font-extrabold font-mono text-neon">{count}</span>
+                                <span className="text-xs text-white/60 uppercase tracking-wider block font-mono">wires</span>
                               </div>
                             </div>
-                            <div className="mt-4">
-                              <p className="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">{car.type}</p>
-                              <p className="text-[10px] text-slate-500 line-clamp-1">{car.desc}</p>
+                            <div className="mt-6">
+                              <p className="text-lg font-bold font-mono text-white group-hover:text-accent-400 transition-colors uppercase">{car.type}</p>
+                              <p className="text-xs text-white/60 line-clamp-1">{car.desc}</p>
                             </div>
                           </motion.div>
                         </Link>
@@ -879,13 +928,13 @@ export default function DashboardPage() {
               </Card3D>
 
               {/* Data Explorer Quick Navigation (1/3 width) */}
-              <Card3D interactive={false} glowColor="purple">
-                <div className="p-6">
-                  <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Database className="h-5 w-5 text-purple-400" />
+              <Card3D interactive={true} glowColor="purple">
+                <div className="p-8">
+                  <h3 className="text-xl font-bold font-mono text-neon mb-6 flex items-center gap-3 uppercase">
+                    <Database className="h-6 w-6 text-purple-400" />
                     Data Explorer
                   </h3>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
                     {[
                       { label: 'Drawings', icon: FileText, href: '/drawings', color: 'purple' },
                       { label: 'Wires', icon: Cable, href: '/wires', color: 'cyan' },
@@ -895,16 +944,19 @@ export default function DashboardPage() {
                       { label: 'Trainlines', icon: Train, href: '/trainlines', color: 'blue' },
                     ].map(item => (
                       <Link key={item.label} href={item.href} className="block">
-                        <div className="p-2.5 rounded-lg bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 transition-all flex items-center gap-2 group">
-                          <item.icon className={`h-3.5 w-3.5 text-${item.color}-400 group-hover:scale-110 transition-transform`} />
-                          <span className="text-slate-300 font-semibold group-hover:text-white transition-colors">{item.label}</span>
-                        </div>
+                        <motion.div 
+                          whileHover={{ scale: 1.05, y: -2 }}
+                          className="p-4 rounded-2xl glass-card-premium backdrop-blur-xl border border-glass-border hover:shadow-glow-sm transition-all flex items-center gap-3 group"
+                        >
+                          <item.icon className={`h-5 w-5 text-${item.color}-400 group-hover:scale-110 transition-transform`} />
+                          <span className="text-white font-bold font-mono group-hover:text-accent-300 transition-colors uppercase tracking-wider">{item.label}</span>
+                        </motion.div>
                       </Link>
                     ))}
                   </div>
                   <Link href="/cars/tree"
-                    className="mt-4 flex items-center justify-center gap-2 py-2 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/20 hover:bg-slate-900/60 text-slate-400 hover:text-white text-xs font-bold transition-all">
-                    <Map className="h-3.5 w-3.5" /> View Car Tree
+                    className="mt-6 flex items-center justify-center gap-3 py-4 rounded-2xl border border-glass-border hover:border-accent-500/50 glass-card-premium hover:shadow-glow-sm text-white hover:text-accent-300 text-sm font-bold font-mono transition-all uppercase tracking-wider">
+                    <Map className="h-5 w-5" /> View Car Tree
                   </Link>
                 </div>
               </Card3D>
@@ -913,13 +965,13 @@ export default function DashboardPage() {
 
             {/* System Architecture Grid Section */}
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2 tracking-tight">
-                  <Network className="h-5 w-5 text-cyan-400" />
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold font-mono text-neon flex items-center gap-3 tracking-tight uppercase">
+                  <Network className="h-6 w-6 text-accent-400" />
                   System Architecture
                 </h2>
-                <Link href="/systems" className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 font-bold transition-colors">
-                  View all systems <ChevronRight className="h-3 w-3" />
+                <Link href="/systems" className="flex items-center gap-2 text-sm text-accent-400 hover:text-accent-300 font-bold font-mono transition-colors uppercase tracking-wider">
+                  View All Systems <ChevronRight className="h-4 w-4" />
                 </Link>
               </div>
 
