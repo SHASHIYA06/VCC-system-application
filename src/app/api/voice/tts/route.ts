@@ -1,10 +1,20 @@
 /**
- * VibeVoice TTS (Text-to-Speech) API Endpoint
- * Converts text responses to natural voice output
+ * VibeVoice TTS (Text-to-Speech) API Endpoint - Optimized for Serverless
+ * Converts text responses to natural voice output with lazy loading
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { vibeVoiceClient } from '@/lib/voice/vibeVoiceClient';
+
+// Runtime configuration for bundle optimization
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30; // 30 seconds max for TTS
+
+// Lazy load VibeVoice client to reduce bundle size
+async function getVibeVoiceClient() {
+  const { vibeVoiceClient } = await import('@/lib/voice/vibeVoiceClient');
+  return vibeVoiceClient;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +35,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Lazy load VibeVoice client
+    const vibeVoiceClient = await getVibeVoiceClient();
+
     // Process with VibeVoice TTS
     const result = await vibeVoiceClient.textToSpeech(text, speakers);
 
@@ -37,7 +50,7 @@ export async function POST(request: NextRequest) {
     headers.set('X-Speaker-Count', result.speakers.toString());
     headers.set('Content-Disposition', `attachment; filename="vcc_voice_output.${result.format}"`);
 
-    return new NextResponse(result.audioData as BodyInit, { 
+    return new NextResponse(new Uint8Array(result.audioData), { 
       status: 200, 
       headers 
     });

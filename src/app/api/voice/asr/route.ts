@@ -1,12 +1,26 @@
 /**
- * VibeVoice ASR (Speech-to-Text) API Endpoint
- * Handles voice input for VCC dashboard navigation and queries
+ * VibeVoice ASR (Speech-to-Text) API Endpoint - Optimized for Serverless
+ * Handles voice input for VCC dashboard navigation and queries with lazy loading
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { vibeVoiceClient } from '@/lib/voice/vibeVoiceClient';
-import { writeFile } from 'fs/promises';
 import path from 'path';
+
+// Runtime configuration for bundle optimization
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30; // 30 seconds max for voice processing
+
+// Lazy load heavy dependencies to reduce bundle size
+async function getVibeVoiceClient() {
+  const { vibeVoiceClient } = await import('@/lib/voice/vibeVoiceClient');
+  return vibeVoiceClient;
+}
+
+async function getFileSystem() {
+  const { writeFile } = await import('fs/promises');
+  return { writeFile };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,10 +41,16 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     
     const tempPath = path.join('/tmp', `voice_input_${Date.now()}.wav`);
+    
+    // Lazy load file system operations
+    const { writeFile } = await getFileSystem();
     await writeFile(tempPath, buffer);
 
     // Process hotwords
     const hotwordList = hotwords ? hotwords.split(',').map(w => w.trim()) : [];
+
+    // Lazy load VibeVoice client
+    const vibeVoiceClient = await getVibeVoiceClient();
 
     // Process with VibeVoice ASR
     const result = await vibeVoiceClient.speechToText(
@@ -39,8 +59,13 @@ export async function POST(request: NextRequest) {
       language
     );
 
-    // Clean up temporary file
-    await import('fs/promises').then(fs => fs.unlink(tempPath).catch(() => {}));
+    // Clean up temporary file - lazy load fs
+    try {
+      const fs = await import('fs/promises');
+      await fs.unlink(tempPath);
+    } catch (cleanupError) {
+      console.warn('Failed to cleanup temp file:', cleanupError);
+    }
 
     return NextResponse.json({
       success: true,

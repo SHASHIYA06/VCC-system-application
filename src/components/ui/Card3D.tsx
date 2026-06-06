@@ -3,7 +3,7 @@
 import { ReactNode, useState } from 'react';
 import { motion } from 'framer-motion';
 
-interface Card3DProps {
+export interface Card3DProps {
   children: ReactNode;
   className?: string;
   interactive?: boolean;

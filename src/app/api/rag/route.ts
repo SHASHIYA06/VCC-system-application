@@ -1,10 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { multiAgentRAG } from '@/lib/rag/multiagent';
-import { callLLM, getAvailableProviders, LLMResponse } from '@/lib/llm';
-import { Prisma } from '@prisma/client';
-import { executeLangchainTree } from '@/lib/rag/langchain-tree';
-import { executeRAGQuery, executeMultiAgentQuery } from '@/lib/ai/rag-pipeline';
+
+// Runtime configuration for bundle optimization
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // 60 seconds max for complex RAG queries
+
+// Lazy load heavy dependencies to reduce bundle size
+// import { prisma } from '@/lib/prisma';
+// import { multiAgentRAG } from '@/lib/rag/multiagent';
+// import { callLLM, getAvailableProviders, LLMResponse } from '@/lib/llm';
+// import { Prisma } from '@prisma/client';
+// import { executeLangchainTree } from '@/lib/rag/langchain-tree';
+// import { executeRAGQuery, executeMultiAgentQuery } from '@/lib/ai/rag-pipeline';
+
+// Lazy loading functions to reduce initial bundle size
+async function getPrismaClient() {
+  const { prisma } = await import('@/lib/prisma');
+  return prisma;
+}
+
+async function getMultiAgentRAG() {
+  const { multiAgentRAG } = await import('@/lib/rag/multiagent');
+  return multiAgentRAG;
+}
+
+async function getLLMUtils() {
+  const module = await import('@/lib/llm');
+  return {
+    callLLM: module.callLLM,
+    getAvailableProviders: module.getAvailableProviders,
+  };
+}
+
+async function getLangchainTree() {
+  const { executeLangchainTree } = await import('@/lib/rag/langchain-tree');
+  return executeLangchainTree;
+}
+
+async function getRAGPipeline() {
+  const module = await import('@/lib/ai/rag-pipeline');
+  return {
+    executeRAGQuery: module.executeRAGQuery,
+    executeMultiAgentQuery: module.executeMultiAgentQuery,
+  };
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -16,6 +55,9 @@ export async function GET(request: NextRequest) {
 
   try {
     if (action === 'status') {
+      // Lazy load prisma client
+      const prisma = await getPrismaClient();
+      
       const [systemCount, deviceCount, wireCount, drawingCount, circuitCount, trainlineCount, connectorCount, pinCount] = await Promise.all([
         prisma.system.count(),
         prisma.device.count(),
@@ -27,6 +69,8 @@ export async function GET(request: NextRequest) {
         prisma.connectorPin.count(),
       ]);
 
+      // Lazy load LLM utils
+      const { getAvailableProviders } = await getLLMUtils();
       const providers = getAvailableProviders();
 
       return NextResponse.json({
@@ -54,6 +98,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === 'query' && query) {
+      // Lazy load multi-agent RAG
+      const multiAgentRAG = await getMultiAgentRAG();
+      
       const task = {
         taskId: `rag-${Date.now()}`,
         taskType: 'semantic_search' as const,
@@ -71,6 +118,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === 'explain' && wireNo) {
+      const multiAgentRAG = await getMultiAgentRAG();
       const task = {
         taskId: `explain-${Date.now()}`,
         taskType: 'explain_wire' as const,
@@ -86,6 +134,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === 'trace' && wireNo) {
+      const multiAgentRAG = await getMultiAgentRAG();
       const task = {
         taskId: `trace-${Date.now()}`,
         taskType: 'trace_trainline' as const,
@@ -101,6 +150,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === 'system' && systemCode) {
+      const multiAgentRAG = await getMultiAgentRAG();
       const task = {
         taskId: `system-${Date.now()}`,
         taskType: 'analyze_system' as const,
@@ -116,6 +166,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === 'search' && query) {
+      const multiAgentRAG = await getMultiAgentRAG();
       const task = {
         taskId: `search-${Date.now()}`,
         taskType: 'unified_search' as const,
@@ -175,6 +226,7 @@ export async function POST(request: NextRequest) {
       if (useMultiAgent) {
         // Use new LangChain multi-agent pipeline
         try {
+          const { executeMultiAgentQuery } = await getRAGPipeline();
           const result = await executeMultiAgentQuery({
             query,
             taskType: taskType || 'unified_search',
@@ -187,6 +239,7 @@ export async function POST(request: NextRequest) {
         } catch (error) {
           console.error('LangChain multi-agent error, falling back:', error);
           // Fallback to original implementation
+          const multiAgentRAG = await getMultiAgentRAG();
           const result = await multiAgentRAG.executeMultiAgent(task);
           return NextResponse.json({
             query,
@@ -200,6 +253,7 @@ export async function POST(request: NextRequest) {
       } else {
         // Use new LangChain single-agent pipeline
         try {
+          const { executeRAGQuery } = await getRAGPipeline();
           const result = await executeRAGQuery({
             query,
             taskType: taskType || 'unified_search',
@@ -222,6 +276,7 @@ export async function POST(request: NextRequest) {
         } catch (error) {
           console.error('LangChain single-agent error, falling back:', error);
           // Fallback to original implementation
+          const multiAgentRAG = await getMultiAgentRAG();
           const result = await multiAgentRAG.executeTask(task);
           return NextResponse.json({
             query,
@@ -236,6 +291,7 @@ export async function POST(request: NextRequest) {
 
     // ── Legacy format: { action, query } ─────────────────────────────────
     if (action === 'query' && query) {
+      const multiAgentRAG = await getMultiAgentRAG();
       const task = {
         taskId: `rag-${Date.now()}`,
         taskType: taskType || 'semantic_search',
@@ -247,6 +303,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'multiagent' && query) {
+      const multiAgentRAG = await getMultiAgentRAG();
       const task = {
         taskId: `multi-${Date.now()}`,
         taskType: taskType || 'unified_search',
@@ -258,6 +315,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'langchain' && query) {
+      const executeLangchainTree = await getLangchainTree();
       const result = await executeLangchainTree(query);
       return NextResponse.json(result);
     }
@@ -267,6 +325,7 @@ export async function POST(request: NextRequest) {
       if (!prompt) {
         return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
       }
+      const { callLLM } = await getLLMUtils();
       const result = await callLLM(prompt, { system, provider, model });
       return NextResponse.json(result);
     }
@@ -280,6 +339,9 @@ export async function POST(request: NextRequest) {
 
 
 async function generateSystemTree() {
+  // Lazy load prisma client
+  const prisma = await getPrismaClient();
+  
   const systems = await prisma.system.findMany({
     orderBy: { sortOrder: 'asc' },
     include: {

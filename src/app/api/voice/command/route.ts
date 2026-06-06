@@ -1,12 +1,26 @@
 /**
- * Voice Command Processing API
- * Handles dashboard navigation and system queries via voice
+ * Voice Command Processing API - Optimized for Serverless
+ * Handles dashboard navigation and system queries via voice with lazy loading
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { vibeVoiceClient } from '@/lib/voice/vibeVoiceClient';
-import { writeFile } from 'fs/promises';
 import path from 'path';
+
+// Runtime configuration for bundle optimization
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 45; // 45 seconds max for voice command processing
+
+// Lazy load heavy dependencies to reduce bundle size
+async function getVibeVoiceClient() {
+  const { vibeVoiceClient } = await import('@/lib/voice/vibeVoiceClient');
+  return vibeVoiceClient;
+}
+
+async function getFileSystem() {
+  const { writeFile } = await import('fs/promises');
+  return { writeFile };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +40,13 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     
     const tempPath = path.join('/tmp', `voice_command_${Date.now()}.wav`);
+    
+    // Lazy load file system
+    const { writeFile } = await getFileSystem();
     await writeFile(tempPath, buffer);
+
+    // Lazy load VibeVoice client
+    const vibeVoiceClient = await getVibeVoiceClient();
 
     // Process voice command
     const commandResult = await vibeVoiceClient.processVoiceCommand(tempPath);
@@ -50,8 +70,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Clean up temporary file
-    await import('fs/promises').then(fs => fs.unlink(tempPath).catch(() => {}));
+    // Clean up temporary file - lazy load fs
+    try {
+      const fs = await import('fs/promises');
+      await fs.unlink(tempPath);
+    } catch (cleanupError) {
+      console.warn('Failed to cleanup temp file:', cleanupError);
+    }
 
     return NextResponse.json({
       success: true,
