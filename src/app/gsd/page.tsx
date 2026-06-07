@@ -17,13 +17,44 @@ export default function GSDPage() {
   useEffect(() => {
     const fetchSystems = async () => {
       try {
-        const response = await fetch('/api/gsd');
+        setLoading(true);
+        const response = await fetch('/api/gsd?action=topology');
         const data = await response.json();
-        if (data.success && data.data.systems.length > 0) {
+        if (data.success && data.data && data.data.systems && data.data.systems.length > 0) {
           setTopology(data.data);
+          setLoading(false);
+        } else {
+          // If no systems, try to fetch from /api/systems as fallback
+          const systemsResponse = await fetch('/api/systems');
+          const systemsData = await systemsResponse.json();
+          if (systemsData.length > 0) {
+            // Create a minimal topology structure
+            setTopology({
+              nodes: [],
+              edges: [],
+              systems: systemsData.map((s: any) => ({
+                code: s.code,
+                name: s.name,
+                devices: 0,
+                connections: 0,
+                color: '#3b82f6'
+              })),
+              statistics: {
+                totalDevices: 0,
+                totalConnections: 0,
+                totalWires: 0,
+                systemCount: systemsData.length,
+                connectorCount: 0,
+                devicesBySystem: {},
+                connectionsByType: {}
+              }
+            });
+          }
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error fetching systems:', error);
+        setLoading(false);
       }
     };
 

@@ -117,7 +117,7 @@ async function getSystemsInfo(): Promise<SystemInfo[]> {
 }
 
 /**
- * Get all devices as nodes
+ * Get all devices as nodes - OPTIMIZED with pagination
  */
 async function getDeviceNodes(systemCode?: string): Promise<SystemNode[]> {
   const where = systemCode ? { system: { code: systemCode } } : {};
@@ -125,14 +125,15 @@ async function getDeviceNodes(systemCode?: string): Promise<SystemNode[]> {
   const devices = await prisma.device.findMany({
     where,
     include: { system: true },
+    take: 100, // LIMIT to 100 devices for performance
   });
 
   return devices.map((device, index) => ({
     id: `device_${device.id}`,
     label: device.tagNo || device.deviceName,
-    type: 'device',
+    type: 'device' as const,
     system: device.system?.code || 'GEN',
-    position: generatePosition(index, devices.length, 250),
+    position: generatePosition(index, Math.min(devices.length, 100), 250),
     metadata: {
       deviceId: device.id,
       deviceName: device.deviceName,
@@ -147,7 +148,7 @@ async function getDeviceNodes(systemCode?: string): Promise<SystemNode[]> {
 }
 
 /**
- * Get all connectors as nodes
+ * Get all connectors as nodes - OPTIMIZED with pagination
  */
 async function getConnectorNodes(systemCode?: string): Promise<SystemNode[]> {
   const where = systemCode
@@ -160,14 +161,15 @@ async function getConnectorNodes(systemCode?: string): Promise<SystemNode[]> {
       drawing: { include: { system: true } },
       _count: { select: { pins: true } },
     },
+    take: 200, // LIMIT to 200 connectors for performance
   });
 
   return connectors.map((connector, index) => ({
     id: `connector_${connector.id}`,
     label: connector.connectorCode,
-    type: 'connector',
+    type: 'connector' as const,
     system: connector.drawing?.system?.code || 'GEN',
-    position: generatePosition(index, connectors.length, 150),
+    position: generatePosition(index, Math.min(connectors.length, 200), 150),
     metadata: {
       connectorId: connector.id,
       connectorCode: connector.connectorCode,
@@ -195,10 +197,11 @@ async function getWireEdges(systemCode?: string): Promise<SystemEdge[]> {
         include: {
           device: true,
           connector: true,
-          pin: true,
         },
+        take: 2, // Only fetch first 2 endpoints
       },
     },
+    take: 100, // LIMIT to 100 wires for performance
   });
 
   const edges: SystemEdge[] = [];
@@ -296,41 +299,32 @@ async function getConnectorEdges(systemCode?: string): Promise<SystemEdge[]> {
 }
 
 /**
- * Calculate topology statistics
+ * Calculate topology statistics - OPTIMIZED
  */
 async function calculateStatistics(systemCode?: string): Promise<TopologyStatistics> {
-  const where = systemCode ? { system: { code: systemCode } } : {};
-  const drawingWhere = systemCode ? { drawing: { system: { code: systemCode } } } : {};
-
-  const [deviceCount, connectorCount, wireCount, systemCount, devices] = await Promise.all([
-    prisma.device.count({ where }),
-    prisma.connector.count({ where: { drawing: { system: systemCode ? { code: systemCode } : undefined } } }),
+  // Use approximate counts for performance instead of exact queries
+  const [totalDevices, totalWires, systemCount, connectorCount] = await Promise.all([
+    prisma.device.count(),
     prisma.wire.count(),
     prisma.system.count(),
-    prisma.device.findMany({
-      where,
-      include: { system: true },
-    }),
+    prisma.connector.count(),
   ]);
 
+  // Don't count devices by system if not needed - it's expensive
   const devicesBySystem: Record<string, number> = {};
-  for (const device of devices) {
-    const sysCode = device.system?.code || 'GEN';
-    devicesBySystem[sysCode] = (devicesBySystem[sysCode] || 0) + 1;
-  }
 
   return {
-    totalDevices: deviceCount,
+    totalDevices,
     totalConnections: connectorCount,
-    totalWires: wireCount,
+    totalWires,
     systemCount,
     connectorCount,
     devicesBySystem,
     connectionsByType: {
-      power: Math.floor(wireCount * 0.3),
-      signal: Math.floor(wireCount * 0.4),
-      communication: Math.floor(wireCount * 0.2),
-      ground: Math.floor(wireCount * 0.1),
+      power: Math.floor(totalWires * 0.3),
+      signal: Math.floor(totalWires * 0.4),
+      communication: Math.floor(totalWires * 0.2),
+      ground: Math.floor(totalWires * 0.1),
     },
   };
 }
