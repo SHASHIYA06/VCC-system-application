@@ -76,14 +76,14 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside 
         className={cn(
-          "fixed left-0 top-0 h-screen bg-slate-950 border-r border-slate-800/80 backdrop-blur-md z-40 transition-all duration-300 flex flex-col",
+          "fixed left-0 top-0 h-screen sidebar-3d z-40 transition-all duration-500 flex flex-col",
           collapsed ? "w-16" : "w-64"
         )}
       >
         {/* Logo Section */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800/80">
           {!collapsed && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sidebar-logo-3d">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center shadow-md shadow-cyan-500/20">
                 <Train className="w-5 h-5 text-white" />
               </div>
@@ -93,7 +93,7 @@ export default function Sidebar() {
             </div>
           )}
           {collapsed && (
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center shadow-md shadow-cyan-500/20 mx-auto">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center shadow-md shadow-cyan-500/20 mx-auto sidebar-logo-3d">
               <Train className="w-5 h-5 text-white" />
             </div>
           )}
@@ -105,13 +105,13 @@ export default function Sidebar() {
             <div key={group.name}>
               {!collapsed && (
                 <div className="px-3 mb-2">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider nav-group-header">
                     {group.name}
                   </span>
                 </div>
               )}
               {collapsed && (
-                <div className="border-t border-slate-800 my-2"></div>
+                <div className="sidebar-divider-3d"></div>
               )}
               <div className="space-y-1">
                 {group.items.map((item) => {
@@ -124,25 +124,20 @@ export default function Sidebar() {
                       key={item.name}
                       href={item.href}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative",
-                        isActive
-                          ? "text-white bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border-l-2 border-cyan-400"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/50"
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 group relative nav-item-3d gpu-accelerated",
+                        isActive && "nav-item-3d-active"
                       )}
                       title={collapsed ? item.name : undefined}
                     >
                       <Icon className={cn(
-                        "h-5 w-5 shrink-0 transition-colors",
+                        "h-5 w-5 shrink-0 transition-all duration-300 nav-icon-3d",
                         isActive ? "text-cyan-400" : "text-slate-500 group-hover:text-slate-300"
                       )} />
                       {!collapsed && <span>{item.name}</span>}
-                      {isActive && !collapsed && (
-                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></div>
-                      )}
                       
                       {/* Tooltip for collapsed state */}
                       {collapsed && (
-                        <div className="absolute left-full ml-2 px-3 py-1.5 bg-slate-900 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap shadow-xl border border-slate-800 z-50">
+                        <div className="tooltip-3d">
                           {item.name}
                         </div>
                       )}
@@ -158,15 +153,15 @@ export default function Sidebar() {
         <div className="p-2 border-t border-slate-800/80">
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-900/50 transition-all"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all collapse-btn-3d"
             title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {collapsed ? (
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-5 w-5 text-slate-400 hover:text-slate-200" />
             ) : (
               <>
-                <ChevronLeft className="h-5 w-5" />
-                <span>Collapse</span>
+                <ChevronLeft className="h-5 w-5 text-slate-400" />
+                <span className="text-slate-400">Collapse</span>
               </>
             )}
           </button>

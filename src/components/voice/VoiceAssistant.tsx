@@ -83,6 +83,17 @@ export default function VoiceAssistant() {
   const startRecording = async () => {
     try {
       setError(null);
+      
+      // Check browser support first
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support voice recording. Please use Chrome, Edge, or Safari.');
+      }
+      
+      // Check for HTTPS
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        throw new Error('Voice features require HTTPS. Please access the app securely or use localhost.');
+      }
+      
       setIsRecording(true);
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -113,7 +124,25 @@ export default function VoiceAssistant() {
       
     } catch (error) {
       console.error('Recording start failed:', error);
-      setError('Microphone access denied or not available');
+      
+      let errorMessage = 'Failed to start voice recording';
+      if (error instanceof Error) {
+        if (error.message.includes('Permission denied') || error.message.includes('NotAllowedError')) {
+          errorMessage = 'Microphone access denied. Please allow microphone permissions in your browser settings.';
+        } else if (error.message.includes('NotFoundError')) {
+          errorMessage = 'No microphone found. Please connect a microphone and try again.';
+        } else if (error.message.includes('NotReadableError')) {
+          errorMessage = 'Microphone is being used by another application. Please close other apps using the microphone.';
+        } else if (error.message.includes('HTTPS') || error.message.includes('localhost')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('browser')) {
+          errorMessage = error.message;
+        } else {
+          errorMessage = `Voice recording error: ${error.message}`;
+        }
+      }
+      
+      setError(errorMessage);
       setIsRecording(false);
     }
   };

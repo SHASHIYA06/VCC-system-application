@@ -1542,3 +1542,369 @@ body > * {
     scroll-behavior: auto !important;
   }
 }
+
+
+/* ============================================================================
+   SIDEBAR 3D GLASS MORPHISM - ADVANCED UI/UX
+   Premium sidebar with depth, glassmorphism, and dynamic effects
+   ============================================================================ */
+
+/* 3D Sidebar Container */
+.sidebar-3d {
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.85) 0%,
+    rgba(30, 41, 59, 0.75) 50%,
+    rgba(15, 23, 42, 0.85) 100%
+  );
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-right: 1px solid rgba(148, 163, 184, 0.15);
+  box-shadow:
+    4px 0 24px rgba(0, 0, 0, 0.5),
+    inset -1px 0 0 rgba(255, 255, 255, 0.08),
+    0 0 60px rgba(6, 182, 212, 0.05);
+  position: relative;
+  overflow: visible;
+}
+
+/* Animated Gradient Overlay */
+.sidebar-3d::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 182, 212, 0.08) 0%,
+    transparent 30%,
+    transparent 70%,
+    rgba(139, 92, 246, 0.08) 100%
+  );
+  opacity: 1;
+  pointer-events: none;
+  animation: sidebarGradientFlow 10s ease-in-out infinite;
+}
+
+@keyframes sidebarGradientFlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* 3D Navigation Item */
+.nav-item-3d {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.3) 0%,
+    rgba(30, 41, 59, 0.1) 100%
+  );
+  border-left: 2px solid transparent;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.nav-item-3d::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.nav-item-3d:hover {
+  transform: translateX(8px) translateZ(15px);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.6) 0%,
+    rgba(30, 41, 59, 0.3) 100%
+  );
+  box-shadow:
+    -4px 0 12px rgba(6, 182, 212, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.nav-item-3d:hover::before {
+  opacity: 1;
+}
+
+/* Active Navigation Item */
+.nav-item-3d-active {
+  background: linear-gradient(
+    135deg,
+    rgba(6, 182, 212, 0.2) 0%,
+    rgba(139, 92, 246, 0.15) 100%
+  );
+  border-left-color: #06b6d4;
+  box-shadow:
+    -4px 0 20px rgba(6, 182, 212, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateX(6px);
+}
+
+.nav-item-3d-active::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #06b6d4;
+  box-shadow: 0 0 8px #06b6d4;
+  animation: activeIndicatorPulse 2s ease-in-out infinite;
+}
+
+@keyframes activeIndicatorPulse {
+  0%, 100% { 
+    opacity: 1; 
+    transform: translateY(-50%) scale(1);
+  }
+  50% { 
+    opacity: 0.6; 
+    transform: translateY(-50%) scale(1.3);
+  }
+}
+
+/* Icon 3D Effect */
+.nav-icon-3d {
+  position: relative;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transition: all 0.3s ease;
+}
+
+.nav-item-3d:hover .nav-icon-3d {
+  transform: rotateY(10deg) scale(1.1);
+  filter: drop-shadow(0 4px 8px rgba(6, 182, 212, 0.5));
+}
+
+.nav-item-3d-active .nav-icon-3d {
+  color: #22d3ee;
+  filter: drop-shadow(0 4px 8px rgba(6, 182, 212, 0.8));
+  animation: iconGlow 3s ease-in-out infinite;
+}
+
+@keyframes iconGlow {
+  0%, 100% { 
+    filter: drop-shadow(0 4px 8px rgba(6, 182, 212, 0.6));
+  }
+  50% { 
+    filter: drop-shadow(0 4px 12px rgba(6, 182, 212, 0.9));
+  }
+}
+
+/* Group Header 3D */
+.nav-group-header {
+  position: relative;
+  padding-left: 12px;
+  border-left: 2px solid rgba(6, 182, 212, 0.2);
+  transition: all 0.3s ease;
+}
+
+.nav-group-header:hover {
+  border-left-color: rgba(6, 182, 212, 0.5);
+}
+
+/* Sidebar Logo 3D */
+.sidebar-logo-3d {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sidebar-logo-3d:hover {
+  transform: rotateY(15deg) rotateX(-5deg) scale(1.05);
+  filter: drop-shadow(0 10px 20px rgba(6, 182, 212, 0.5));
+}
+
+/* Collapse Button 3D */
+.collapse-btn-3d {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.5) 0%,
+    rgba(30, 41, 59, 0.3) 100%
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.collapse-btn-3d:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.8) 0%,
+    rgba(30, 41, 59, 0.5) 100%
+  );
+  border-color: rgba(6, 182, 212, 0.3);
+  transform: translateX(-2px);
+  box-shadow:
+    -2px 0 10px rgba(6, 182, 212, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Floating Particles Effect for Sidebar */
+.sidebar-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.sidebar-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: rgba(6, 182, 212, 0.5);
+  border-radius: 50%;
+  animation: sidebarParticleFloat 8s linear infinite;
+  opacity: 0;
+}
+
+@keyframes sidebarParticleFloat {
+  0% {
+    transform: translateY(100%) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100%) translateX(50px);
+    opacity: 0;
+  }
+}
+
+/* Tooltip 3D */
+.tooltip-3d {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) translateZ(20px);
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.95) 0%,
+    rgba(15, 23, 42, 0.95) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 12px;
+  padding: 8px 16px;
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.5),
+    0 0 15px rgba(6, 182, 212, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1000;
+}
+
+.nav-item-3d:hover .tooltip-3d {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) translateZ(20px) translateX(0);
+}
+
+/* Divider with 3D Effect */
+.sidebar-divider-3d {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(148, 163, 184, 0.3) 50%,
+    transparent 100%
+  );
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+  margin: 12px 0;
+}
+
+/* Morphing Background Animation */
+@keyframes sidebarMorph {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.sidebar-animated-bg {
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.9) 0%,
+    rgba(30, 41, 59, 0.8) 25%,
+    rgba(6, 182, 212, 0.1) 50%,
+    rgba(30, 41, 59, 0.8) 75%,
+    rgba(15, 23, 42, 0.9) 100%
+  );
+  background-size: 200% 200%;
+  animation: sidebarMorph 15s ease-in-out infinite;
+}
+
+/* Hover Tilt Effect (Mouse Movement) */
+.tilt-hover {
+  transition: transform 0.3s ease-out;
+}
+
+/* GPU Acceleration for Performance */
+.sidebar-3d,
+.nav-item-3d,
+.sidebar-logo-3d,
+.nav-icon-3d {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .nav-item-3d:hover {
+    transform: translateX(4px) translateZ(10px);
+  }
+}
+
+/* Dark Mode Enhancement */
+@media (prefers-color-scheme: dark) {
+  .sidebar-3d {
+    background: linear-gradient(
+      135deg,
+      rgba(10, 15, 30, 0.95) 0%,
+      rgba(20, 25, 45, 0.85) 50%,
+      rgba(10, 15, 30, 0.95) 100%
+    );
+  }
+}
+
+/* Reduced Motion Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-3d::before,
+  .nav-item-3d,
+  .nav-icon-3d,
+  .sidebar-particle {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .nav-item-3d:hover {
+    transform: translateX(4px);
+  }
+}

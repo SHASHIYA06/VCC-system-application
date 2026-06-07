@@ -210,9 +210,21 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  let requestBody: any = {};
+  
   try {
-    const body = await request.json();
-    const { action, query, wireNo, systemCode, taskType, context, useMultiAgent, useLangChain } = body;
+    requestBody = await request.json();
+    const { action, query, wireNo, systemCode, taskType, context, useMultiAgent, useLangChain } = requestBody;
+
+    console.log('🔵 RAG API Request:', {
+      action,
+      query: query?.substring(0, 50),
+      taskType,
+      useMultiAgent,
+      useLangChain,
+      timestamp: new Date().toISOString()
+    });
 
     // ── New LangChain RAG System (PREFERRED) ──────────────────────────────
     if (query && !action) {
@@ -226,7 +238,14 @@ export async function POST(request: NextRequest) {
           const { executeLangChainMultiAgent, executeLangChainAgent } = await import('@/lib/ai/langchain-rag');
           
           if (useMultiAgent) {
+            console.log('🤖 Executing Multi-Agent LangChain query...');
             const result = await executeLangChainMultiAgent(query);
+            console.log('✅ Multi-Agent LangChain completed:', {
+              success: result.success,
+              executionTime: result.executionTime,
+              agentCount: result.agents?.length
+            });
+            
             return NextResponse.json({
               query: result.query,
               primaryResponse: {
@@ -247,7 +266,13 @@ export async function POST(request: NextRequest) {
           } else {
             // Determine best agent for single query
             const agentType = determineAgentType(query);
+            console.log(`🎯 Using ${agentType} agent for single query`);
             const result = await executeLangChainAgent(agentType, query);
+            console.log('✅ Single-Agent LangChain completed:', {
+              agent: result.agent,
+              confidence: result.confidence,
+              executionTime: result.executionTime
+            });
             
             return NextResponse.json({
               query: result.query,
@@ -267,12 +292,16 @@ export async function POST(request: NextRequest) {
             });
           }
         } catch (langchainError) {
-          console.error('LangChain system error, falling back:', langchainError);
+          console.error('❌ LangChain system error, falling back:', {
+            error: langchainError instanceof Error ? langchainError.message : String(langchainError),
+            stack: langchainError instanceof Error ? langchainError.stack : undefined
+          });
           // Fall through to legacy system
         }
       }
 
       // ── Legacy Multi-Agent System (FALLBACK) ──────────────────────────────
+      console.log('🔄 Using legacy multi-agent system (fallback mode)');
       const task = {
         taskId: `rag-${Date.now()}`,
         taskType: taskType || 'unified_search',
@@ -283,40 +312,65 @@ export async function POST(request: NextRequest) {
       if (useMultiAgent) {
         // Use new multi-agent pipeline
         try {
+          console.log('🤖 Executing Multi-Agent pipeline query...');
           const { executeMultiAgentQuery } = await getRAGPipeline();
           const result = await executeMultiAgentQuery({
             query,
             taskType: taskType || 'unified_search',
             context: context || {},
-            model: body.model || 'openrouter-claude',
-            temperature: body.temperature || 0.2,
+            model: requestBody.model || 'openrouter-claude',
+            temperature: requestBody.temperature || 0.2,
             useMultiAgent: true,
+          });
+          console.log('✅ Multi-Agent pipeline completed:', {
+            executionTime: result.executionTime
           });
           return NextResponse.json(result);
         } catch (error) {
-          console.error('Pipeline multi-agent error, final fallback:', error);
+          console.error('❌ Pipeline multi-agent error, final fallback:', {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+          });
           // Final fallback to original implementation
+          console.log('🔄 Using original multi-agent RAG implementation...');
           const multiAgentRAG = await getMultiAgentRAG();
-          const result = await multiAgentRAG.executeMultiAgent(task);
+          const { executeMultiAgentQuery: legacyMultiAgent } = await import('@/lib/ai/multi-agent-rag');
+          const result = await legacyMultiAgent(query);
+          console.log('✅ Original multi-agent completed:', {
+            executionTime: result.executionTime,
+            agentCount: result.agents?.length
+          });
           return NextResponse.json({
             query,
-            primaryResponse: result.primaryResponse,
-            supportingResponses: result.supportingResponses,
+            primaryResponse: result.agents?.[0] || {
+              agent: 'ErrorHandler',
+              query,
+              response: 'No agents available',
+              confidence: 0,
+              sources: [],
+              executionTime: 0
+            },
+            supportingResponses: result.agents?.slice(1) || [],
             unifiedResponse: result.unifiedResponse,
-            allData: result.allData,
+            allData: { agents: result.agents },
             executionTime: result.executionTime,
           });
         }
       } else {
         // Use new single-agent pipeline
         try {
+          console.log('🎯 Executing Single-Agent pipeline query...');
           const { executeRAGQuery } = await getRAGPipeline();
           const result = await executeRAGQuery({
             query,
             taskType: taskType || 'unified_search',
             context: context || {},
-            model: body.model || 'openrouter-claude',
-            temperature: body.temperature || 0.2,
+            model: requestBody.model || 'openrouter-claude',
+            temperature: requestBody.temperature || 0.2,
+          });
+          console.log('✅ Single-Agent pipeline completed:', {
+            confidence: result.confidence,
+            executionTime: result.executionTime
           });
           return NextResponse.json({
             query,
@@ -331,14 +385,23 @@ export async function POST(request: NextRequest) {
             executionTime: result.executionTime,
           });
         } catch (error) {
-          console.error('Pipeline single-agent error, final fallback:', error);
+          console.error('❌ Pipeline single-agent error, final fallback:', {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+          });
           // Final fallback to original implementation
+          console.log('🔄 Using original single-agent RAG implementation...');
           const multiAgentRAG = await getMultiAgentRAG();
-          const result = await multiAgentRAG.executeTask(task);
+          const { executeSingleAgentQuery } = await import('@/lib/ai/multi-agent-rag');
+          const result = await executeSingleAgentQuery('diagnostic', query);
+          console.log('✅ Original single-agent completed:', {
+            confidence: result.confidence,
+            executionTime: result.executionTime
+          });
           return NextResponse.json({
             query,
             primaryResponse: result,
-            unifiedResponse: result.content,
+            unifiedResponse: result.response,
             supportingResponses: [],
             executionTime: result.executionTime,
           });
@@ -378,7 +441,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'llm') {
-      const { prompt, system, provider, model } = body;
+      const { prompt, system, provider, model } = requestBody;
       if (!prompt) {
         return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
       }
@@ -389,27 +452,53 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid action. Provide {query} or {action, query}.' }, { status: 400 });
   } catch (error) {
-    console.error('RAG POST error:', error);
+    const executionTime = Date.now() - startTime;
+    console.error('❌ RAG POST error:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      query: requestBody?.query || 'unknown',
+      executionTime
+    });
     
-    let requestBody: any = {};
-    try {
-      requestBody = await request.json();
-    } catch {
-      // Request body parsing failed
+    // Determine error type and provide helpful message
+    let errorMessage = 'System error occurred';
+    let errorDetails = String(error);
+    
+    if (error instanceof Error) {
+      if (error.message.includes('OPENAI_API_KEY')) {
+        errorMessage = 'OpenAI API key is not configured';
+        errorDetails = 'Please set OPENAI_API_KEY in your .env.local file';
+      } else if (error.message.includes('ANTHROPIC_API_KEY')) {
+        errorMessage = 'Anthropic API key is not configured';
+        errorDetails = 'Please set ANTHROPIC_API_KEY in your .env.local file';
+      } else if (error.message.includes('database')) {
+        errorMessage = 'Database connection error';
+        errorDetails = 'Unable to connect to the database. Please check your DATABASE_URL';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Request timeout';
+        errorDetails = 'The AI processing took too long. Please try a simpler query.';
+      } else if (error.message.includes('Circuit breaker')) {
+        errorMessage = 'Service temporarily unavailable';
+        errorDetails = 'The AI agent is recovering from errors. Please try again in a moment.';
+      }
     }
     
     return NextResponse.json({ 
-      error: 'RAG operation failed', 
-      details: String(error),
+      error: errorMessage, 
+      details: errorDetails,
       query: requestBody?.query || 'unknown',
       primaryResponse: {
         agent: 'ErrorHandler',
-        content: `System error: ${error instanceof Error ? error.message : String(error)}`,
+        content: `I apologize, but I encountered an error: ${errorMessage}. ${errorDetails}`,
         confidence: 0,
       },
-      unifiedResponse: `I apologize, but I encountered an error while processing your query: ${error instanceof Error ? error.message : String(error)}`,
-      allData: { error: true },
-      executionTime: 0,
+      unifiedResponse: `I apologize, but I encountered an error while processing your query: ${errorMessage}. ${errorDetails}`,
+      allData: { 
+        error: true,
+        errorType: errorMessage,
+        timestamp: new Date().toISOString()
+      },
+      executionTime,
     }, { status: 500 });
   }
 }

@@ -47,11 +47,15 @@ export class BrowserVoiceClient {
       if (SpeechRecognition) {
         this.recognition = new SpeechRecognition();
         this.setupRecognition();
+      } else {
+        console.warn('⚠️ Speech Recognition not supported in this browser');
       }
 
       // Initialize Speech Synthesis
       if ('speechSynthesis' in window) {
         this.synthesis = window.speechSynthesis;
+      } else {
+        console.warn('⚠️ Speech Synthesis not supported in this browser');
       }
     }
   }
@@ -62,11 +66,28 @@ export class BrowserVoiceClient {
   isSupported(): {
     recognition: boolean;
     synthesis: boolean;
+    message?: string;
   } {
-    return {
+    const result = {
       recognition: this.recognition !== null,
-      synthesis: this.synthesis !== null
+      synthesis: this.synthesis !== null,
+      message: undefined as string | undefined
     };
+
+    if (!result.recognition && !result.synthesis) {
+      result.message = 'Voice features are not supported in this browser. Please use Chrome, Edge, or Safari.';
+    } else if (!result.recognition) {
+      result.message = 'Voice recognition is not supported. Text-to-speech is available.';
+    } else if (!result.synthesis) {
+      result.message = 'Text-to-speech is not supported. Voice recognition is available.';
+    }
+
+    // Check for HTTPS requirement
+    if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      result.message = (result.message || '') + ' Voice features require HTTPS or localhost.';
+    }
+
+    return result;
   }
 
   /**
@@ -120,7 +141,20 @@ export class BrowserVoiceClient {
     onError?: (error: Error) => void
   ): void {
     if (!this.recognition) {
-      throw new Error('Speech recognition not supported');
+      const error = new Error('Speech recognition not supported in this browser. Please use Chrome, Edge, or Safari.');
+      if (onError) {
+        onError(error);
+      }
+      throw error;
+    }
+
+    // Check HTTPS requirement
+    if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      const error = new Error('Voice recognition requires HTTPS. Please access the app via HTTPS or use localhost for development.');
+      if (onError) {
+        onError(error);
+      }
+      throw error;
     }
 
     if (this.isListening) {
@@ -133,11 +167,24 @@ export class BrowserVoiceClient {
     try {
       this.recognition.start();
       this.isListening = true;
+      console.log('🎤 Voice recognition started');
     } catch (error) {
-      console.error('Failed to start recognition:', error);
-      if (onError) {
-        onError(error instanceof Error ? error : new Error('Failed to start recognition'));
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Failed to start recognition:', errorMessage);
+      
+      // Provide helpful error messages
+      let userFriendlyError = errorMessage;
+      if (errorMessage.includes('not-allowed')) {
+        userFriendlyError = 'Microphone access denied. Please allow microphone permissions in your browser settings.';
+      } else if (errorMessage.includes('already started')) {
+        userFriendlyError = 'Voice recognition is already running. Please stop it first.';
       }
+      
+      const finalError = new Error(userFriendlyError);
+      if (onError) {
+        onError(finalError);
+      }
+      throw finalError;
     }
   }
 
