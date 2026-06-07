@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mic, MicOff, Volume2, VolumeX, Loader2, Play, Pause, 
-  MessageSquare, ArrowRight, Bot, Sparkles, Zap, Activity 
+  MessageSquare, ArrowRight, Bot, Sparkles, Zap, Activity, Database, Globe
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -30,6 +30,9 @@ interface RAGResponse {
     agent: string;
     confidence: number;
   }>;
+  enhanced?: boolean;
+  webResults?: number;
+  internalResults?: number;
 }
 
 // Main Voice Assistant Component
@@ -164,12 +167,12 @@ export default function VoiceAssistant() {
     }
   };
 
-  // Process Voice Command
+  // Process Voice Command with Enhanced TinyFish Integration
   const processVoiceCommand = async () => {
     try {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       
-      console.log('🎤 Processing voice command with OpenAI Whisper...');
+      console.log('🎤 Processing voice command with enhanced AI system...');
       
       // Step 1: Transcribe audio using OpenAI Whisper
       const transcribeFormData = new FormData();
@@ -206,33 +209,40 @@ export default function VoiceAssistant() {
         confidence: transcription.confidence,
       });
       
-      // Step 2: If it's a query, get AI response
+      // Step 2: Enhanced AI processing with TinyFish integration
       if (transcription.command.action === 'query') {
-        console.log('🤖 Getting AI response...');
+        console.log('🤖 Processing with Enhanced RAG + TinyFish system...');
         
-        const ragResponse = await fetch('/api/rag', {
+        const ragResponse = await fetch('/api/rag/enhanced', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query: transcription.transcript,
-            taskType: 'unified_search',
+            includeWebSearch: true,
+            maxWebResults: 5,
             useMultiAgent: true,
+            model: 'gpt-3.5-turbo',
+            temperature: 0.2,
+            confidenceThreshold: 0.7
           }),
         });
 
         if (ragResponse.ok) {
           const ragData = await ragResponse.json();
-          console.log('✅ AI response received');
+          console.log('✅ Enhanced AI response received');
           
           setLastResponse({
             query: ragData.query,
             unifiedResponse: ragData.unifiedResponse,
-            executionTime: ragData.executionTime,
+            executionTime: ragData.metadata?.executionTime || 0,
             agents: ragData.agents || [],
+            enhanced: true,
+            webResults: ragData.metadata?.webResults || 0,
+            internalResults: ragData.metadata?.internalResults || 0
           });
 
           // Step 3: Convert AI response to speech using OpenAI TTS
-          console.log('🔊 Converting response to speech...');
+          console.log('🔊 Converting enhanced response to speech...');
           
           const ttsResponse = await fetch('/api/voice/speak', {
             method: 'POST',
@@ -254,16 +264,64 @@ export default function VoiceAssistant() {
               speakers: 1,
             });
             
-            console.log('✅ Voice response ready');
+            console.log('✅ Enhanced voice response ready');
           } else {
             const ttsError = await ttsResponse.json();
             console.warn('⚠️ TTS failed:', ttsError);
             setError(`Voice synthesis unavailable: ${ttsError.message}. You can still read the text response.`);
           }
         } else {
-          const ragError = await ragResponse.json();
-          console.error('❌ AI query failed:', ragError);
-          setError(`AI query failed: ${ragError.error}`);
+          // Fallback to original RAG system
+          console.log('⚠️ Enhanced RAG failed, falling back to original system...');
+          
+          const fallbackResponse = await fetch('/api/rag', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: transcription.transcript,
+              taskType: 'unified_search',
+              useMultiAgent: true,
+            }),
+          });
+
+          if (fallbackResponse.ok) {
+            const fallbackData = await fallbackResponse.json();
+            console.log('✅ Fallback AI response received');
+            
+            setLastResponse({
+              query: fallbackData.query,
+              unifiedResponse: fallbackData.unifiedResponse,
+              executionTime: fallbackData.executionTime,
+              agents: fallbackData.agents || [],
+              enhanced: false
+            });
+
+            // Generate speech for fallback response
+            const ttsResponse = await fetch('/api/voice/speak', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: fallbackData.unifiedResponse,
+                voice: 'alloy',
+                speed: 1.0,
+              }),
+            });
+
+            if (ttsResponse.ok) {
+              const audioBlob = await ttsResponse.blob();
+              const audioUrl = URL.createObjectURL(audioBlob);
+              
+              setVoiceResponse({
+                audioFile: audioUrl,
+                duration: parseInt(ttsResponse.headers.get('X-Execution-Time') || '0') / 1000,
+                speakers: 1,
+              });
+            }
+          } else {
+            const ragError = await fallbackResponse.json();
+            console.error('❌ Both enhanced and fallback AI failed:', ragError);
+            setError(`AI processing failed: ${ragError.error}`);
+          }
         }
       }
       
@@ -542,15 +600,44 @@ export default function VoiceAssistant() {
                         <div className="flex items-center gap-2 mb-3">
                           <Sparkles className="h-4 w-4 text-purple-400" />
                           <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">
-                            AI Response
+                            {lastResponse.enhanced ? 'Enhanced AI Response' : 'AI Response'}
                           </span>
                           <span className="text-xs text-white/60 ml-auto">
                             {lastResponse.executionTime}ms
                           </span>
+                          {lastResponse.enhanced && (
+                            <div className="flex items-center gap-1 px-2 py-1 bg-accent-500/20 rounded-lg">
+                              <Zap className="h-3 w-3 text-accent-400" />
+                              <span className="text-xs text-accent-400 font-bold">TinyFish</span>
+                            </div>
+                          )}
                         </div>
                         <p className="text-white text-sm leading-relaxed">
                           {lastResponse.unifiedResponse}
                         </p>
+                        
+                        {/* Enhanced Response Stats */}
+                        {lastResponse.enhanced && (lastResponse.webResults || lastResponse.internalResults) && (
+                          <div className="mt-3 p-3 bg-black/20 rounded-xl">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-white/70">Data Sources:</span>
+                              <div className="flex items-center gap-4">
+                                {lastResponse.internalResults && (
+                                  <div className="flex items-center gap-1">
+                                    <Database className="h-3 w-3 text-cyan-400" />
+                                    <span className="text-cyan-400 font-bold">{lastResponse.internalResults} VCC DB</span>
+                                  </div>
+                                )}
+                                {lastResponse.webResults && (
+                                  <div className="flex items-center gap-1">
+                                    <Globe className="h-3 w-3 text-green-400" />
+                                    <span className="text-green-400 font-bold">{lastResponse.webResults} Web</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         
                         {/* Voice Response Playback */}
                         {voiceResponse && (

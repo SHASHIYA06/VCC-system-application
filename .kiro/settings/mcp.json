@@ -55,6 +55,18 @@
       },
       "disabled": false,
       "autoApprove": ["search"]
+    },
+    "tinyfish": {
+      "command": "uvx",
+      "args": [
+        "-y",
+        "mcp-server-tinyfish"
+      ],
+      "env": {
+        "TINYFISH_API_KEY": "sk-tinyfish-JAI-1Lk0ZP-FkvhUYsWUaZD4AhpAxlbGPlease"
+      },
+      "disabled": false,
+      "autoApprove": ["search", "fetch", "extract"]
     }
   }
 }

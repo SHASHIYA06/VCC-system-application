@@ -1,67 +1,87 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, Search, Command, MessageSquare } from 'lucide-react';
+import { Bell, Search, Command, MessageSquare, Sparkles, Zap } from 'lucide-react';
+import GlobalSearch from '../search/GlobalSearch';
 
 export default function TopBar() {
-  return (
-    <header className="sticky top-0 z-30 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
-      <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between gap-4">
-          
-          {/* Page Title or Breadcrumbs (can be dynamic later) */}
-          <div className="flex-1">
-            <h2 className="text-sm font-medium text-slate-400">
-              Welcome to VCC System
-            </h2>
-          </div>
+  const [searchOpen, setSearchOpen] = useState(false);
 
-          {/* Right Section */}
-          <div className="flex items-center gap-3">
-            {/* Quick Search */}
-            <div className="relative hidden lg:block w-64">
-              <input
-                type="text"
-                placeholder="Quick search... (Ctrl+K)"
-                className="w-full pl-9 pr-8 py-1.5 text-xs rounded-lg bg-slate-900/60 border border-slate-850 focus:border-cyan-500 text-slate-200 placeholder-slate-500 focus:outline-none transition-all"
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-1 py-0.5 rounded bg-slate-800 text-[10px] text-slate-500 font-mono">
-                <Command className="h-2.5 w-2.5" />
-                <span>K</span>
+  return (
+    <header className="sticky top-0 z-30 w-full border-b border-glass-border glass-card-premium backdrop-blur-4xl shadow-premium">
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="flex h-20 items-center justify-between gap-4">
+          
+          {/* Left Section - Enhanced Title */}
+          <div className="flex-1 flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Sparkles className="w-6 h-6 text-accent-400 animate-pulse" />
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-ping" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-neon font-mono uppercase tracking-wider">
+                  VCC System
+                </h2>
+                <p className="text-xs text-white/60 font-medium">
+                  Quantum Railway Control Interface
+                </p>
               </div>
             </div>
+          </div>
 
-            {/* Notification and Message Icons */}
-            <button className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-900/50 rounded-lg transition-all relative">
+          {/* Center Section - Enhanced Search (Always Visible) */}
+          <div className="flex-1 max-w-2xl mx-4">
+            <GlobalSearch />
+          </div>
+
+          {/* Right Section - Enhanced */}
+          <div className="flex items-center gap-4">
+            
+            {/* AI Status Indicator */}
+            <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-2xl glass-card-premium border border-glass-border">
+              <Zap className="w-4 h-4 text-accent-400 animate-pulse" />
+              <span className="text-xs text-white/80 font-bold font-mono">AI ACTIVE</span>
+            </div>
+
+            {/* Enhanced Notification Buttons */}
+            <button className="relative p-3 text-white/60 hover:text-white glass-card-medium hover:glass-card-premium rounded-2xl transition-all hover:shadow-glow-sm group">
               <span className="sr-only">Messages</span>
-              <MessageSquare className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+              <MessageSquare className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-accent-500 animate-pulse shadow-glow-sm"></span>
             </button>
             
-            <button className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-900/50 rounded-lg transition-all relative">
+            <button className="relative p-3 text-white/60 hover:text-white glass-card-medium hover:glass-card-premium rounded-2xl transition-all hover:shadow-glow-sm group">
               <span className="sr-only">Notifications</span>
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-purple-500"></span>
+              <Bell className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-purple-500 shadow-glow-sm"></span>
             </button>
 
-            {/* User Profile */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800">
+            {/* Enhanced User Profile */}
+            <div className="flex items-center gap-3 pl-4 border-l border-glass-border">
               <div className="hidden sm:block text-right">
-                <div className="text-xs font-semibold text-white leading-tight">Alex Carter</div>
-                <div className="text-[10px] text-slate-400 leading-tight">Admin</div>
+                <div className="text-sm font-bold text-white font-mono leading-tight">Alex Carter</div>
+                <div className="text-xs text-accent-400 leading-tight font-medium">System Administrator</div>
               </div>
-              <div className="relative">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-inner cursor-pointer hover:scale-105 transition-transform">
+              <div className="relative group cursor-pointer">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-accent flex items-center justify-center text-white text-sm font-bold shadow-glow-lg border-2 border-white/20 hover:scale-105 transition-all">
                   AC
                 </div>
-                {/* Status Dot */}
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-slate-950 bg-green-500 animate-pulse"></span>
+                {/* Enhanced Status Indicator */}
+                <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-glass-border bg-green-500 shadow-glow-sm">
+                  <span className="absolute inset-0 w-full h-full rounded-full bg-green-400 animate-ping opacity-75"></span>
+                </span>
+                
+                {/* Holographic accent */}
+                <div className="absolute -inset-1 bg-gradient-accent rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity blur-sm"></div>
               </div>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Premium bottom accent */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-500/50 to-transparent"></div>
     </header>
   );
 }
