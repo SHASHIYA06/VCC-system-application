@@ -552,7 +552,10 @@ export default function DashboardPage() {
           <h1 className="text-5xl font-extrabold font-mono text-neon tracking-tight uppercase">
             Dashboard
           </h1>
-          <p className="text-white/70 mt-2 font-sans">Welcome back to the VCC System! ✨</p>
+          <p className="text-white/70 mt-2 font-sans flex items-center gap-2">
+            Welcome back to the VCC System!
+            <Sparkles className="h-4 w-4 text-cyan-400 animate-pulse" />
+          </p>
         </div>
         <div className="flex items-center gap-3 px-4 py-2 rounded-5xl glass-card-premium border border-glass-border text-sm text-green-400 font-bold shadow-glow-sm">
           <span className="relative flex h-2.5 w-2.5">

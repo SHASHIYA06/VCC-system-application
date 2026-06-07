@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { DiagnosticReport, SystemHealth, DiagnosticIssue } from '@/lib/diagnostic/analyzer';
-import { AlertTriangle, CheckCircle2, AlertCircle, Zap, Activity, TrendingUp, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, AlertCircle, Zap, Activity, TrendingUp, Loader2, Lightbulb } from 'lucide-react';
 
 interface DiagnosticDashboardProps {
   systemCode?: string;
@@ -163,7 +163,10 @@ export const DiagnosticDashboard: React.FC<DiagnosticDashboardProps> = ({
                         {issue.title}
                       </p>
                       <p className="text-sm text-slate-300 mt-1">{issue.description}</p>
-                      <p className="text-xs text-slate-400 mt-2">💡 {issue.recommendation}</p>
+                      <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                        <Lightbulb className="h-3 w-3 text-amber-400" />
+                        {issue.recommendation}
+                      </p>
                     </div>
                   </div>
                 </div>
