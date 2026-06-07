@@ -6,15 +6,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { tinyFishService } from '@/lib/services/tinyfish';
-import OpenAI from 'openai';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Initialize OpenAI for embeddings and completions
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy load OpenAI client to avoid initialization during build
+let openaiInstance: any = null;
+
+async function getOpenAI() {
+  if (!openaiInstance) {
+    const OpenAI = (await import('openai')).default;
+    openaiInstance = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiInstance;
+}
 
 interface EnhancedRAGRequest {
   query: string;
@@ -328,6 +335,7 @@ async function generateInternalResponse(query: string, internalData: any, model:
   const startTime = Date.now();
   
   try {
+    const openai = await getOpenAI();
     const context = formatInternalDataForAI(internalData.results);
     
     const completion = await openai.chat.completions.create({
@@ -382,6 +390,7 @@ async function generateWebResponse(query: string, webData: any, model: string, t
   const startTime = Date.now();
   
   try {
+    const openai = await getOpenAI();
     const context = formatWebDataForAI(webData);
     
     const completion = await openai.chat.completions.create({
@@ -434,6 +443,7 @@ async function generateHybridResponse(query: string, internalData: any, webData:
   const startTime = Date.now();
   
   try {
+    const openai = await getOpenAI();
     const internalContext = formatInternalDataForAI(internalData.results);
     const webContext = formatWebDataForAI(webData);
     
@@ -505,6 +515,7 @@ async function createUnifiedResponse({
   }
 
   try {
+    const openai = await getOpenAI();
     // Combine multiple agent responses into a unified answer
     const agentSummaries = agents.map(agent => 
       `**${agent.agent}** (Confidence: ${Math.round(agent.confidence * 100)}%):\n${agent.response}`
