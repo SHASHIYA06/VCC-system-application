@@ -168,47 +168,118 @@ export default function VoiceAssistant() {
   const processVoiceCommand = async () => {
     try {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      const formData = new FormData();
-      formData.append('audio', audioBlob);
-      formData.append('includeResponse', 'true');
+      
+      console.log('🎤 Processing voice command with OpenAI Whisper...');
+      
+      // Step 1: Transcribe audio using OpenAI Whisper
+      const transcribeFormData = new FormData();
+      transcribeFormData.append('audio', audioBlob);
+      transcribeFormData.append('language', 'en');
 
-      const response = await fetch('/api/voice/command', {
+      const transcribeResponse = await fetch('/api/voice/transcribe', {
         method: 'POST',
-        body: formData,
+        body: transcribeFormData,
       });
 
-      if (!response.ok) {
-        throw new Error('Voice processing failed');
+      if (!transcribeResponse.ok) {
+        const errorData = await transcribeResponse.json();
+        console.warn('⚠️ OpenAI Whisper failed, using fallback:', errorData);
+        
+        // Fallback to browser Web Speech API if OpenAI fails
+        if (errorData.fallback === 'browser') {
+          setError(`Using browser voice recognition (OpenAI unavailable): ${errorData.message}`);
+          // Continue with limited functionality
+          return;
+        }
+        throw new Error(errorData.message || 'Transcription failed');
       }
 
-      const result = await response.json();
+      const transcription = await transcribeResponse.json();
       
-      if (result.success) {
-        setLastCommand(result.command);
+      console.log('✅ Transcription:', transcription.transcript);
+      console.log('🎯 Command detected:', transcription.command);
+      
+      setLastCommand({
+        transcript: transcription.transcript,
+        action: transcription.command.action,
+        parameters: transcription.command.parameters,
+        confidence: transcription.confidence,
+      });
+      
+      // Step 2: If it's a query, get AI response
+      if (transcription.command.action === 'query') {
+        console.log('🤖 Getting AI response...');
         
-        if (result.ragResponse) {
-          setLastResponse(result.ragResponse);
+        const ragResponse = await fetch('/api/rag', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: transcription.transcript,
+            taskType: 'unified_search',
+            useMultiAgent: true,
+          }),
+        });
+
+        if (ragResponse.ok) {
+          const ragData = await ragResponse.json();
+          console.log('✅ AI response received');
+          
+          setLastResponse({
+            query: ragData.query,
+            unifiedResponse: ragData.unifiedResponse,
+            executionTime: ragData.executionTime,
+            agents: ragData.agents || [],
+          });
+
+          // Step 3: Convert AI response to speech using OpenAI TTS
+          console.log('🔊 Converting response to speech...');
+          
+          const ttsResponse = await fetch('/api/voice/speak', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: ragData.unifiedResponse,
+              voice: 'alloy', // or 'nova' for female voice
+              speed: 1.0,
+            }),
+          });
+
+          if (ttsResponse.ok) {
+            const audioBlob = await ttsResponse.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            setVoiceResponse({
+              audioFile: audioUrl,
+              duration: parseInt(ttsResponse.headers.get('X-Execution-Time') || '0') / 1000,
+              speakers: 1,
+            });
+            
+            console.log('✅ Voice response ready');
+          } else {
+            const ttsError = await ttsResponse.json();
+            console.warn('⚠️ TTS failed:', ttsError);
+            setError(`Voice synthesis unavailable: ${ttsError.message}. You can still read the text response.`);
+          }
+        } else {
+          const ragError = await ragResponse.json();
+          console.error('❌ AI query failed:', ragError);
+          setError(`AI query failed: ${ragError.error}`);
         }
-        
-        if (result.voiceResponse) {
-          setVoiceResponse(result.voiceResponse);
-        }
-        
-        // Execute navigation if applicable
-        if (result.command.action === 'navigate' && result.command.parameters.route) {
-          setTimeout(() => {
-            router.push(result.command.parameters.route);
-          }, 1000);
-        }
-        
-        setShowTranscript(true);
-      } else {
-        setError(result.error || 'Command processing failed');
       }
+      
+      // Execute navigation if applicable
+      if (transcription.command.action === 'navigate' && transcription.command.parameters.route) {
+        console.log('🧭 Navigating to:', transcription.command.parameters.route);
+        setTimeout(() => {
+          router.push(transcription.command.parameters.route);
+        }, 1000);
+      }
+      
+      setShowTranscript(true);
       
     } catch (error) {
       console.error('Voice command processing error:', error);
-      setError('Failed to process voice command');
+      setError(error instanceof Error ? error.message : 'Failed to process voice command');
     } finally {
       setIsProcessing(false);
     }
@@ -222,13 +293,17 @@ export default function VoiceAssistant() {
       setIsPlaying(true);
       
       // Create audio element and play response
-      const audio = new Audio(`/api/voice/audio/${voiceResponse.audioFile}`);
+      const audio = new Audio(voiceResponse.audioFile);
       audio.volume = volume;
       audioRef.current = audio;
       
       audio.onended = () => {
         setIsPlaying(false);
         audioRef.current = null;
+        // Clean up blob URL
+        if (voiceResponse.audioFile.startsWith('blob:')) {
+          URL.revokeObjectURL(voiceResponse.audioFile);
+        }
       };
       
       audio.onerror = () => {
