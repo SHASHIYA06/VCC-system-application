@@ -7,10 +7,10 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        // Premium Typography Stack
-        sans: ['"Inter"', 'system-ui', 'sans-serif'],
-        mono: ['"Orbitron"', 'monospace'],
-        display: ['"Orbitron"', 'monospace'],
+        // Professional Dashboard Typography Stack (Design System)
+        sans: ['"Fira Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"Fira Code"', 'monospace'],
+        display: ['"Fira Code"', 'monospace'],
       },
       colors: {
         // Premium Dark Theme Color System

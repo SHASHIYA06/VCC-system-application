@@ -212,10 +212,67 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, query, wireNo, systemCode, taskType, context, useMultiAgent } = body;
+    const { action, query, wireNo, systemCode, taskType, context, useMultiAgent, useLangChain } = body;
 
-    // ── New dashboard format: { query, taskType, useMultiAgent } ──────────
+    // ── New LangChain RAG System (PREFERRED) ──────────────────────────────
     if (query && !action) {
+      const shouldUseLangChain = useLangChain !== false; // Default to LangChain
+
+      if (shouldUseLangChain) {
+        console.log('🦜 Using Enhanced LangChain RAG System');
+        
+        try {
+          // Lazy load the new LangChain system
+          const { executeLangChainMultiAgent, executeLangChainAgent } = await import('@/lib/ai/langchain-rag');
+          
+          if (useMultiAgent) {
+            const result = await executeLangChainMultiAgent(query);
+            return NextResponse.json({
+              query: result.query,
+              primaryResponse: {
+                agent: 'LangChainCoordinator',
+                content: result.unifiedResponse,
+                confidence: result.success ? 0.95 : 0.1,
+              },
+              unifiedResponse: result.unifiedResponse,
+              allData: {
+                agents: result.agents,
+                langchain: true,
+                system: 'enhanced',
+                tools_used: result.agents.flatMap(a => a.tools_used || []),
+              },
+              executionTime: result.executionTime,
+              success: result.success,
+            });
+          } else {
+            // Determine best agent for single query
+            const agentType = determineAgentType(query);
+            const result = await executeLangChainAgent(agentType, query);
+            
+            return NextResponse.json({
+              query: result.query,
+              primaryResponse: {
+                agent: result.agent,
+                content: result.response,
+                confidence: result.confidence,
+              },
+              unifiedResponse: result.response,
+              allData: {
+                agent: result,
+                langchain: true,
+                tools_used: result.tools_used,
+                reasoning: result.reasoning,
+              },
+              executionTime: result.executionTime,
+            });
+          }
+        } catch (langchainError) {
+          console.error('LangChain system error, falling back:', langchainError);
+          // Fall through to legacy system
+        }
+      }
+
+      // ── Legacy Multi-Agent System (FALLBACK) ──────────────────────────────
       const task = {
         taskId: `rag-${Date.now()}`,
         taskType: taskType || 'unified_search',
@@ -224,7 +281,7 @@ export async function POST(request: NextRequest) {
       };
 
       if (useMultiAgent) {
-        // Use new LangChain multi-agent pipeline
+        // Use new multi-agent pipeline
         try {
           const { executeMultiAgentQuery } = await getRAGPipeline();
           const result = await executeMultiAgentQuery({
@@ -237,8 +294,8 @@ export async function POST(request: NextRequest) {
           });
           return NextResponse.json(result);
         } catch (error) {
-          console.error('LangChain multi-agent error, falling back:', error);
-          // Fallback to original implementation
+          console.error('Pipeline multi-agent error, final fallback:', error);
+          // Final fallback to original implementation
           const multiAgentRAG = await getMultiAgentRAG();
           const result = await multiAgentRAG.executeMultiAgent(task);
           return NextResponse.json({
@@ -251,7 +308,7 @@ export async function POST(request: NextRequest) {
           });
         }
       } else {
-        // Use new LangChain single-agent pipeline
+        // Use new single-agent pipeline
         try {
           const { executeRAGQuery } = await getRAGPipeline();
           const result = await executeRAGQuery({
@@ -274,8 +331,8 @@ export async function POST(request: NextRequest) {
             executionTime: result.executionTime,
           });
         } catch (error) {
-          console.error('LangChain single-agent error, falling back:', error);
-          // Fallback to original implementation
+          console.error('Pipeline single-agent error, final fallback:', error);
+          // Final fallback to original implementation
           const multiAgentRAG = await getMultiAgentRAG();
           const result = await multiAgentRAG.executeTask(task);
           return NextResponse.json({
@@ -333,8 +390,58 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid action. Provide {query} or {action, query}.' }, { status: 400 });
   } catch (error) {
     console.error('RAG POST error:', error);
-    return NextResponse.json({ error: 'RAG operation failed', details: String(error) }, { status: 500 });
+    
+    let requestBody: any = {};
+    try {
+      requestBody = await request.json();
+    } catch {
+      // Request body parsing failed
+    }
+    
+    return NextResponse.json({ 
+      error: 'RAG operation failed', 
+      details: String(error),
+      query: requestBody?.query || 'unknown',
+      primaryResponse: {
+        agent: 'ErrorHandler',
+        content: `System error: ${error instanceof Error ? error.message : String(error)}`,
+        confidence: 0,
+      },
+      unifiedResponse: `I apologize, but I encountered an error while processing your query: ${error instanceof Error ? error.message : String(error)}`,
+      allData: { error: true },
+      executionTime: 0,
+    }, { status: 500 });
   }
+}
+
+/**
+ * Determine the most appropriate agent type based on query content
+ */
+function determineAgentType(query: string): 'drawing' | 'wire' | 'system' | 'device' | 'diagnostic' {
+  const lowerQuery = query.toLowerCase();
+  
+  // Drawing-related keywords
+  if (lowerQuery.includes('drawing') || lowerQuery.includes('schematic') || lowerQuery.includes('pdf') || /\d{3}-\d{5}/.test(lowerQuery)) {
+    return 'drawing';
+  }
+  
+  // Wire-related keywords
+  if (lowerQuery.includes('wire') || lowerQuery.includes('signal') || lowerQuery.includes('connection') || lowerQuery.includes('cable')) {
+    return 'wire';
+  }
+  
+  // System-related keywords
+  if (lowerQuery.includes('system') || lowerQuery.includes('trl') || lowerQuery.includes('brake') || lowerQuery.includes('cab') || lowerQuery.includes('trac')) {
+    return 'system';
+  }
+  
+  // Device-related keywords
+  if (lowerQuery.includes('device') || lowerQuery.includes('equipment') || lowerQuery.includes('connector') || lowerQuery.includes('tag')) {
+    return 'device';
+  }
+  
+  // Default to diagnostic for complex queries
+  return 'diagnostic';
 }
 
 

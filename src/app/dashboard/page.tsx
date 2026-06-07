@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card3D, GlassButton, StatCard, GlassPanel } from '@/components/ui';
 import VoiceAssistant from '@/components/voice/VoiceAssistant';
 import GSDPiVisualization from '@/components/gsd/GSDPiVisualization';
+import SystemHealthCard from '@/components/dashboard/SystemHealthCard';
 import DiagnosticsPanel from '@/components/diagnostics/DiagnosticsPanel';
 import {
   Train, ShieldCheck, ShieldAlert, Zap, Wind, Radio, Battery, Settings, DoorOpen,
@@ -279,13 +280,22 @@ export default function DashboardPage() {
   const fetchGsd = async () => {
     setGsdLoading(true);
     try {
-      const res = await fetch('/api/gsd');
-      if (res.ok) {
-        const data = await res.json();
-        setGsdData(data);
+      console.log('🎯 Fetching GSD topology data...');
+      const res = await fetch('/api/gsd?action=topology');
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        setGsdData(data.data);
+        console.log(`✅ GSD data loaded: ${data.metadata?.nodeCount || 0} nodes`);
+      } else {
+        console.error('❌ GSD API error:', data.error);
+        throw new Error(data.message || data.error || 'Failed to fetch GSD data');
       }
     } catch (err) {
-      console.error('Failed to fetch GSD:', err);
+      console.error('❌ Failed to fetch GSD:', err);
+      setGsdData(null);
+      // Show user-friendly error instead of silent failure
+      alert(`GSD Topology Error: ${err instanceof Error ? err.message : 'Network error occurred'}`);
     } finally {
       setGsdLoading(false);
     }
@@ -294,13 +304,22 @@ export default function DashboardPage() {
   const fetchAnalysis = async () => {
     setAnalysisLoading(true);
     try {
+      console.log('📊 Fetching wiring analysis data...');
       const res = await fetch('/api/analysis/wiring');
-      if (res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+      
+      if (res.ok && data.success !== false) {
         setAnalysisData(data);
+        console.log('✅ Analysis data loaded');
+      } else {
+        console.error('❌ Analysis API error:', data.error);
+        throw new Error(data.message || data.error || 'Failed to fetch analysis data');
       }
     } catch (err) {
-      console.error('Failed to fetch wiring analysis:', err);
+      console.error('❌ Failed to fetch wiring analysis:', err);
+      setAnalysisData(null);
+      // Show user-friendly error instead of silent failure
+      alert(`Analysis Error: ${err instanceof Error ? err.message : 'Network error occurred'}`);
     } finally {
       setAnalysisLoading(false);
     }
@@ -346,9 +365,12 @@ export default function DashboardPage() {
     setDrawingError(null);
     setDrawingResult(null);
     setShowInlinePdf(false);
+    
     try {
+      console.log(`🔍 Searching for drawing: ${drawingSearch.trim()}`);
       const response = await fetch(`/api/drawings/lookup?drawing_no=${encodeURIComponent(drawingSearch.trim())}`);
       const data = await response.json();
+      
       if (response.ok && data.drawing) {
         const remarksParts = (data.drawing.remarks || '').split('|');
         setDrawingResult({
@@ -360,6 +382,8 @@ export default function DashboardPage() {
           relatedWires: data.relatedWires || [],
           relatedEquipment: data.relatedEquipment || [],
         });
+        
+        console.log(`✅ Drawing found: ${data.drawing.drawingNo}`);
         
         // Find mapped page if available
         if (data.drawing.sourceFile) {
@@ -376,10 +400,14 @@ export default function DashboardPage() {
           }
         }
       } else {
-        setDrawingError(data.error || 'Drawing not found. Check number formatting.');
+        const errorMsg = data.error || 'Drawing not found. Check number formatting.';
+        setDrawingError(errorMsg);
+        console.warn(`⚠️ Drawing search failed: ${errorMsg}`);
       }
-    } catch {
-      setDrawingError('Search failed — check connection');
+    } catch (err) {
+      const errorMsg = 'Search failed — check connection';
+      setDrawingError(errorMsg);
+      console.error('❌ Drawing search error:', err);
     } finally {
       setDrawingLoading(false);
     }
@@ -390,7 +418,9 @@ export default function DashboardPage() {
     setAiLoading(true);
     setAiError(null);
     setAiResult(null);
+    
     try {
+      console.log(`🤖 Executing AI search: ${aiQuery.trim()}`);
       const response = await fetch('/api/rag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -398,19 +428,27 @@ export default function DashboardPage() {
           query: aiQuery.trim(),
           taskType: 'unified_search',
           useMultiAgent: true,
+          useLangChain: true, // Use new LangChain system
           model: aiModel,
           temperature: aiTemperature,
           confidenceThreshold: aiConfidenceLimit
         }),
       });
+      
       const data = await response.json();
-      if (response.ok) {
+      
+      if (response.ok && data.success !== false) {
         setAiResult(data);
+        console.log(`✅ AI search completed: ${data.agents?.length || 1} agents responded`);
       } else {
-        setAiError(data.error || 'AI search failed');
+        const errorMsg = data.error || data.message || 'AI search failed';
+        setAiError(errorMsg);
+        console.error('❌ AI search error:', errorMsg);
       }
     } catch (err) {
-      setAiError('Failed to connect to AI service');
+      const errorMsg = 'Failed to connect to AI service';
+      setAiError(errorMsg);
+      console.error('❌ AI search network error:', err);
     } finally {
       setAiLoading(false);
     }
@@ -421,31 +459,8 @@ export default function DashboardPage() {
     setTimeout(() => searchAI(), 100);
   }
 
-  // Simulated fallback mockup result
-  const mockupDrawingResult: DrawingResult = {
-    id: 'mockup-id',
-    drawingNo: 'CAB_PIN DRAWINGS',
-    title: 'Intercar Jumper & Connector Layout - TC Car',
-    revision: 'Rev. 4',
-    carType: 'TC',
-    subsystem: 'CAB',
-    drawingType: 'SCHEMATIC',
-    pageCount: 14,
-    systemCode: 'CAB',
-    sourceFile: 'CAB_PIN DRAWINGS.pdf',
-    notes: 'Primary connector assignment details for CAB signals.',
-    relatedWires: [
-      { wireNo: '3001', signalName: 'CAB_START', wireColor: 'RD' },
-      { wireNo: '3002', signalName: 'CAB_RUN', wireColor: 'BU' },
-      { wireNo: '3003', signalName: 'CAB_STOP', wireColor: 'BK' },
-    ],
-    relatedEquipment: [
-      { name: 'Cab Controller Main', tag: 'CCU-1', carType: 'DMC' },
-      { name: 'Driver Console Panel', tag: 'DCP-A', carType: 'DMC' },
-    ]
-  };
-
-  const activeDrawing = drawingResult || (drawingSearch === '' ? mockupDrawingResult : null);
+  // Simulated fallback - REMOVED: No more mockup data, show proper empty state
+  const activeDrawing = drawingResult;
 
   const flowNodes = gsdData?.network?.nodes?.map((n: any, idx: number) => ({
     id: n.id,
@@ -663,7 +678,7 @@ export default function DashboardPage() {
                       <div className="relative overflow-hidden rounded-5xl border-2 border-accent-400/60 glass-card-premium p-8 shadow-glow-lg backdrop-blur-4xl">
                         <div className="absolute top-0 right-0 p-4">
                           <span className="px-4 py-2 rounded-full bg-gradient-accent text-white text-xs font-bold tracking-wider uppercase shadow-glow-sm">
-                            {activeDrawing.drawingNo === 'CAB_PIN DRAWINGS' ? 'Mockup Preview' : 'Database Match'}
+                            Database Match
                           </span>
                         </div>
 
@@ -1156,6 +1171,9 @@ export default function DashboardPage() {
             className="space-y-8 relative z-10"
           >
             <DiagnosticsPanel />
+
+            {/* System Health Overview */}
+            <SystemHealthCard />
 
           </motion.div>
         )}

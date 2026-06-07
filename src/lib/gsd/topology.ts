@@ -340,60 +340,91 @@ async function calculateStatistics(systemCode?: string): Promise<TopologyStatist
  */
 export async function getSystemTopology(systemCode?: string): Promise<SystemTopology> {
   try {
-    // Fetch data with error handling for each component
+    console.log(`🔍 Getting system topology for: ${systemCode || 'all systems'}`);
+
+    // Fetch data with proper error handling for each component
     let systems: SystemInfo[] = [];
     let deviceNodes: SystemNode[] = [];
     let connectorNodes: SystemNode[] = [];
     let wireEdges: SystemEdge[] = [];
     let connectorEdges: SystemEdge[] = [];
-    let statistics: TopologyStatistics = {
-      totalDevices: 0,
-      totalConnections: 0,
-      totalWires: 0,
-      systemCount: 0,
-      connectorCount: 0,
-      devicesBySystem: {},
-      connectionsByType: {},
-    };
+    let statistics: TopologyStatistics;
 
+    // Get systems info - this is critical, throw if it fails
     try {
       systems = await getSystemsInfo();
+      if (systems.length === 0) {
+        throw new Error('No systems found in database - ensure system data has been imported');
+      }
     } catch (err) {
-      console.warn('Warning: Could not fetch systems info:', err);
+      console.error('❌ Critical: Could not fetch systems info:', err);
+      throw new Error(`Failed to load system information: ${err instanceof Error ? err.message : String(err)}`);
     }
 
+    // Get device nodes - important for topology
     try {
       deviceNodes = await getDeviceNodes(systemCode);
+      console.log(`📦 Found ${deviceNodes.length} device nodes`);
     } catch (err) {
-      console.warn('Warning: Could not fetch device nodes:', err);
+      console.error('⚠️ Warning: Could not fetch device nodes:', err);
+      throw new Error(`Failed to load device topology: ${err instanceof Error ? err.message : String(err)}`);
     }
 
+    // Get connector nodes - important for connections
     try {
       connectorNodes = await getConnectorNodes(systemCode);
+      console.log(`🔌 Found ${connectorNodes.length} connector nodes`);
     } catch (err) {
-      console.warn('Warning: Could not fetch connector nodes:', err);
+      console.error('⚠️ Warning: Could not fetch connector nodes:', err);
+      throw new Error(`Failed to load connector topology: ${err instanceof Error ? err.message : String(err)}`);
     }
 
+    // Get wire edges - critical for connections
     try {
       wireEdges = await getWireEdges(systemCode);
+      console.log(`🔗 Found ${wireEdges.length} wire edges`);
     } catch (err) {
-      console.warn('Warning: Could not fetch wire edges:', err);
+      console.error('⚠️ Warning: Could not fetch wire edges:', err);
+      // Wire edges failure is not critical, continue with empty edges
+      wireEdges = [];
     }
 
+    // Get connector edges - important for device-connector links
     try {
       connectorEdges = await getConnectorEdges(systemCode);
+      console.log(`🔀 Found ${connectorEdges.length} connector edges`);
     } catch (err) {
-      console.warn('Warning: Could not fetch connector edges:', err);
+      console.error('⚠️ Warning: Could not fetch connector edges:', err);
+      // Connector edges failure is not critical, continue with empty edges
+      connectorEdges = [];
     }
 
+    // Calculate statistics - important for health monitoring
     try {
       statistics = await calculateStatistics(systemCode);
     } catch (err) {
-      console.warn('Warning: Could not calculate statistics:', err);
+      console.error('⚠️ Warning: Could not calculate statistics:', err);
+      // Use default statistics if calculation fails
+      statistics = {
+        totalDevices: deviceNodes.length,
+        totalConnections: connectorNodes.length,
+        totalWires: wireEdges.length,
+        systemCount: systems.length,
+        connectorCount: connectorNodes.length,
+        devicesBySystem: {},
+        connectionsByType: {},
+      };
     }
 
     const nodes = [...deviceNodes, ...connectorNodes];
     const edges = [...wireEdges, ...connectorEdges];
+
+    // Validate minimum data requirements
+    if (nodes.length === 0) {
+      throw new Error(`No topology nodes found${systemCode ? ` for system "${systemCode}"` : ''} - check if devices and connectors exist in database`);
+    }
+
+    console.log(`✅ System topology generated: ${nodes.length} nodes, ${edges.length} edges`);
 
     return {
       nodes,
@@ -402,22 +433,9 @@ export async function getSystemTopology(systemCode?: string): Promise<SystemTopo
       statistics,
     };
   } catch (error) {
-    console.error('Error getting system topology:', error);
-    // Return empty topology instead of throwing
-    return {
-      nodes: [],
-      edges: [],
-      systems: [],
-      statistics: {
-        totalDevices: 0,
-        totalConnections: 0,
-        totalWires: 0,
-        systemCount: 0,
-        connectorCount: 0,
-        devicesBySystem: {},
-        connectionsByType: {},
-      },
-    };
+    console.error('❌ Error getting system topology:', error);
+    // Re-throw the error instead of returning empty topology
+    throw new Error(`System topology generation failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
