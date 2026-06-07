@@ -32,12 +32,13 @@ export default function EnhancedPdfViewer({
 }: EnhancedPdfViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState(initialPage);
-  const [scale, setScale] = useState(1.3);
+  const [scale, setScale] = useState(1.1); // Changed to 110% for optimal fit
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rotation, setRotation] = useState(0);
   const [pdfUrl, setPdfUrl] = useState<string>('');
   const [mappedPage, setMappedPage] = useState<number | null>(null);
+  const [fitToWidth, setFitToWidth] = useState(true); // Auto-fit to screen width
 
   // Fetch the correct PDF page mapping
   useEffect(() => {
@@ -64,12 +65,37 @@ export default function EnhancedPdfViewer({
     fetchMapping();
   }, [drawingNo, sourceFile]);
 
-  // Set PDF URL
+  // Set PDF URL and calculate responsive zoom
   useEffect(() => {
     if (sourceFile) {
       setPdfUrl(`/api/pdf/${encodeURIComponent(sourceFile)}`);
     }
-  }, [sourceFile]);
+    
+    // Calculate optimal zoom based on screen width for better fit
+    const calculateOptimalZoom = () => {
+      const screenWidth = window.innerWidth;
+      let optimalZoom = 1.1; // Default 110%
+      
+      if (screenWidth < 768) {
+        optimalZoom = 0.7; // Mobile: 70%
+      } else if (screenWidth < 1024) {
+        optimalZoom = 0.9; // Tablet: 90%
+      } else if (screenWidth < 1440) {
+        optimalZoom = 1.1; // Laptop: 110%
+      } else {
+        optimalZoom = 1.3; // Desktop: 130%
+      }
+      
+      if (fitToWidth) {
+        setScale(optimalZoom);
+      }
+    };
+    
+    calculateOptimalZoom();
+    window.addEventListener('resize', calculateOptimalZoom);
+    
+    return () => window.removeEventListener('resize', calculateOptimalZoom);
+  }, [sourceFile, fitToWidth]);
 
   function onDocumentLoadSuccess({ numPages: n }: { numPages: number }) {
     setNumPages(n);
@@ -207,6 +233,17 @@ export default function EnhancedPdfViewer({
             className="p-1.5 hover:bg-slate-700 rounded transition-all hover:scale-110 active:scale-95"
           >
             <ZoomIn className="h-4 w-4 text-white" />
+          </button>
+          
+          {/* Fit to Width Toggle */}
+          <button 
+            onClick={() => setFitToWidth(!fitToWidth)}
+            title={fitToWidth ? "Manual Zoom" : "Fit to Width"}
+            className={`p-1.5 rounded transition-all hover:scale-110 active:scale-95 ${
+              fitToWidth ? 'bg-cyan-600 hover:bg-cyan-500' : 'hover:bg-slate-700'
+            }`}
+          >
+            <Maximize2 className="h-4 w-4 text-white" />
           </button>
 
           <div className="w-px h-6 bg-slate-700 mx-1" />

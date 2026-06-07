@@ -117,7 +117,7 @@ async function getSystemsInfo(): Promise<SystemInfo[]> {
 }
 
 /**
- * Get all devices as nodes - OPTIMIZED with pagination
+ * Get all devices as nodes - 100% DATABASE COVERAGE (NO LIMITS)
  */
 async function getDeviceNodes(systemCode?: string): Promise<SystemNode[]> {
   const where = systemCode ? { system: { code: systemCode } } : {};
@@ -125,7 +125,7 @@ async function getDeviceNodes(systemCode?: string): Promise<SystemNode[]> {
   const devices = await prisma.device.findMany({
     where,
     include: { system: true },
-    take: 100, // LIMIT to 100 devices for performance
+    // REMOVED LIMIT - get ALL devices for 100% accuracy
   });
 
   return devices.map((device, index) => ({
@@ -133,7 +133,7 @@ async function getDeviceNodes(systemCode?: string): Promise<SystemNode[]> {
     label: device.tagNo || device.deviceName,
     type: 'device' as const,
     system: device.system?.code || 'GEN',
-    position: generatePosition(index, Math.min(devices.length, 100), 250),
+    position: generatePosition(index, devices.length, 250),
     metadata: {
       deviceId: device.id,
       deviceName: device.deviceName,
@@ -148,7 +148,7 @@ async function getDeviceNodes(systemCode?: string): Promise<SystemNode[]> {
 }
 
 /**
- * Get all connectors as nodes - OPTIMIZED with pagination
+ * Get all connectors as nodes - 100% DATABASE COVERAGE (NO LIMITS)
  */
 async function getConnectorNodes(systemCode?: string): Promise<SystemNode[]> {
   const where = systemCode
@@ -161,7 +161,7 @@ async function getConnectorNodes(systemCode?: string): Promise<SystemNode[]> {
       drawing: { include: { system: true } },
       _count: { select: { pins: true } },
     },
-    take: 200, // LIMIT to 200 connectors for performance
+    // REMOVED LIMIT - get ALL connectors for 100% accuracy
   });
 
   return connectors.map((connector, index) => ({
@@ -169,7 +169,7 @@ async function getConnectorNodes(systemCode?: string): Promise<SystemNode[]> {
     label: connector.connectorCode,
     type: 'connector' as const,
     system: connector.drawing?.system?.code || 'GEN',
-    position: generatePosition(index, Math.min(connectors.length, 200), 150),
+    position: generatePosition(index, connectors.length, 150),
     metadata: {
       connectorId: connector.id,
       connectorCode: connector.connectorCode,
@@ -183,7 +183,7 @@ async function getConnectorNodes(systemCode?: string): Promise<SystemNode[]> {
 }
 
 /**
- * Get wire connections as edges
+ * Get wire connections as edges - 100% DATABASE COVERAGE (NO LIMITS)
  */
 async function getWireEdges(systemCode?: string): Promise<SystemEdge[]> {
   const where = systemCode
@@ -198,10 +198,10 @@ async function getWireEdges(systemCode?: string): Promise<SystemEdge[]> {
           device: true,
           connector: true,
         },
-        take: 2, // Only fetch first 2 endpoints
+        take: 2, // Only fetch first 2 endpoints for source/target
       },
     },
-    take: 100, // LIMIT to 100 wires for performance
+    // REMOVED LIMIT - get ALL wires for 100% accuracy
   });
 
   const edges: SystemEdge[] = [];
