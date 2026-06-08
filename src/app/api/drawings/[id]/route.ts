@@ -261,6 +261,20 @@ export async function GET(
 
     const finalDrawingType = isPinAssignment ? 'PIN_ASSIGNMENT' : (isReference ? 'REFERENCE' : drawingTypeMap[drawing.system?.code || 'GEN'] || 'SCHEMATIC');
 
+    // Format all pins in a simple flat structure for frontend display
+    const allPins = pins.map(pin => ({
+      id: pin.id,
+      pinNo: pin.pinNo,
+      signalName: pin.signalName,
+      wireNo: pin.wireNo,
+      connectorCode: pin.connector?.connectorCode,
+      connectorId: pin.connector?.id,
+      conductorClass: pin.conductorClassCode,
+      terminalFrom: pin.terminalFrom,
+      terminalTo: pin.terminalTo,
+      note: pin.note,
+    }));
+
     return NextResponse.json({
       drawing: {
         id: drawing.id,
@@ -285,8 +299,8 @@ export async function GET(
         totalEquipment: equipment.length,
         totalTrainLines: trainLines.length,
       },
-      // Complete detailed data
-      pins: formattedPins,
+      // Complete detailed data - CRITICAL: All pins flattened for display
+      pins: allPins,
       wires: formattedWires,
       equipment: formattedEquipment,
       trainLines: formattedTrainLines,
