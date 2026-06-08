@@ -9,6 +9,7 @@ import VoiceAssistant from '@/components/voice/VoiceAssistant';
 import GSDPiVisualization from '@/components/gsd/GSDPiVisualization';
 import SystemHealthCard from '@/components/dashboard/SystemHealthCard';
 import DiagnosticsPanel from '@/components/diagnostics/DiagnosticsPanel';
+import { DrawingDetailsPanel } from '@/components/dashboard/DrawingDetailsPanel';
 import {
   Train, ShieldCheck, ShieldAlert, Zap, Wind, Radio, Battery, Settings, DoorOpen,
   Activity, Box, Link2, Search, ChevronRight, Layers, Sparkles, Rocket, Cpu, 
@@ -735,50 +736,8 @@ export default function DashboardPage() {
                           )}
                         </div>
 
-                        {/* Connector Wire Details */}
-                      {activeDrawing.relatedWires && activeDrawing.relatedWires.length > 0 && (
-                        <div className="mt-8 pt-6 border-t border-accent-500/20">
-                          <p className="text-sm text-white/70 mb-4 font-bold uppercase tracking-wider flex items-center gap-2">
-                            <Cable className="h-4 w-4 text-accent-400" />
-                            Connected Wire Details
-                          </p>
-                          <div className="glass-card-premium backdrop-blur-xl border border-glass-border rounded-2xl overflow-hidden">
-                            <table className="w-full text-sm font-mono">
-                              <thead className="bg-gradient-to-r from-accent-500/20 to-purple-500/20">
-                                <tr>
-                                  <th className="text-left text-white py-3 px-4 font-bold uppercase tracking-wider">Wire No.</th>
-                                  <th className="text-left text-white py-3 px-4 font-bold uppercase tracking-wider">Signal Name</th>
-                                  <th className="text-left text-white py-3 px-4 font-bold uppercase tracking-wider">Color</th>
-                                  <th className="text-left text-white py-3 px-4 font-bold uppercase tracking-wider">Source → Dest</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {activeDrawing.relatedWires.slice(0, 15).map((w, i) => (
-                                  <tr key={i} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-                                    <td className="py-3 px-4">
-                                      <Link href={`/wires?wire=${w.wireNo}`} className="text-accent-400 hover:text-accent-300 transition-colors font-bold">
-                                        {w.wireNo}
-                                      </Link>
-                                    </td>
-                                    <td className="py-3 px-4 text-white/90">{w.signalName || '—'}</td>
-                                    <td className="py-3 px-4">
-                                      <span className="px-3 py-1 rounded-full bg-gradient-accent text-white text-xs font-bold">{w.wireColor || '—'}</span>
-                                    </td>
-                                    <td className="py-3 px-4 text-white/70">
-                                      {(w as any).sourceConnector || '—'} → {(w as any).destConnector || '—'}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                            {activeDrawing.relatedWires.length > 15 && (
-                              <div className="p-3 bg-gradient-to-r from-purple-500/10 to-accent-500/10 text-center">
-                                <p className="text-xs text-white/60 font-mono">+{activeDrawing.relatedWires.length - 15} more wire details available</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                        {/* Fetch and Display Wire/Connector/Equipment Details */}
+                        <DrawingDetailsPanel drawingId={activeDrawing.id || activeDrawing.drawingNo} />
                     </div>
                   </motion.div>
                 )}
