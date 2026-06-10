@@ -73,16 +73,26 @@ model CarPosition {
 }
 
 model System {
-  id                 String    @id @default(cuid())
-  code               String    @unique
-  name               String
-  category           String?
-  description        String?
-  sortOrder          Int       @default(0)
-  devices            Device[]
-  drawings           Drawing[]
-  vccDescription     VCCDescription? @relation("SystemDescription")
-  metadata           SystemMetadata? @relation("SystemMetadata")
+  id                    String    @id @default(cuid())
+  code                  String    @unique
+  name                  String
+  category              String?
+  description           String?
+  sortOrder             Int       @default(0)
+  // NEW FIELDS FOR FRONTEND INTEGRATION
+  dataStatus            String    @default("PENDING")  // PENDING, SYNCING, COMPLETE, FAILED
+  uiMenuDisplayName     String?   // Custom display name for menu
+  iconName              String?   // lucide-react icon name
+  colorTheme            String?   // Hex color for menu icon
+  isActive              Boolean   @default(true)  // For menu filtering
+  
+  devices               Device[]
+  drawings              Drawing[]
+  vccDescription        VCCDescription? @relation("SystemDescription")
+  metadata              SystemMetadata? @relation("SystemMetadata")
+  
+  @@index([dataStatus])
+  @@index([isActive])
 }
 
 model ReferenceDrawing {
@@ -100,31 +110,36 @@ model ReferenceDrawing {
 }
 
 model Drawing {
-  id                   String                 @id @default(cuid())
+  id                   String                      @id @default(cuid())
   projectId            String
   systemId             String?
   drawingNo            String
-  revision             String                 @default("0")
+  revision             String                      @default("0")
   title                String
-  totalSheets          Int                    @default(1)
+  totalSheets          Int                         @default(1)
   sourceFileId         String?
-  isReference          Boolean                @default(false)
+  isReference          Boolean                     @default(false)
   remarks              String?
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  status               DrawingStatus          @default(ACTIVE)
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+  status               DrawingStatus               @default(ACTIVE)
   drawingPdfUrl        String?
+  // NEW FIELDS FOR SYNC TRACKING
+  isSynced             Boolean                     @default(false)
+  syncedAt             DateTime?
+  verificationStatus   DrawingVerificationStatus?  @relation("VerificationStatus")
+  
   circuits             Circuit[]
   connectors           Connector[]
   crossConnections     CrossConnection[]
   crossConnectionRules CrossConnectionRule[]
   devices              Device[]
-  project              Project                @relation(fields: [projectId], references: [id])
-  system               System?                @relation(fields: [systemId], references: [id])
+  project              Project                     @relation(fields: [projectId], references: [id])
+  system               System?                     @relation(fields: [systemId], references: [id])
   applicability        DrawingApplicability[]
   notes                DrawingNote[]
   pages                DrawingPage[]
-  pageMappings         DrawingPageMapping[]   @relation("DrawingPageMappings")
+  pageMappings         DrawingPageMapping[]        @relation("DrawingPageMappings")
   references           DrawingReference[]
   sheets               DrawingSheet[]
   noteEntities         Note[]
@@ -138,6 +153,7 @@ model Drawing {
   @@index([projectId])
   @@index([status])
   @@index([createdAt])
+  @@index([isSynced])
 }
 
 model DrawingApplicability {
@@ -305,7 +321,7 @@ model ConnectorPin {
 }
 
 model Device {
-  id              String         @id @default(cuid())
+  id              String                  @id @default(cuid())
   drawingId       String
   systemId        String?
   tagNo           String?
@@ -315,15 +331,21 @@ model Device {
   locationTag     String?
   manufacturerRef String?
   note            String?
-  extra           Json           @default("{}")
-  drawing         Drawing        @relation(fields: [drawingId], references: [id])
-  system          System?        @relation(fields: [systemId], references: [id])
+  // NEW FIELDS FOR VERIFICATION
+  specifications  DeviceSpecification[]   @relation("DeviceSpecs")
+  isVerified      Boolean                 @default(false)
+  verifiedAt      DateTime?
+  
+  extra           Json                    @default("{}")
+  drawing         Drawing                 @relation(fields: [drawingId], references: [id])
+  system          System?                 @relation(fields: [systemId], references: [id])
   wireEndpoints   WireEndpoint[]
 
   @@index([drawingId])
   @@index([tagNo])
   @@index([deviceName])
   @@index([systemId])
+  @@index([isVerified])
 }
 
 model Circuit {
@@ -631,19 +653,19 @@ model VCCDescription {
   id                      String   @id @default(cuid())
   systemCode              String   @unique(map: "VCCDescription_systemCode_unique")
   systemName              String
-  description             String?
-  technicalSpecs          String?
+  description             String?  @db.Text
+  technicalSpecs          String?  @db.Text
   powerRequirements       String?
   voltage                 String?
   current                 String?
   frequency               String?
-  environmentalConditions String?
-  safetyFeatures          String?
-  maintenanceSchedule     String?
-  sparePartsInfo          String?
+  environmentalConditions String?  @db.Text
+  safetyFeatures          String?  @db.Text
+  maintenanceSchedule     String?  @db.Text
+  sparePartsInfo          String?  @db.Text
   documentVersion         String?
   lastUpdated             DateTime @default(now())
-  source                  String?  // "PDF", "Manual", etc.
+  source                  String?  // "PDF", "Manual", "Database"
   extra                   Json     @default("{}")
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
@@ -657,12 +679,15 @@ model VCCDescription {
 model SystemMetadata {
   id                String   @id @default(cuid())
   systemCode        String   @unique(map: "SystemMetadata_systemCode_unique")
-  dataCompleteness  Float    @default(0.0)  // 0-1 scale
+  dataCompleteness  Float    @default(0.0)  // 0-1 scale for UI display
   lastSyncTime      DateTime?
   syncStatus        String   @default("PENDING")  // PENDING, SYNCING, COMPLETE, FAILED
-  syncErrors        String?
+  syncErrors        String?  @db.Text
   totalDrawings     Int      @default(0)
   verifiedDrawings  Int      @default(0)
+  totalDevices      Int      @default(0)
+  totalConnectors   Int      @default(0)
+  totalWires        Int      @default(0)
   extra             Json     @default("{}")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -671,6 +696,74 @@ model SystemMetadata {
   @@index([systemCode], map: "SystemMetadata_systemCode_idx")
   @@index([syncStatus])
   @@index([dataCompleteness])
+}
+
+// ─── Drawing Page Mapping with Verification ─────────────────────────────────
+
+model DrawingPageMapping {
+  id              String   @id @default(cuid())
+  drawingId       String
+  sourceFileId    String?
+  sourceFileName  String
+  pdfPageNo       Int
+  drawingNumber   String
+  verified        Boolean  @default(false)
+  verificationDate DateTime?
+  confidence      Float    @default(0.0)  // 0-1 scale
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  drawing         Drawing  @relation("DrawingPageMappings", fields: [drawingId], references: [id])
+
+  @@unique([drawingId, sourceFileId], map: "DrawingPageMapping_drawingId_sourceFileId_unique")
+  @@index([drawingNumber], map: "DrawingPageMapping_drawingNumber_idx")
+  @@index([sourceFileName], map: "DrawingPageMapping_sourceFileName_idx")
+  @@index([pdfPageNo], map: "DrawingPageMapping_pdfPageNo_idx")
+  @@index([verified], map: "DrawingPageMapping_verified_idx")
+}
+
+// ─── Device Specifications & Details ──────────────────────────────────────────
+
+model DeviceSpecification {
+  id              String   @id @default(cuid())
+  deviceId        String
+  specCode        String
+  specName        String
+  specValue       String?
+  unit            String?
+  category        String  // "electrical", "mechanical", "performance"
+  verified        Boolean  @default(false)
+  source          String?  // "database", "pdf", "manual"
+  extra           Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  device          Device   @relation("DeviceSpecs", fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, specCode])
+  @@index([deviceId])
+  @@index([category])
+}
+
+// ─── Drawing Verification Status ───────────────────────────────────────────────
+
+model DrawingVerificationStatus {
+  id              String   @id @default(cuid())
+  drawingId       String   @unique
+  drawingNumber   String
+  status          String   @default("UNVERIFIED")  // VERIFIED, UNVERIFIED, PARTIAL
+  verificationDate DateTime?
+  verifiedBy      String?
+  notes           String?  @db.Text
+  pagesVerified   Int      @default(0)
+  totalPages      Int      @default(0)
+  confidence      Float    @default(0.0)  // Overall confidence
+  extra           Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  drawing         Drawing  @relation("VerificationStatus", fields: [drawingId], references: [id], onDelete: Cascade)
+
+  @@index([drawingNumber])
+  @@index([status])
 }
 
 enum DrawingStatus {
