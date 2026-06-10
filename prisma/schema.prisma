@@ -203,16 +203,18 @@ model DrawingPageMapping {
   pdfPageNo       Int
   drawingNumber   String
   verified        Boolean  @default(false)
+  verificationDate DateTime?
+  confidence      Float    @default(0.0)  // 0-1 scale
   notes           String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   drawing         Drawing  @relation("DrawingPageMappings", fields: [drawingId], references: [id])
 
-  @@unique([drawingId, sourceFileId])
-  @@index([drawingNumber])
-  @@index([sourceFileName])
-  @@index([pdfPageNo])
-  @@index([verified])
+  @@unique([drawingId, sourceFileId], map: "DrawingPageMapping_drawingId_sourceFileId_unique")
+  @@index([drawingNumber], map: "DrawingPageMapping_drawingNumber_idx")
+  @@index([sourceFileName], map: "DrawingPageMapping_sourceFileName_idx")
+  @@index([pdfPageNo], map: "DrawingPageMapping_pdfPageNo_idx")
+  @@index([verified], map: "DrawingPageMapping_verified_idx")
 }
 
 model DrawingSheet {
@@ -696,30 +698,6 @@ model SystemMetadata {
   @@index([systemCode], map: "SystemMetadata_systemCode_idx")
   @@index([syncStatus])
   @@index([dataCompleteness])
-}
-
-// ─── Drawing Page Mapping with Verification ─────────────────────────────────
-
-model DrawingPageMapping {
-  id              String   @id @default(cuid())
-  drawingId       String
-  sourceFileId    String?
-  sourceFileName  String
-  pdfPageNo       Int
-  drawingNumber   String
-  verified        Boolean  @default(false)
-  verificationDate DateTime?
-  confidence      Float    @default(0.0)  // 0-1 scale
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  drawing         Drawing  @relation("DrawingPageMappings", fields: [drawingId], references: [id])
-
-  @@unique([drawingId, sourceFileId], map: "DrawingPageMapping_drawingId_sourceFileId_unique")
-  @@index([drawingNumber], map: "DrawingPageMapping_drawingNumber_idx")
-  @@index([sourceFileName], map: "DrawingPageMapping_sourceFileName_idx")
-  @@index([pdfPageNo], map: "DrawingPageMapping_pdfPageNo_idx")
-  @@index([verified], map: "DrawingPageMapping_verified_idx")
 }
 
 // ─── Device Specifications & Details ──────────────────────────────────────────

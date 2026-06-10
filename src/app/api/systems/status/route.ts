@@ -73,8 +73,7 @@ export async function GET(request: NextRequest) {
         _count: {
           select: {
             drawings: true,
-            devices: true,
-            connectors: { where: {} }
+            devices: true
           }
         }
       },
