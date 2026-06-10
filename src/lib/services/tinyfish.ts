@@ -1,6 +1,7 @@
 /**
  * TinyFish API Integration Service
  * Provides web search and content extraction capabilities for VCC System
+ * Integrates PDF extraction and AI-powered documentation search
  */
 
 export interface TinyFishSearchResult {
@@ -289,5 +290,13 @@ export const VCCTinyFishHelpers = {
       ? `wire ${wireNo} connector ${connectorCode} specification railway`
       : `wire ${wireNo} specification railway electrical`;
     return await tinyFishService.searchTechnical(query, 'electrical');
+  },
+
+  /**
+   * Extract drawing-related information
+   */
+  async searchDrawingInfo(drawingNo: string): Promise<TinyFishSearchResponse> {
+    const query = `drawing ${drawingNo} schematic blueprint railway technical`;
+    return await tinyFishService.searchTechnical(query, 'documentation');
   }
 };

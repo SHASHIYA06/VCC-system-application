@@ -73,14 +73,16 @@ model CarPosition {
 }
 
 model System {
-  id          String    @id @default(cuid())
-  code        String    @unique
-  name        String
-  category    String?
-  description String?
-  sortOrder   Int       @default(0)
-  devices     Device[]
-  drawings    Drawing[]
+  id                 String    @id @default(cuid())
+  code               String    @unique
+  name               String
+  category           String?
+  description        String?
+  sortOrder          Int       @default(0)
+  devices            Device[]
+  drawings           Drawing[]
+  vccDescription     VCCDescription? @relation("SystemDescription")
+  metadata           SystemMetadata? @relation("SystemMetadata")
 }
 
 model ReferenceDrawing {
@@ -621,6 +623,54 @@ model DocumentChunk {
   @@index([systemCode])
   @@index([drawingNo])
   @@index([chunkType])
+}
+
+// ─── VCC System Description & Metadata ──────────────────────────────────────
+
+model VCCDescription {
+  id                      String   @id @default(cuid())
+  systemCode              String   @unique(map: "VCCDescription_systemCode_unique")
+  systemName              String
+  description             String?
+  technicalSpecs          String?
+  powerRequirements       String?
+  voltage                 String?
+  current                 String?
+  frequency               String?
+  environmentalConditions String?
+  safetyFeatures          String?
+  maintenanceSchedule     String?
+  sparePartsInfo          String?
+  documentVersion         String?
+  lastUpdated             DateTime @default(now())
+  source                  String?  // "PDF", "Manual", etc.
+  extra                   Json     @default("{}")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  system                  System?  @relation("SystemDescription", fields: [systemCode], references: [code])
+
+  @@index([systemCode], map: "VCCDescription_systemCode_idx")
+  @@index([source])
+  @@index([lastUpdated])
+}
+
+model SystemMetadata {
+  id                String   @id @default(cuid())
+  systemCode        String   @unique(map: "SystemMetadata_systemCode_unique")
+  dataCompleteness  Float    @default(0.0)  // 0-1 scale
+  lastSyncTime      DateTime?
+  syncStatus        String   @default("PENDING")  // PENDING, SYNCING, COMPLETE, FAILED
+  syncErrors        String?
+  totalDrawings     Int      @default(0)
+  verifiedDrawings  Int      @default(0)
+  extra             Json     @default("{}")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  system            System?  @relation("SystemMetadata", fields: [systemCode], references: [code])
+
+  @@index([systemCode], map: "SystemMetadata_systemCode_idx")
+  @@index([syncStatus])
+  @@index([dataCompleteness])
 }
 
 enum DrawingStatus {
