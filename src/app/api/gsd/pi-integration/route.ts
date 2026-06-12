@@ -1,150 +1,134 @@
 /**
- * GSD Pi Integration API
- * GET /api/gsd/pi-integration
- * 
- * Provides enhanced GSD topology visualization with system metrics
- * Supports multiple actions: topology, systems, metrics, details, health, statistics
+ * GSD Pi Integration API - Enhanced with Real Database Sync
+ * GET /api/gsd/pi-integration - Get GSD Pi topology and metrics
+ * POST /api/gsd/pi-integration - Trigger sync operations
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { gsdPiService } from '@/lib/services/gsd-pi-integration';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
+  const { searchParams } = new URL(request.url);
+  const action = searchParams.get('action') || 'topology';
+  const systemCode = searchParams.get('systemCode');
 
   try {
-    const { searchParams } = new URL(request.url);
-    const action = searchParams.get('action') || 'topology';
-    const systemCode = searchParams.get('systemCode');
-
-    let result;
-
     switch (action) {
-      case 'systems':
-        console.log('📊 Fetching all systems...');
-        result = await gsdPiService.getSystems();
-        break;
+      case 'topology': {
+        const topology = await gsdPiService.getTopology();
+        return NextResponse.json({
+          success: true,
+          action: 'topology',
+          data: topology,
+          executionTime: Date.now() - startTime,
+        });
+      }
 
-      case 'topology':
-        console.log('🔗 Generating GSD topology...');
-        result = await gsdPiService.getTopology();
-        break;
+      case 'enhanced': {
+        const enhanced = await gsdPiService.getEnhancedTopology();
+        return NextResponse.json({
+          success: true,
+          action: 'enhanced',
+          data: enhanced,
+          executionTime: Date.now() - startTime,
+        });
+      }
 
-      case 'enhanced-topology':
-        console.log('📈 Generating enhanced topology with metrics...');
-        result = await gsdPiService.getEnhancedTopology();
-        break;
-
-      case 'details':
+      case 'system': {
         if (!systemCode) {
-          return NextResponse.json(
-            { error: 'systemCode parameter required' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'systemCode required for system action' }, { status: 400 });
         }
-        console.log(`📋 Fetching details for system: ${systemCode}`);
-        result = await gsdPiService.getSystemDetails(systemCode);
-        break;
+        const systemDetails = await gsdPiService.getSystemDetails(systemCode);
+        return NextResponse.json({
+          success: true,
+          action: 'system',
+          data: systemDetails,
+          executionTime: Date.now() - startTime,
+        });
+      }
 
-      case 'health':
-        console.log('🏥 Running health check...');
-        result = await gsdPiService.healthCheck();
-        break;
+      case 'health': {
+        const health = await gsdPiService.healthCheck();
+        return NextResponse.json({
+          success: true,
+          action: 'health',
+          data: health,
+          executionTime: Date.now() - startTime,
+        });
+      }
 
-      case 'statistics':
-        console.log('📊 Generating statistics dashboard...');
-        result = await gsdPiService.getStatistics();
-        break;
+      case 'statistics': {
+        const statistics = await gsdPiService.getStatistics();
+        return NextResponse.json({
+          success: true,
+          action: 'statistics',
+          data: statistics,
+          executionTime: Date.now() - startTime,
+        });
+      }
 
       default:
         return NextResponse.json(
-          { error: `Unknown action: ${action}` },
+          { error: `Unknown action: ${action}. Valid: topology, enhanced, system, health, statistics` },
           { status: 400 }
         );
     }
-
-    const executionTime = Date.now() - startTime;
-
-    console.log(`✅ GSD Pi ${action} completed in ${executionTime}ms`);
-
-    return NextResponse.json({
-      success: true,
-      action,
-      data: result,
-      executionTime,
-      timestamp: new Date().toISOString()
-    });
-
   } catch (error) {
-    const executionTime = Date.now() - startTime;
-
-    console.error('❌ GSD Pi integration error:', error);
-
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      executionTime,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    console.error('GSD Pi Integration API error:', error);
+    return NextResponse.json(
+      { success: false, error: 'GSD Pi operation failed', details: String(error) },
+      { status: 500 }
+    );
   }
 }
 
-/**
- * POST /api/gsd/pi-integration
- * Update system metadata or sync status
- */
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
     const body = await request.json();
-    const { systemCode, action, metadata } = body;
-
-    if (!systemCode) {
-      return NextResponse.json(
-        { error: 'systemCode required in body' },
-        { status: 400 }
-      );
-    }
-
-    let result;
+    const { action, systemCode, metadata } = body;
 
     switch (action) {
-      case 'update-metadata':
-        console.log(`🔄 Updating metadata for system: ${systemCode}`);
-        result = await gsdPiService.updateSystemMetadata(systemCode, metadata || {});
-        break;
+      case 'sync': {
+        if (!systemCode) {
+          return NextResponse.json({ error: 'systemCode required for sync' }, { status: 400 });
+        }
+        const updated = await gsdPiService.updateSystemMetadata(systemCode, metadata || {});
+        return NextResponse.json({
+          success: true,
+          action: 'sync',
+          data: updated,
+          executionTime: Date.now() - startTime,
+        });
+      }
+
+      case 'refresh': {
+        const topology = await gsdPiService.getTopology();
+        return NextResponse.json({
+          success: true,
+          action: 'refresh',
+          message: 'GSD Pi topology refreshed',
+          data: topology.metadata,
+          executionTime: Date.now() - startTime,
+        });
+      }
 
       default:
         return NextResponse.json(
-          { error: `Unknown action: ${action}` },
+          { error: `Unknown POST action: ${action}. Valid: sync, refresh` },
           { status: 400 }
         );
     }
-
-    const executionTime = Date.now() - startTime;
-
-    console.log(`✅ GSD Pi ${action} completed in ${executionTime}ms`);
-
-    return NextResponse.json({
-      success: true,
-      action,
-      systemCode,
-      data: result,
-      executionTime,
-      timestamp: new Date().toISOString()
-    });
-
   } catch (error) {
-    const executionTime = Date.now() - startTime;
-
-    console.error('❌ GSD Pi update error:', error);
-
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      executionTime,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    console.error('GSD Pi POST error:', error);
+    return NextResponse.json(
+      { success: false, error: 'GSD Pi POST operation failed', details: String(error) },
+      { status: 500 }
+    );
   }
 }
