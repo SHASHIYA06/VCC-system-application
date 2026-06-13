@@ -125,7 +125,7 @@ async function getDeviceNodes(systemCode?: string): Promise<SystemNode[]> {
   const devices = await prisma.device.findMany({
     where,
     include: { system: true },
-    // REMOVED LIMIT - get ALL devices for 100% accuracy
+    take: 100, // Limit for performance with Neon serverless
   });
 
   return devices.map((device, index) => ({
@@ -161,7 +161,7 @@ async function getConnectorNodes(systemCode?: string): Promise<SystemNode[]> {
       drawing: { include: { system: true } },
       _count: { select: { pins: true } },
     },
-    // REMOVED LIMIT - get ALL connectors for 100% accuracy
+    take: 200, // Limit for performance with Neon serverless
   });
 
   return connectors.map((connector, index) => ({
@@ -191,17 +191,20 @@ async function getWireEdges(systemCode?: string): Promise<SystemEdge[]> {
     : {};
 
   const wires = await prisma.wire.findMany({
-    where,
+    where: {
+      ...where,
+      endpoints: { some: {} },
+    },
     include: {
       endpoints: {
         include: {
           device: true,
           connector: true,
         },
-        take: 2, // Only fetch first 2 endpoints for source/target
+        take: 2,
       },
     },
-    // REMOVED LIMIT - get ALL wires for 100% accuracy
+    take: 500,
   });
 
   const edges: SystemEdge[] = [];

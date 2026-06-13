@@ -12,11 +12,11 @@ function createPrismaClient() {
         url: process.env.DATABASE_URL,
       },
     },
-    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['error'] : ['error'],
   });
 }
 
-// Enhanced singleton pattern with connection management
+// Singleton pattern - reuse connection across hot reloads
 export const prisma = globalThis.__prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {
