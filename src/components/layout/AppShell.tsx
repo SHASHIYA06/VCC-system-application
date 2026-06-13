@@ -7,14 +7,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Left Sidebar Navigation */}
       <Sidebar />
       
-      {/* Main Content Area - no extra padding/gap needed since Sidebar includes spacer */}
-      <div className="flex-1 flex flex-col min-h-screen min-w-0">
+      {/* Main Content Area - flush with sidebar, no gaps */}
+      <div className="flex-1 flex flex-col min-h-screen min-w-0 bg-slate-950">
         {/* Top Bar */}
         <TopBar />
         
-        {/* Page Content - removed excessive padding */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          <div className="max-w-[1600px] mx-auto w-full">
+        {/* Page Content - full width, responsive padding */}
+        <main className="flex-1 p-3 sm:p-4 lg:p-5 overflow-y-auto bg-slate-950">
+          <div className="w-full h-full">
             {children}
           </div>
         </main>

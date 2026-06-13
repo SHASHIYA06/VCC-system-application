@@ -32,7 +32,7 @@ export default function EnhancedPdfViewer({
 }: EnhancedPdfViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState(initialPage);
-  const [scale, setScale] = useState(1.1); // Changed to 110% for optimal fit
+  const [scale, setScale] = useState(1.0); // Default to 100% for accurate viewing
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rotation, setRotation] = useState(0);
@@ -74,16 +74,16 @@ export default function EnhancedPdfViewer({
     // Calculate optimal zoom based on screen width for better fit
     const calculateOptimalZoom = () => {
       const screenWidth = window.innerWidth;
-      let optimalZoom = 1.1; // Default 110%
+      let optimalZoom = 1.0; // Default 100%
       
       if (screenWidth < 768) {
-        optimalZoom = 0.7; // Mobile: 70%
+        optimalZoom = 0.6; // Mobile: 60%
       } else if (screenWidth < 1024) {
-        optimalZoom = 0.9; // Tablet: 90%
+        optimalZoom = 0.8; // Tablet: 80%
       } else if (screenWidth < 1440) {
-        optimalZoom = 1.1; // Laptop: 110%
+        optimalZoom = 1.0; // Laptop: 100%
       } else {
-        optimalZoom = 1.3; // Desktop: 130%
+        optimalZoom = 1.0; // Desktop: 100% (user can zoom in manually)
       }
       
       if (fitToWidth) {

@@ -169,9 +169,9 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* Spacer to prevent content from going under sidebar */}
+      {/* Spacer to prevent content from going under sidebar - matches sidebar bg */}
       <div className={cn(
-        "transition-all duration-300",
+        "transition-all duration-300 shrink-0 bg-slate-950",
         collapsed ? "w-16" : "w-64"
       )} />
     </>
