@@ -8,7 +8,7 @@ export default function TopBar() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-glass-border glass-card-premium backdrop-blur-4xl shadow-premium">
+    <header className="sticky top-0 z-30 w-full border-b border-slate-800/60 bg-slate-950/95 backdrop-blur-xl">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between gap-4">
           

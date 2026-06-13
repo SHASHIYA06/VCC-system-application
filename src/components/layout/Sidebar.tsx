@@ -125,8 +125,10 @@ export default function Sidebar() {
                       key={item.name}
                       href={item.href}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 group relative nav-item-3d gpu-accelerated",
-                        isActive && "nav-item-3d-active"
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative nav-item-3d gpu-accelerated cursor-pointer",
+                        isActive 
+                          ? "nav-item-3d-active bg-cyan-500/10 text-white border border-cyan-500/20" 
+                          : "text-slate-400 hover:text-white hover:bg-white/5"
                       )}
                       title={collapsed ? item.name : undefined}
                     >
