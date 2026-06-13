@@ -10,7 +10,7 @@ export default function TopBar() {
   return (
     <header className="sticky top-0 z-30 w-full border-b border-glass-border glass-card-premium backdrop-blur-4xl shadow-premium">
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex h-20 items-center justify-between gap-4">
+        <div className="flex h-14 items-center justify-between gap-4">
           
           {/* Left Section - Enhanced Title */}
           <div className="flex-1 flex items-center gap-4">

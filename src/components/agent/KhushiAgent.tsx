@@ -56,39 +56,113 @@ export default function KhushiAgent() {
 
   const handleProcessQuery = async (query: string) => {
     setIsSpeaking(true);
-    setResponse('Processing your query...');
+    setResponse('Let me look that up for you...');
     
-    // Simulate AI thinking and querying backend/LAYRA
-    setTimeout(() => {
-      let aiReply = "I'm sorry, I couldn't process that request right now.";
+    try {
+      // Call the AI assistant API for intelligent responses
+      const res = await fetch('/api/ai-assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, mode: 'operator' }),
+      });
       
-      if (query.toLowerCase().includes('wire') || query.toLowerCase().includes('cable')) {
-        aiReply = "I can help you trace that wire. Navigating to the wire tracing panel and highlighting the schematics.";
-      } else if (query.toLowerCase().includes('drawing') || query.toLowerCase().includes('pdf')) {
-        aiReply = "Accessing the LAYRA knowledge base to pull up the associated engineering drawing.";
-      } else if (query.toLowerCase().includes('hello') || query.toLowerCase().includes('hi')) {
-        aiReply = "Hello! I'm Khushi. Tell me what system or component you're looking for.";
+      const data = await res.json();
+      
+      let aiReply: string;
+      
+      if (data.success && data.response) {
+        // Clean markdown formatting for speech
+        aiReply = data.response
+          .replace(/##?\s*/g, '')
+          .replace(/\*\*/g, '')
+          .replace(/\*/g, '')
+          .replace(/- /g, '. ')
+          .replace(/\n+/g, '. ')
+          .substring(0, 500); // Limit for speech
+      } else {
+        // Fallback intelligent responses
+        const lower = query.toLowerCase();
+        if (lower.includes('wire') || lower.includes('cable')) {
+          aiReply = "I can help you trace that wire. Let me navigate to the wire tracing panel for you.";
+        } else if (lower.includes('drawing') || lower.includes('pdf')) {
+          aiReply = "I'll pull up the associated engineering drawing for you. Navigating to the drawings section.";
+        } else if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
+          aiReply = "Hi there! I'm Khushi, your VCC system assistant. I can help you find drawings, trace wires, check connectors, or explain any system. What would you like to know?";
+        } else if (lower.includes('brake') || lower.includes('braking')) {
+          aiReply = "The brake system uses BCU and BECU for control. It includes compressor control, emergency brake loop with trainline 4062, and parking brake with PBMV. Would you like me to show the brake system drawings?";
+        } else if (lower.includes('door')) {
+          aiReply = "The door system uses DCU for independent door control. Key trainlines are 6073 and 6076 for door proving. Each door has DOLR and DORR relays. Want me to open the door system details?";
+        } else if (lower.includes('traction') || lower.includes('trac')) {
+          aiReply = "The traction system operates on 750V DC from the third rail through the HSCB to the VVVF inverter. The VVVF converts to 3-phase AC for the traction motors. Shall I show you the traction drawings?";
+        } else if (lower.includes('connector') || lower.includes('pin')) {
+          aiReply = "We have over 1600 connectors and 72000 pins in the system. I can help you find specific connector pin assignments. Which connector are you looking for?";
+        } else {
+          aiReply = "I searched for that but couldn't find a specific match. Try asking about a specific system like brakes, doors, traction, or ask me to find a wire number or drawing.";
+        }
       }
       
       setResponse(aiReply);
       speak(aiReply);
-    }, 1500);
+    } catch (error) {
+      const fallbackReply = "I'm having trouble connecting to the database right now. Please try again in a moment.";
+      setResponse(fallbackReply);
+      speak(fallbackReply);
+    }
   };
 
   const speak = (text: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      // Try to find a female/friendly voice
+      
+      // Get all available voices
       const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google UK English Female'));
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
+      
+      // Priority list for a sweet young Indian girl voice (9-10 year old sound)
+      // Higher pitch + slightly faster rate creates a younger-sounding voice
+      const voicePreferences = [
+        'Google हिन्दी',           // Google Hindi female
+        'Microsoft Swara',          // Microsoft Indian English female
+        'Lekha',                    // Apple Indian English
+        'Rishi',                    // Apple Indian English (lighter)
+        'Google UK English Female', // Google female as fallback
+        'Samantha',                 // Apple Samantha (young female)
+        'Microsoft Zira',           // Microsoft female
+        'Karen',                    // Apple Australian (lighter)
+        'Moira',                    // Apple Irish (lighter)
+      ];
+      
+      let selectedVoice: SpeechSynthesisVoice | null = null;
+      
+      // Try to find Indian English voice first
+      for (const pref of voicePreferences) {
+        const found = voices.find(v => v.name.includes(pref));
+        if (found) {
+          selectedVoice = found;
+          break;
+        }
       }
-      utterance.rate = 0.95;
-      utterance.pitch = 1.1;
+      
+      // Fallback: find any female or en-IN voice
+      if (!selectedVoice) {
+        selectedVoice = voices.find(v => v.lang === 'en-IN') ||
+                       voices.find(v => v.name.toLowerCase().includes('female')) ||
+                       voices.find(v => v.lang.startsWith('en')) ||
+                       null;
+      }
+      
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      
+      // Configure for sweet young Indian girl voice (9-10 years old)
+      utterance.lang = 'en-IN';
+      utterance.rate = 1.05;   // Slightly faster = more youthful
+      utterance.pitch = 1.45;  // Higher pitch = younger sounding
+      utterance.volume = 1.0;
       
       utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
       
       window.speechSynthesis.speak(utterance);
     } else {
