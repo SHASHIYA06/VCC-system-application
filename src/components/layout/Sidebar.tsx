@@ -39,6 +39,7 @@ const navigationGroups = [
       { name: 'Equipment', href: '/equipment', icon: Box },
       { name: 'Wire Harness', href: '/wires', icon: Cable },
       { name: 'Connectors', href: '/connectors', icon: Cpu },
+      { name: 'Pin Diagrams', href: '/pins', icon: Cable },
       { name: 'Trainlines', href: '/trainlines', icon: Train },
       { name: 'Cars', href: '/cars', icon: Car },
     ]
