@@ -22,6 +22,13 @@
       },
       "disabled": false,
       "autoApprove": ["brave_web_search", "brave_local_search"]
+    },
+    "stitch": {
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "AQ.Ab8RN6K-2Vhf-jjp5HpZK6fQZx6Ai0NklimVgwgOwVB4PCVLdw"
+      },
+      "disabled": false
     }
   }
 }

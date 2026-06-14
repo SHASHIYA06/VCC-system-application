@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, MessageSquare, X } from 'lucide-react';
 
@@ -14,34 +14,42 @@ export default function KhushiAgent() {
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    // Initialize Speech Recognition
-    if (typeof window !== 'undefined') {
+    // Initialize Speech Recognition only once
+    if (typeof window !== 'undefined' && !recognitionRef.current) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = false;
-        recognitionRef.current.interimResults = true;
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'en-IN';
         
-        recognitionRef.current.onresult = (event: any) => {
+        recognition.onresult = (event: any) => {
           const current = event.resultIndex;
           const transcriptText = event.results[current][0].transcript;
           setTranscript(transcriptText);
-        };
-        
-        recognitionRef.current.onend = () => {
-          setIsListening(false);
-          if (transcript) {
-            handleProcessQuery(transcript);
+          
+          // If final result, process it
+          if (event.results[current].isFinal) {
+            handleProcessQuery(transcriptText);
           }
         };
         
-        recognitionRef.current.onerror = (event: any) => {
-          console.error('Speech recognition error', event.error);
+        recognition.onend = () => {
           setIsListening(false);
         };
+        
+        recognition.onerror = (event: any) => {
+          // Don't log "no-speech" or "aborted" as errors — they're normal
+          if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            console.warn('Speech recognition:', event.error);
+          }
+          setIsListening(false);
+        };
+        
+        recognitionRef.current = recognition;
       }
     }
-  }, [transcript]);
+  }, []); // Run only once on mount
 
   const toggleListen = () => {
     if (isListening) {
