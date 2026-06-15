@@ -3,20 +3,12 @@ import TopBar from './TopBar';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex w-full bg-slate-950 text-slate-100">
-      {/* Left Sidebar Navigation */}
+    <div className="min-h-screen flex w-full bg-[#060a12] text-slate-100">
       <Sidebar />
-      
-      {/* Main Content Area - flush with sidebar, no gaps */}
-      <div className="flex-1 flex flex-col min-h-screen min-w-0 bg-slate-950">
-        {/* Top Bar */}
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
         <TopBar />
-        
-        {/* Page Content - full width, responsive padding */}
-        <main className="flex-1 p-3 sm:p-4 lg:p-5 overflow-y-auto bg-slate-950">
-          <div className="w-full h-full">
-            {children}
-          </div>
+        <main className="flex-1 overflow-y-auto">
+          {children}
         </main>
       </div>
     </div>
