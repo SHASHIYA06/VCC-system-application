@@ -13,7 +13,7 @@ interface StarBranchVisualizerProps {
 }
 
 export default function StarBranchVisualizer({ data, onNodeClick }: StarBranchVisualizerProps) {
-  const fgRef = useRef<any>();
+  const fgRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const containerRef = useRef<HTMLDivElement>(null);
 

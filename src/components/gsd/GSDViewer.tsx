@@ -20,7 +20,7 @@ export const GSDViewer: React.FC<GSDViewerProps> = ({
   wire,
   onNodeClick,
 }) => {
-  const [topology, setTopology] = useState<SystemTopology | null>(null);
+  const [topology, setTopology] = useState<(SystemTopology & { formattedData?: any }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
