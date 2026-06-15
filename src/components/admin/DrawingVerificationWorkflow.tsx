@@ -60,8 +60,8 @@ export default function DrawingVerificationWorkflow() {
         <div className="flex-1 bg-slate-900 overflow-hidden">
           {currentDrawing.pdfUrl ? (
             <PdfViewerEnhanced 
-              url={currentDrawing.pdfUrl} 
-              pageNumber={currentDrawing.pdfPageNo || 1} 
+              src={currentDrawing.pdfUrl} 
+              initialPage={currentDrawing.pdfPageNo || 1} 
             />
           ) : (
             <div className="flex h-full items-center justify-center text-slate-500">
