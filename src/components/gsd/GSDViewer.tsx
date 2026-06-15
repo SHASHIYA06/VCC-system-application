@@ -1,18 +1,9 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ReactFlow,
-  Controls,
-  Background,
-  useNodesState,
-  useEdgesState,
-  MiniMap,
-  Panel,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { SystemNode, SystemEdge, SystemTopology } from '@/lib/gsd/topology';
+import React, { useEffect, useState } from 'react';
+import StarBranchVisualizer from './StarBranchVisualizer';
 import { Loader2, AlertTriangle } from 'lucide-react';
+import { SystemTopology, SystemNode, SystemEdge } from '@/lib/gsd/topology';
 
 interface GSDViewerProps {
   system?: string;
@@ -28,17 +19,11 @@ export const GSDViewer: React.FC<GSDViewerProps> = ({
   device,
   wire,
   onNodeClick,
-  onEdgeClick,
-  interactive = true,
 }) => {
   const [topology, setTopology] = useState<SystemTopology | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNode, setSelectedNode] = useState<SystemNode | null>(null);
 
-  // Fetch topology data
   useEffect(() => {
     const fetchTopology = async () => {
       try {
@@ -61,177 +46,69 @@ export const GSDViewer: React.FC<GSDViewerProps> = ({
           throw new Error(data.error || 'Unknown error fetching topology');
         }
 
-        if (!data.data || !data.data.nodes) {
-          throw new Error('Invalid topology data structure');
-        }
+        // Convert the backend topology data format into what ForceGraph expects
+        const formattedData = {
+          nodes: (data.data.nodes || []).map((n: SystemNode) => ({
+            id: n.id,
+            label: n.label,
+            type: n.type,
+            color: n.color || '#3b82f6',
+            metadata: n.metadata
+          })),
+          edges: (data.data.edges || []).map((e: SystemEdge) => ({
+            source: e.source,
+            target: e.target,
+            label: e.label,
+            color: '#06b6d480', // Cyan-ish translucent
+            value: 2 // Particle speed/size
+          }))
+        };
 
-        setTopology(data.data);
+        // For react-force-graph, nodes and edges must reference each other correctly
+        setTopology({ ...data.data, formattedData });
 
-        // Convert nodes with safety checks
-        const xyNodes = (data.data.nodes || []).map((node: SystemNode) => ({
-          id: node.id || `node-${Math.random()}`,
-          data: {
-            label: node.label || 'Unknown',
-            type: node.type || 'device',
-            metadata: node.metadata || {},
-          },
-          position: node.position || { x: 0, y: 0 },
-          style: {
-            background: node.color || '#3b82f6',
-            color: '#fff',
-            border: '2px solid #1e40af',
-            borderRadius: node.type === 'connector' ? '4px' : '50%',
-            padding: '10px',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            textAlign: 'center' as const,
-            width: node.type === 'connector' ? '60px' : '80px',
-            height: node.type === 'connector' ? '40px' : '80px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          } as React.CSSProperties,
-        }));
-
-        // Convert edges with safety checks
-        const xyEdges = (data.data.edges || []).map((edge: SystemEdge) => ({
-          id: edge.id || `edge-${Math.random()}`,
-          source: edge.source || '',
-          target: edge.target || '',
-          label: edge.label || '',
-          animated: edge.animated || false,
-          style: {
-            stroke: edge.color || '#6b7280',
-            strokeWidth: 2,
-          },
-          markerEnd: {
-            type: 'arrowclosed' as const,
-            color: edge.color || '#6b7280',
-          },
-        }));
-
-        setNodes(xyNodes);
-        setEdges(xyEdges);
-
-        if (xyNodes.length === 0 || xyEdges.length === 0) {
-          setError('No nodes or edges available in topology data');
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        setError(errorMessage);
+      } catch (err: any) {
         console.error('Error fetching GSD topology:', err);
-        setNodes([]);
-        setEdges([]);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
     fetchTopology();
-  }, [system, device, wire, setNodes, setEdges]);
-
-  const handleNodeClick = useCallback(
-    (event: React.MouseEvent, node: any) => {
-      if (!topology) return;
-      const gsdNode = topology.nodes.find((n) => n.id === node.id);
-      if (gsdNode) {
-        setSelectedNode(gsdNode);
-        onNodeClick?.(gsdNode);
-      }
-    },
-    [topology, onNodeClick]
-  );
-
-  const handleEdgeClick = useCallback(
-    (event: React.MouseEvent, edge: any) => {
-      if (!topology) return;
-      const gsdEdge = topology.edges.find((e) => e.id === edge.id);
-      if (gsdEdge) {
-        onEdgeClick?.(gsdEdge);
-      }
-    },
-    [topology, onEdgeClick]
-  );
+  }, [system, device, wire]);
 
   if (loading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
+      <div className="flex items-center justify-center w-full h-full min-h-[400px] bg-slate-900/50 rounded-xl">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
-          <p className="text-slate-300">Loading GSD topology...</p>
+          <p className="text-cyan-400 font-mono animate-pulse">Initializing Neural Topology...</p>
         </div>
       </div>
     );
   }
 
-  if (error || !nodes || nodes.length === 0) {
+  if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
-        <div className="flex flex-col items-center gap-4 p-6 bg-amber-900/20 border border-amber-500/50 rounded-lg max-w-md">
-          <AlertTriangle className="w-8 h-8 text-amber-400" />
-          <p className="text-amber-400 font-semibold text-center">GSD Topology Unavailable</p>
-          <p className="text-amber-300 text-sm text-center">
-            {error || 'No topology data available. Check database connection and system configuration.'}
-          </p>
-          <p className="text-amber-200/70 text-xs text-center mt-2">
-            Ensure systems, devices, and connections are properly configured in the database.
-          </p>
+      <div className="flex items-center justify-center w-full h-full min-h-[400px] bg-slate-900/50 rounded-xl border border-red-500/20">
+        <div className="flex flex-col items-center gap-4 text-center max-w-md p-6">
+          <AlertTriangle className="w-12 h-12 text-red-500/80" />
+          <h3 className="text-xl font-bold text-red-400">Topology Error</h3>
+          <p className="text-slate-400 text-sm">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-950 rounded-lg overflow-hidden border border-cyan-500/20">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={interactive ? onNodesChange : undefined}
-        onEdgesChange={interactive ? onEdgesChange : undefined}
-        onNodeClick={handleNodeClick}
-        onEdgeClick={handleEdgeClick}
-        fitView
-      >
-        <Background color="#1e293b" gap={16} />
-        <Controls />
-        {nodes.length > 0 && (
-          <MiniMap
-            style={{
-              background: '#0f172a',
-              border: '1px solid #06b6d4',
-            }}
-            maskColor="rgba(0, 0, 0, 0.3)"
-          />
-        )}
-
-        {/* Info Panel */}
-        <Panel position="top-left" className="bg-slate-900/80 border border-cyan-500/30 rounded-lg p-4 backdrop-blur">
-          <div className="text-sm text-slate-300">
-            <p className="font-semibold text-cyan-400 mb-2">GSD Topology</p>
-            <p>Nodes: {topology?.statistics?.totalDevices || 0}</p>
-            <p>Connections: {topology?.statistics?.totalConnections || 0}</p>
-            <p>Wires: {topology?.statistics?.totalWires || 0}</p>
-          </div>
-        </Panel>
-
-        {/* Selected Node Info */}
-        {selectedNode && (
-          <Panel position="top-right" className="bg-slate-900/80 border border-cyan-500/30 rounded-lg p-4 backdrop-blur max-w-xs">
-            <div className="text-sm text-slate-300">
-              <p className="font-semibold text-cyan-400 mb-2">{selectedNode.label}</p>
-              <p className="text-xs text-slate-400 mb-2">Type: {selectedNode.type}</p>
-              <p className="text-xs text-slate-400 mb-2">System: {selectedNode.system}</p>
-              {selectedNode.metadata && Object.entries(selectedNode.metadata).map(([key, value]) => (
-                <p key={key} className="text-xs text-slate-400">
-                  {key}: {String(value)}
-                </p>
-              ))}
-            </div>
-          </Panel>
-        )}
-      </ReactFlow>
+    <div className="w-full h-full min-h-[600px] relative">
+      {topology?.formattedData && (
+        <StarBranchVisualizer 
+          data={topology.formattedData} 
+          onNodeClick={onNodeClick} 
+        />
+      )}
     </div>
   );
 };
