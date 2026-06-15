@@ -2,7 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Loader2, CheckCircle, XCircle, FileSearch, ArrowRight, Save } from 'lucide-react';
-import PdfViewerEnhanced from '@/components/pdf/PdfViewerEnhanced';
+import dynamic from 'next/dynamic';
+
+const PdfViewerEnhanced = dynamic(() => import('@/components/pdf/PdfViewerEnhanced'), {
+  ssr: false,
+});
 
 export default function DrawingVerificationWorkflow() {
   const [drawings, setDrawings] = useState<any[]>([]);
