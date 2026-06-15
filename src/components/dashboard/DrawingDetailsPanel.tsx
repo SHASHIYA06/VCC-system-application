@@ -66,6 +66,10 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
   const [data, setData] = useState<DrawingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Filtering state
+  const [filterConnector, setFilterConnector] = useState<string | null>(null);
+  const [filterWire, setFilterWire] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState({
     pins: true,
     wires: true,
@@ -140,8 +144,32 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
   const wiresTotal = data.wires?.length || 0;
   const wiresCoverage = wiresTotal > 0 ? Math.round((wiresCovered / wiresTotal) * 100) : 0;
 
+  // Filter data based on selections
+  const displayPins = data.pins?.filter(p => !filterConnector || p.connectorCode === filterConnector) || [];
+  const displayWires = data.wires?.filter(w => !filterWire || w.wireNo === filterWire || (w.endpoints && w.endpoints.some(e => e.connector === filterConnector))) || [];
+  
+  const hasActiveFilters = filterConnector || filterWire;
+
   return (
     <div className="mt-8 pt-6 border-t border-accent-500/20 space-y-6">
+      {hasActiveFilters && (
+        <div className="flex items-center gap-3 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl">
+          <span className="text-xs font-bold text-cyan-400">Active Filters:</span>
+          {filterConnector && (
+            <span className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-lg flex items-center gap-2 cursor-pointer hover:bg-purple-500/40" onClick={() => setFilterConnector(null)}>
+              Connector: {filterConnector} <span className="opacity-50">×</span>
+            </span>
+          )}
+          {filterWire && (
+            <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-lg flex items-center gap-2 cursor-pointer hover:bg-green-500/40" onClick={() => setFilterWire(null)}>
+              Wire: {filterWire} <span className="opacity-50">×</span>
+            </span>
+          )}
+          <button onClick={() => { setFilterConnector(null); setFilterWire(null); }} className="text-xs text-slate-400 hover:text-white ml-auto underline">
+            Clear All
+          </button>
+        </div>
+      )}
       {/* PIN ASSIGNMENTS SECTION - CRITICAL */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -189,8 +217,17 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.pins.slice(0, 30).map((pin, idx) => (
-                      <tr key={idx} className={`border-b border-white/5 transition-colors ${pin.wireNo ? 'hover:bg-green-500/10' : 'hover:bg-red-500/10'}`}>
+                    {displayPins.slice(0, 30).map((pin, idx) => (
+                      <tr 
+                        key={idx} 
+                        onClick={() => {
+                          if (pin.wireNo) {
+                            setFilterWire(filterWire === pin.wireNo ? null : pin.wireNo);
+                          }
+                          setFilterConnector(filterConnector === pin.connectorCode ? null : (pin.connectorCode || null));
+                        }}
+                        className={`border-b border-white/5 transition-colors cursor-pointer ${pin.wireNo ? 'hover:bg-green-500/10' : 'hover:bg-red-500/10'} ${filterWire === pin.wireNo ? 'bg-green-500/20' : ''}`}
+                      >
                         <td className="py-2 px-3 text-purple-400 font-bold">{pin.connectorCode || '—'}</td>
                         <td className="py-2 px-3 text-cyan-400 font-bold">{pin.pinNo}</td>
                         <td className="py-2 px-3 text-white/90">{pin.signalName || '—'}</td>
@@ -263,11 +300,15 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.wires.slice(0, 20).map((wire, idx) => {
+                    {displayWires.slice(0, 20).map((wire, idx) => {
                       const source = wire.endpoints?.[0];
                       const dest = wire.endpoints?.[wire.endpoints.length - 1];
                       return (
-                        <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                        <tr 
+                          key={idx} 
+                          onClick={() => setFilterWire(filterWire === wire.wireNo ? null : wire.wireNo)}
+                          className={`border-b border-white/5 hover:bg-white/10 transition-colors cursor-pointer ${filterWire === wire.wireNo ? 'bg-cyan-500/20' : ''}`}
+                        >
                           <td className="py-2 px-3 text-cyan-400 font-bold">{wire.wireNo}</td>
                           <td className="py-2 px-3 text-white/90">{wire.signalName || '—'}</td>
                           <td className="py-2 px-3">
@@ -334,9 +375,15 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
             >
               <div className="p-4 bg-slate-900/30 space-y-4">
                 {data.connectors.slice(0, 10).map((connector, idx) => (
-                  <div key={idx} className="glass-card p-4 rounded-xl border border-white/10">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-bold text-white text-sm uppercase font-mono">{connector.code}</h4>
+                  <div key={idx} className={`glass-card p-4 rounded-xl border ${filterConnector === connector.code ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'border-white/10'}`}>
+                    <div 
+                      className="flex items-center justify-between mb-4 cursor-pointer hover:bg-white/5 p-1 -mx-1 rounded"
+                      onClick={() => setFilterConnector(filterConnector === connector.code ? null : connector.code)}
+                    >
+                      <h4 className="font-bold text-white text-sm uppercase font-mono flex items-center gap-2">
+                        {connector.code}
+                        {filterConnector === connector.code && <span className="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded">FILTERING</span>}
+                      </h4>
                       <span className="text-xs bg-purple-500/30 text-purple-300 px-2 py-1 rounded font-bold">{connector.pins.length}/{connector.pinCount} pins</span>
                     </div>
                     {connector.pins.length > 0 ? (

@@ -118,7 +118,51 @@ export default function KhushiAgent() {
     }
   };
 
-  const speak = (text: string) => {
+  const speak = async (text: string) => {
+    if (!text) return;
+    
+    try {
+      setIsSpeaking(true);
+      
+      const res = await fetch('/api/voice/voxcpm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          text,
+          voice: 'default',
+          model: 'openbmb/VoxCPM2'
+        }),
+      });
+      
+      if (!res.ok) {
+        console.error('VoxCPM error, falling back to Web Speech API');
+        fallbackSpeak(text);
+        return;
+      }
+      
+      const audioBlob = await res.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      
+      audio.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+        fallbackSpeak(text);
+      };
+      
+      await audio.play();
+    } catch (err) {
+      console.error('TTS Playback error:', err);
+      fallbackSpeak(text);
+    }
+  };
+
+  const fallbackSpeak = (text: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
@@ -127,7 +171,6 @@ export default function KhushiAgent() {
       const voices = window.speechSynthesis.getVoices();
       
       // Priority list for a sweet young Indian girl voice (9-10 year old sound)
-      // Higher pitch + slightly faster rate creates a younger-sounding voice
       const voicePreferences = [
         'Google हिन्दी',           // Google Hindi female
         'Microsoft Swara',          // Microsoft Indian English female

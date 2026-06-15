@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDatabaseRetry } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 export async function GET(
@@ -12,7 +12,7 @@ export async function GET(
     // Normalize wire number (e.g. remove trailing -W, but keep / since it's a valid separator in wireNo)
     const wireNo = rawWireNo.replace(/-W$/, '').trim();
 
-    let wire = await prisma.wire.findFirst({
+    let wire = await withDatabaseRetry(async () => prisma.wire.findFirst({
       where: {
         OR: [
           { wireNo: wireNo },
@@ -41,12 +41,12 @@ export async function GET(
           },
         },
       },
-    });
+    }), 'Wire detail fetch');
 
     if (!wire) {
       // Try with slash removed if we searched with it, or try startsWith base
       const noSlash = wireNo.replace(/[\/]/g, '');
-      wire = await prisma.wire.findFirst({
+      wire = await withDatabaseRetry(async () => prisma.wire.findFirst({
         where: {
           OR: [
             { wireNo: noSlash },
@@ -74,41 +74,41 @@ export async function GET(
             },
           },
         },
-      });
+      }), 'Wire detail fetch fallback');
     }
 
     if (!wire) {
       return NextResponse.json({ error: 'Wire not found', searchTerm: wireNo }, { status: 404 });
     }
 
-    const relatedTrainLines = await prisma.trainLine.findMany({
+    const relatedTrainLines = await withDatabaseRetry(async () => prisma.trainLine.findMany({
       where: { 
         OR: [
-          { wireNo: wire.wireNo },
-          { wireNo: { contains: wire.wireNo } }
+          { wireNo: wire!.wireNo },
+          { wireNo: { contains: wire!.wireNo } }
         ]
       },
       include: { drawing: true },
-    });
+    }), 'Related TrainLines');
 
-    const relatedPins = await prisma.connectorPin.findMany({
+    const relatedPins = await withDatabaseRetry(async () => prisma.connectorPin.findMany({
       where: { 
         OR: [
-          { wireNo: wire.wireNo },
-          { wireNo: { contains: wire.wireNo } }
+          { wireNo: wire!.wireNo },
+          { wireNo: { contains: wire!.wireNo } }
         ]
       },
       include: { connector: { include: { drawing: true } } },
-    });
+    }), 'Related Pins');
 
-    const relatedSignals = await prisma.signal.findMany({
+    const relatedSignals = await withDatabaseRetry(async () => prisma.signal.findMany({
       where: {
         OR: [
-          { signalCode: { contains: wire.wireNo } },
-          { signalName: { contains: wire.signalName || '' } },
+          { signalCode: { contains: wire!.wireNo } },
+          { signalName: { contains: wire!.signalName || '' } },
         ],
       },
-    });
+    }), 'Related Signals');
 
     // Get all related drawings from the junction table
     const allRelatedDrawings = wire.drawings.map(dw => ({

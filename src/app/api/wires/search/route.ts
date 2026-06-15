@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDatabaseRetry } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     const includeEndpoints = include === 'endpoints' || include === 'full';
 
-    const [wires, total] = await Promise.all([
+    const [wires, total] = await withDatabaseRetry(async () => Promise.all([
       prisma.wire.findMany({
         where,
         take: limit,
@@ -81,13 +81,13 @@ export async function GET(request: NextRequest) {
         } : undefined,
       }),
       prisma.wire.count({ where }),
-    ]);
+    ]), 'Wire Search API');
 
     // For each wire, also fetch its pin connections if available
     let pinData: any[] = [];
     if (wires.length > 0 && include === 'full') {
       const wireNos = wires.map(w => w.wireNo);
-      pinData = await prisma.connectorPin.findMany({
+      pinData = await withDatabaseRetry(async () => prisma.connectorPin.findMany({
         where: {
           OR: [
             { wireNo: { in: wireNos } },
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
         },
         take: 200,
         orderBy: { wireNo: 'asc' },
-      });
+      }), 'Wire Pin Connections Search');
     }
 
     return NextResponse.json({

@@ -63,98 +63,100 @@ export function LeftSidebar() {
   );
 
   return (
-    <div className="w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50 flex flex-col h-full shadow-lg">
+    <div className="w-64 bg-slate-900/60 backdrop-blur-2xl border-r border-white/10 flex flex-col h-full shadow-[0_0_30px_rgba(0,0,0,0.5)] relative z-50">
       {/* HEADER */}
-      <div className="px-4 py-4 border-b border-slate-700/30">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-white" />
+      <div className="px-4 py-5 border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 ring-1 ring-white/20">
+            <Zap className="w-5 h-5 text-white animate-pulse" />
           </div>
-          <h1 className="text-sm font-bold text-white">VCC Explorer</h1>
+          <div>
+            <h1 className="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 tracking-tight">VCC Explorer</h1>
+            <p className="text-[10px] text-cyan-400 font-mono tracking-wider uppercase">System Interface</p>
+          </div>
         </div>
         
         {/* SEARCH */}
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+        <div className="relative group">
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 group-focus-within:text-cyan-400 transition-colors" />
           <input
             type="text"
             placeholder="Search systems..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition"
+            className="w-full pl-9 pr-3 py-2 bg-black/20 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:bg-black/40 transition-all shadow-inner"
           />
         </div>
       </div>
 
       {/* QUICK ACTIONS */}
-      <div className="px-4 py-3 border-b border-slate-700/30 space-y-2">
-        <Link href="/dashboard" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 text-slate-200 hover:text-white transition text-xs font-medium group">
-          <Layout className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+      <div className="px-4 py-4 border-b border-white/5 space-y-2 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none" />
+        <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 text-slate-300 hover:text-white transition-all text-xs font-medium group relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/10 to-cyan-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+          <Layout className="w-4 h-4 text-cyan-400" />
           Dashboard
         </Link>
-        <Link href="/drawings" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 text-slate-200 hover:text-white transition text-xs font-medium group">
-          <FileText className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+        <Link href="/drawings" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 text-slate-300 hover:text-white transition-all text-xs font-medium group">
+          <FileText className="w-4 h-4 text-purple-400" />
           All Drawings
         </Link>
-        <Link href="/topology" className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 text-slate-200 hover:text-white transition text-xs font-medium group">
-          <Network className="w-4 h-4 opacity-70 group-hover:opacity-100" />
+        <Link href="/topology" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 text-slate-300 hover:text-white transition-all text-xs font-medium group">
+          <Network className="w-4 h-4 text-emerald-400" />
           Topology
         </Link>
       </div>
 
       {/* SYSTEMS TREE */}
-      <div className="flex-1 overflow-y-auto px-2 py-3">
+      <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin">
-              <Zap className="w-4 h-4 text-cyan-500" />
-            </div>
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-cyan-500/30 border-t-cyan-500 animate-spin" />
+            <span className="text-xs text-slate-400 font-mono">INITIALIZING...</span>
           </div>
         ) : filteredSystems.length === 0 ? (
-          <div className="text-xs text-slate-500 px-2 py-4 text-center">
-            No systems found
+          <div className="text-xs text-slate-500 px-2 py-8 text-center bg-white/5 rounded-xl border border-white/5 border-dashed">
+            No systems found matching criteria
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             {filteredSystems.map(sys => (
-              <div key={sys.code}>
+              <div key={sys.code} className="bg-white/[0.02] rounded-xl border border-white/5 overflow-hidden">
                 {/* System Item */}
                 <button
                   onClick={() => toggleSystem(sys.code)}
-                  className="w-full flex items-center gap-1 px-2 py-2 rounded-lg hover:bg-slate-700/40 text-slate-300 hover:text-white transition group text-xs"
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 text-slate-300 hover:text-white transition-all group text-xs ${expanded[sys.code] ? 'bg-white/5' : ''}`}
                 >
-                  {expanded[sys.code] ? (
-                    <ChevronDown className="w-4 h-4 opacity-60 group-hover:opacity-100" />
-                  ) : (
-                    <ChevronUp className="w-4 h-4 opacity-60 group-hover:opacity-100" />
-                  )}
-                  <span className="flex-1 text-left font-medium">{sys.name}</span>
-                  <span className="text-xs bg-slate-700/50 px-2 py-0.5 rounded-full opacity-70 group-hover:opacity-100">
+                  <div className={`p-1 rounded-md transition-colors ${expanded[sys.code] ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-slate-400 group-hover:bg-white/10'}`}>
+                    {expanded[sys.code] ? (
+                      <ChevronDown className="w-3 h-3" />
+                    ) : (
+                      <ChevronUp className="w-3 h-3" />
+                    )}
+                  </div>
+                  <span className="flex-1 text-left font-medium tracking-wide">{sys.name}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono border ${expanded[sys.code] ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300' : 'bg-black/30 border-white/10 text-slate-400'}`}>
                     {sys.drawingCount}
                   </span>
                 </button>
 
                 {/* System Details (when expanded) */}
                 {expanded[sys.code] && (
-                  <div className="ml-4 mt-1 pb-2 border-l border-slate-700/50 pl-3 space-y-1">
+                  <div className="p-2 pt-0 space-y-1 bg-black/20">
                     <Link
                       href={`/drawings?system_code=${sys.code}`}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded text-xs text-slate-400 hover:text-cyan-400 hover:bg-slate-700/30 transition"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-all border border-transparent hover:border-cyan-500/20"
                     >
-                      <FileText className="w-3 h-3" />
-                      Drawings ({sys.drawingCount})
+                      <FileText className="w-3.5 h-3.5" />
+                      View Drawings
                     </Link>
                     <Link
                       href={`/topology?system=${sys.code}`}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded text-xs text-slate-400 hover:text-cyan-400 hover:bg-slate-700/30 transition"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-all border border-transparent hover:border-emerald-500/20"
                     >
-                      <Network className="w-3 h-3" />
-                      Connections
+                      <Network className="w-3.5 h-3.5" />
+                      Network Topology
                     </Link>
-                    <button className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs text-slate-400 hover:text-cyan-400 hover:bg-slate-700/30 transition">
-                      <Plus className="w-3 h-3" />
-                      Add Item
-                    </button>
                   </div>
                 )}
               </div>
@@ -164,13 +166,18 @@ export function LeftSidebar() {
       </div>
 
       {/* FOOTER - STATUS */}
-      <div className="px-4 py-3 border-t border-slate-700/30 text-xs space-y-2">
-        <div className="flex items-center gap-2 text-slate-400">
-          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-          <span>System Online</span>
-        </div>
-        <div className="text-xs text-slate-500">
-          {systems.length} systems · {systems.reduce((sum, s) => sum + s.drawingCount, 0)} drawings
+      <div className="px-4 py-4 border-t border-white/5 bg-black/20 backdrop-blur-md">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </div>
+            <span className="text-[10px] font-mono tracking-wider text-emerald-400/90 uppercase">Online</span>
+          </div>
+          <div className="text-[10px] font-mono text-slate-500">
+            {systems.length} SYS · {systems.reduce((sum, s) => sum + s.drawingCount, 0)} DRW
+          </div>
         </div>
       </div>
     </div>
