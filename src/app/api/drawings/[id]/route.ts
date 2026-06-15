@@ -290,7 +290,9 @@ export async function GET(
         systemName: drawing.system?.name || 'General',
         sourceFile: drawing.sourceFileId,
         status: drawing.status,
-        pdfUrl: drawing.drawingPdfUrl,
+        pdfUrl: drawing.pageMappings && drawing.pageMappings.length > 0 && drawing.drawingPdfUrl 
+          ? `${drawing.drawingPdfUrl}#page=${drawing.pageMappings[0].pdfPageNo}`
+          : drawing.drawingPdfUrl,
       },
       summary: {
         totalConnectors: drawing.connectors?.length || 0,

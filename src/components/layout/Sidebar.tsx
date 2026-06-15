@@ -62,8 +62,8 @@ export default function Sidebar() {
     <>
       <aside 
         className={cn(
-          "fixed left-0 top-0 h-screen z-40 flex flex-col border-r border-slate-800/50 transition-all duration-300",
-          "bg-[#0a0f1a]",
+          "fixed left-0 top-0 h-screen z-40 flex flex-col transition-all duration-300",
+          "glass-card-premium !rounded-none !rounded-r-3xl border-r border-glass-border shadow-premium",
           collapsed ? "w-[68px]" : "w-60"
         )}
       >
@@ -104,10 +104,10 @@ export default function Sidebar() {
                       href={item.href}
                       title={collapsed ? item.name : undefined}
                       className={cn(
-                        "flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium cursor-pointer transition-all duration-150 group relative",
+                        "flex items-center gap-2.5 px-3 py-3 rounded-xl text-[13px] font-bold cursor-pointer transition-all duration-300 group relative font-mono tracking-wide uppercase",
                         isActive 
-                          ? "bg-cyan-500/10 text-white shadow-[inset_0_0_0_1px_rgba(34,211,238,0.2)]" 
-                          : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
+                          ? "bg-gradient-accent text-white shadow-glow-sm border border-white/20 scale-105 z-10" 
+                          : "text-white/60 hover:text-white hover:bg-white/10 hover:shadow-inner-glow hover:scale-102"
                       )}
                     >
                       <Icon className={cn(
@@ -118,7 +118,7 @@ export default function Sidebar() {
                       
                       {/* Active indicator bar */}
                       {isActive && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-cyan-400" />
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-2/3 rounded-r-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
                       )}
                       
                       {/* Collapsed tooltip */}

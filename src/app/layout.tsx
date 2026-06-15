@@ -22,7 +22,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="h-full flex overflow-hidden font-sans bg-slate-950 text-slate-100 antialiased">
+      <body className="h-full flex overflow-hidden font-sans text-slate-100 antialiased">
         <AppShell>
           <div className="flex-1 overflow-auto">
             {children}

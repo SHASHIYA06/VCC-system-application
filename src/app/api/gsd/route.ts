@@ -47,10 +47,6 @@ export async function GET(request: NextRequest) {
         } else if (systemCode) {
           // Get system-specific topology
           const topology = await getSystemTopology(systemCode);
-          
-          if (!topology.nodes || topology.nodes.length === 0) {
-            throw new Error(`No topology data found for system "${systemCode}" - system may not exist or have no associated equipment`);
-          }
 
           return NextResponse.json({
             success: true,
@@ -67,10 +63,6 @@ export async function GET(request: NextRequest) {
         } else if (deviceId) {
           // Get device-specific connections
           const topology = await getDeviceConnections(deviceId);
-          
-          if (!topology.nodes || topology.nodes.length === 0) {
-            throw new Error(`No connection data found for device "${deviceId}" - device may not exist or have no connections`);
-          }
 
           return NextResponse.json({
             success: true,
@@ -87,10 +79,6 @@ export async function GET(request: NextRequest) {
         } else if (wireNo) {
           // Get wire path topology
           const topology = await getWirePath(wireNo);
-          
-          if (!topology.nodes || topology.nodes.length === 0) {
-            throw new Error(`No path data found for wire "${wireNo}" - wire may not exist or have no endpoints`);
-          }
 
           return NextResponse.json({
             success: true,

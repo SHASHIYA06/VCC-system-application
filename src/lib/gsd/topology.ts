@@ -259,11 +259,17 @@ async function getWireEdges(systemCode?: string): Promise<SystemEdge[]> {
  * Get device-to-connector connections as edges
  */
 async function getConnectorEdges(systemCode?: string): Promise<SystemEdge[]> {
+  const where = systemCode
+    ? { connector: { drawing: { system: { code: systemCode } } } }
+    : {};
+
   const connectorPins = await prisma.connectorPin.findMany({
+    where,
     include: {
       connector: { include: { drawing: { include: { system: true } } } },
       wireEndpoints: { include: { device: true } },
     },
+    take: 1000,
   });
 
   const edges: SystemEdge[] = [];

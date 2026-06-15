@@ -205,7 +205,7 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="p-4 bg-slate-900/30 overflow-x-auto">
+              <div className="p-4 bg-slate-900/30 overflow-x-auto max-h-[600px] overflow-y-auto">
                 <table className="w-full text-sm font-mono">
                   <thead>
                     <tr className="border-b border-white/10">
@@ -217,7 +217,7 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {displayPins.slice(0, 30).map((pin, idx) => (
+                    {displayPins.map((pin, idx) => (
                       <tr 
                         key={idx} 
                         onClick={() => {
@@ -243,11 +243,6 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
                     ))}
                   </tbody>
                 </table>
-                {data.pins.length > 30 && (
-                  <div className="text-center py-3 border-t border-white/10 text-xs text-white/60">
-                    +{data.pins.length - 30} more pins...
-                  </div>
-                )}
               </div>
             </motion.div>
           )}
@@ -288,7 +283,7 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="p-4 bg-slate-900/30 overflow-x-auto">
+              <div className="p-4 bg-slate-900/30 overflow-x-auto max-h-[600px] overflow-y-auto">
                 <table className="w-full text-sm font-mono">
                   <thead>
                     <tr className="border-b border-white/10">
@@ -300,7 +295,7 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {displayWires.slice(0, 20).map((wire, idx) => {
+                    {displayWires.map((wire, idx) => {
                       const source = wire.endpoints?.[0];
                       const dest = wire.endpoints?.[wire.endpoints.length - 1];
                       return (
@@ -328,11 +323,6 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
                     })}
                   </tbody>
                 </table>
-                {data.wires.length > 20 && (
-                  <div className="text-center py-3 border-t border-white/10 text-xs text-white/60">
-                    +{data.wires.length - 20} more wires...
-                  </div>
-                )}
               </div>
             </motion.div>
           )}
@@ -373,8 +363,8 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="p-4 bg-slate-900/30 space-y-4">
-                {data.connectors.slice(0, 10).map((connector, idx) => (
+              <div className="p-4 bg-slate-900/30 space-y-4 max-h-[600px] overflow-y-auto">
+                {data.connectors.map((connector, idx) => (
                   <div key={idx} className={`glass-card p-4 rounded-xl border ${filterConnector === connector.code ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]' : 'border-white/10'}`}>
                     <div 
                       className="flex items-center justify-between mb-4 cursor-pointer hover:bg-white/5 p-1 -mx-1 rounded"
@@ -388,29 +378,19 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
                     </div>
                     {connector.pins.length > 0 ? (
                       <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-xs">
-                        {connector.pins.slice(0, 12).map((pin, pidx) => (
+                        {connector.pins.map((pin, pidx) => (
                           <div key={pidx} className={`p-2 rounded border ${pin.wireNo ? 'bg-green-500/10 border-green-500/30' : 'bg-slate-900/60 border-white/10'}`}>
                             <div className={`font-mono font-bold ${pin.wireNo ? 'text-green-400' : 'text-cyan-400'}`}>{pin.pinNo}</div>
                             <div className="text-white/70 text-[9px] line-clamp-1">{pin.signalName || '—'}</div>
                             {pin.wireNo && <div className="text-green-300 font-mono text-[9px] font-bold">{pin.wireNo}</div>}
                           </div>
                         ))}
-                        {connector.pins.length > 12 && (
-                          <div className="p-2 bg-slate-900/60 rounded border border-white/10 flex items-center justify-center">
-                            <span className="text-white/50 text-[9px] font-bold">+{connector.pins.length - 12}</span>
-                          </div>
-                        )}
                       </div>
                     ) : (
                       <div className="text-center py-3 text-xs text-white/50">No pins defined</div>
                     )}
                   </div>
                 ))}
-                {data.connectors.length > 10 && (
-                  <div className="text-center py-3 text-xs text-white/60">
-                    +{data.connectors.length - 10} more connectors...
-                  </div>
-                )}
               </div>
             </motion.div>
           )}
@@ -451,8 +431,8 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="p-4 bg-slate-900/30 space-y-3">
-                {data.equipment.slice(0, 15).map((eq, idx) => (
+              <div className="p-4 bg-slate-900/30 space-y-3 max-h-[600px] overflow-y-auto">
+                {data.equipment.map((eq, idx) => (
                   <div key={idx} className="glass-card p-3 rounded-lg border border-white/10">
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -465,25 +445,17 @@ export function DrawingDetailsPanel({ drawingId }: { drawingId: string }) {
                     </div>
                     {eq.connectedWires.length > 0 && (
                       <div className="text-xs text-white/70 space-y-1 pt-2 border-t border-white/10">
-                        {eq.connectedWires.slice(0, 3).map((conn, cidx) => (
+                        {eq.connectedWires.map((conn, cidx) => (
                           <div key={cidx} className="flex items-center gap-2 font-mono">
                             <span className="text-green-400 font-bold">{conn.wireNo}</span>
                             <span className="text-white/50">→</span>
                             <span className="text-white/70 text-[11px]">{conn.signalName || 'Signal'}</span>
                           </div>
                         ))}
-                        {eq.connectedWires.length > 3 && (
-                          <p className="text-white/50">+{eq.connectedWires.length - 3} more</p>
-                        )}
                       </div>
                     )}
                   </div>
                 ))}
-                {data.equipment.length > 15 && (
-                  <div className="text-center py-3 text-xs text-white/60">
-                    +{data.equipment.length - 15} more equipment...
-                  </div>
-                )}
               </div>
             </motion.div>
           )}

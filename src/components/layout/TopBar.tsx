@@ -5,7 +5,7 @@ import GlobalSearch from '../search/GlobalSearch';
 
 export default function TopBar() {
   return (
-    <header className="sticky top-0 z-30 w-full h-12 border-b border-slate-800/40 bg-[#0a0f1a]/95 backdrop-blur-md flex items-center px-4 gap-4">
+    <header className="sticky top-0 z-30 w-full h-14 border-b border-white/10 bg-slate-900/40 backdrop-blur-3xl flex items-center px-6 gap-4 shadow-glow-sm">
       {/* Left - System name */}
       <div className="flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />

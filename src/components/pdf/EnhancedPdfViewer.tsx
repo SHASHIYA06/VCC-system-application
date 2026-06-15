@@ -37,8 +37,16 @@ export default function EnhancedPdfViewer({
   const [error, setError] = useState<string | null>(null);
   const [rotation, setRotation] = useState(0);
   const [pdfUrl, setPdfUrl] = useState<string>('');
-  const [mappedPage, setMappedPage] = useState<number | null>(null);
+  const [mappedPage, setMappedPage] = useState<number | null>(initialPage !== 1 ? initialPage : null);
   const [fitToWidth, setFitToWidth] = useState(true); // Auto-fit to screen width
+
+  // Sync pageNumber when initialPage prop changes
+  useEffect(() => {
+    if (initialPage > 0) {
+      setPageNumber(initialPage);
+      setMappedPage(initialPage);
+    }
+  }, [initialPage]);
 
   // Fetch the correct PDF page mapping
   useEffect(() => {

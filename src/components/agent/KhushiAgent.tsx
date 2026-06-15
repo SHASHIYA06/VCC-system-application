@@ -11,54 +11,94 @@ export default function KhushiAgent() {
   const [transcript, setTranscript] = useState('');
   const [response, setResponse] = useState('Hi! I am Khushi, your VCC AI Assistant. How can I help you today?');
   
-  const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
-  useEffect(() => {
-    // Initialize Speech Recognition only once
-    if (typeof window !== 'undefined' && !recognitionRef.current) {
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+        
+        setIsSpeaking(true);
+        setResponse('Transcribing...');
+
+        try {
+          const res = await fetch('/api/voice/transcribe', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.success && data.transcript) {
+            setTranscript(data.transcript);
+            handleProcessQuery(data.transcript);
+          } else if (data.fallback === 'browser') {
+            handleFallbackRecognition();
+          } else {
+            setResponse("I couldn't understand that. Please try again.");
+            setIsSpeaking(false);
+          }
+        } catch (e) {
+          handleFallbackRecognition();
+        }
+      };
+
+      mediaRecorder.start();
+      setIsListening(true);
+      setTranscript('');
+    } catch (e) {
+      console.error('Mic error:', e);
+      handleFallbackRecognition();
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isListening) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      setIsListening(false);
+    }
+  };
+
+  const toggleListen = () => {
+    if (isListening) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const handleFallbackRecognition = () => {
+    if (typeof window !== 'undefined') {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
-        recognition.interimResults = true;
+        recognition.interimResults = false;
         recognition.lang = 'en-IN';
         
         recognition.onresult = (event: any) => {
-          const current = event.resultIndex;
-          const transcriptText = event.results[current][0].transcript;
+          const transcriptText = event.results[0][0].transcript;
           setTranscript(transcriptText);
-          
-          // If final result, process it
-          if (event.results[current].isFinal) {
-            handleProcessQuery(transcriptText);
-          }
+          handleProcessQuery(transcriptText);
         };
         
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-        
-        recognition.onerror = (event: any) => {
-          // Don't log "no-speech" or "aborted" as errors — they're normal
-          if (event.error !== 'no-speech' && event.error !== 'aborted') {
-            console.warn('Speech recognition:', event.error);
-          }
-          setIsListening(false);
-        };
-        
-        recognitionRef.current = recognition;
+        recognition.onend = () => setIsListening(false);
+        recognition.start();
+        setIsListening(true);
       }
-    }
-  }, []); // Run only once on mount
-
-  const toggleListen = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    } else {
-      setTranscript('');
-      recognitionRef.current?.start();
-      setIsListening(true);
     }
   };
 
@@ -68,19 +108,24 @@ export default function KhushiAgent() {
     
     try {
       // Call the AI assistant API for intelligent responses
-      const res = await fetch('/api/ai-assistant', {
+      const res = await fetch('/api/rag/enhanced', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, mode: 'operator' }),
+        body: JSON.stringify({ 
+          query, 
+          includeWebSearch: true,
+          useMultiAgent: true,
+          model: 'gpt-4o-mini' // Fast model for voice
+        }),
       });
       
       const data = await res.json();
       
       let aiReply: string;
       
-      if (data.success && data.response) {
+      if (data.success && data.unifiedResponse) {
         // Clean markdown formatting for speech
-        aiReply = data.response
+        aiReply = data.unifiedResponse
           .replace(/##?\s*/g, '')
           .replace(/\*\*/g, '')
           .replace(/\*/g, '')
@@ -124,13 +169,13 @@ export default function KhushiAgent() {
     try {
       setIsSpeaking(true);
       
-      const res = await fetch('/api/voice/voxcpm', {
+      const res = await fetch('/api/voice/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           text,
-          voice: 'default',
-          model: 'openbmb/VoxCPM2'
+          voice: 'shimmer', // Young female voice for OpenAI TTS
+          speed: 1.0
         }),
       });
       

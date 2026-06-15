@@ -73,24 +73,22 @@ model CarPosition {
 }
 
 model System {
-  id                    String    @id @default(cuid())
-  code                  String    @unique
-  name                  String
-  category              String?
-  description           String?
-  sortOrder             Int       @default(0)
-  // NEW FIELDS FOR FRONTEND INTEGRATION
-  dataStatus            String    @default("PENDING")  // PENDING, SYNCING, COMPLETE, FAILED
-  uiMenuDisplayName     String?   // Custom display name for menu
-  iconName              String?   // lucide-react icon name
-  colorTheme            String?   // Hex color for menu icon
-  isActive              Boolean   @default(true)  // For menu filtering
-  
-  devices               Device[]
-  drawings              Drawing[]
-  vccDescription        VCCDescription? @relation("SystemDescription")
-  metadata              SystemMetadata? @relation("SystemMetadata")
-  
+  id                String          @id @default(cuid())
+  code              String          @unique
+  name              String
+  category          String?
+  description       String?
+  sortOrder         Int             @default(0)
+  colorTheme        String?
+  dataStatus        String          @default("PENDING")
+  iconName          String?
+  isActive          Boolean         @default(true)
+  uiMenuDisplayName String?
+  devices           Device[]
+  drawings          Drawing[]
+  metadata          SystemMetadata? @relation("SystemMetadata")
+  vccDescription    VCCDescription? @relation("SystemDescription")
+
   @@index([dataStatus])
   @@index([isActive])
 }
@@ -110,42 +108,40 @@ model ReferenceDrawing {
 }
 
 model Drawing {
-  id                   String                      @id @default(cuid())
+  id                   String                     @id @default(cuid())
   projectId            String
   systemId             String?
   drawingNo            String
-  revision             String                      @default("0")
+  revision             String                     @default("0")
   title                String
-  totalSheets          Int                         @default(1)
+  totalSheets          Int                        @default(1)
   sourceFileId         String?
-  isReference          Boolean                     @default(false)
+  isReference          Boolean                    @default(false)
   remarks              String?
-  createdAt            DateTime                    @default(now())
-  updatedAt            DateTime                    @updatedAt
-  status               DrawingStatus               @default(ACTIVE)
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  status               DrawingStatus              @default(ACTIVE)
   drawingPdfUrl        String?
-  // NEW FIELDS FOR SYNC TRACKING
-  isSynced             Boolean                     @default(false)
+  isSynced             Boolean                    @default(false)
   syncedAt             DateTime?
-  verificationStatus   DrawingVerificationStatus?  @relation("VerificationStatus")
-  
   circuits             Circuit[]
   connectors           Connector[]
   crossConnections     CrossConnection[]
   crossConnectionRules CrossConnectionRule[]
   devices              Device[]
-  project              Project                     @relation(fields: [projectId], references: [id])
-  system               System?                     @relation(fields: [systemId], references: [id])
+  project              Project                    @relation(fields: [projectId], references: [id])
+  system               System?                    @relation(fields: [systemId], references: [id])
   applicability        DrawingApplicability[]
   notes                DrawingNote[]
   pages                DrawingPage[]
-  pageMappings         DrawingPageMapping[]        @relation("DrawingPageMappings")
+  pageMappings         DrawingPageMapping[]       @relation("DrawingPageMappings")
   references           DrawingReference[]
   sheets               DrawingSheet[]
+  verificationStatus   DrawingVerificationStatus? @relation("VerificationStatus")
+  wires                DrawingWire[]
   noteEntities         Note[]
   signals              Signal[]
   trainLines           TrainLine[]
-  wires                DrawingWire[]
 
   @@unique([projectId, drawingNo, revision])
   @@index([drawingNo])
@@ -196,25 +192,25 @@ model DrawingPage {
 }
 
 model DrawingPageMapping {
-  id              String   @id @default(cuid())
-  drawingId       String
-  sourceFileId    String?
-  sourceFileName  String
-  pdfPageNo       Int
-  drawingNumber   String
-  verified        Boolean  @default(false)
+  id               String    @id @default(cuid())
+  drawingId        String
+  sourceFileId     String?
+  sourceFileName   String
+  pdfPageNo        Int
+  drawingNumber    String
+  verified         Boolean   @default(false)
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  confidence       Float     @default(0.0)
   verificationDate DateTime?
-  confidence      Float    @default(0.0)  // 0-1 scale
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  drawing         Drawing  @relation("DrawingPageMappings", fields: [drawingId], references: [id])
+  drawing          Drawing   @relation("DrawingPageMappings", fields: [drawingId], references: [id])
 
   @@unique([drawingId, sourceFileId], map: "DrawingPageMapping_drawingId_sourceFileId_unique")
-  @@index([drawingNumber], map: "DrawingPageMapping_drawingNumber_idx")
-  @@index([sourceFileName], map: "DrawingPageMapping_sourceFileName_idx")
-  @@index([pdfPageNo], map: "DrawingPageMapping_pdfPageNo_idx")
-  @@index([verified], map: "DrawingPageMapping_verified_idx")
+  @@index([drawingNumber])
+  @@index([sourceFileName])
+  @@index([pdfPageNo])
+  @@index([verified])
 }
 
 model DrawingSheet {
@@ -323,7 +319,7 @@ model ConnectorPin {
 }
 
 model Device {
-  id              String                  @id @default(cuid())
+  id              String                @id @default(cuid())
   drawingId       String
   systemId        String?
   tagNo           String?
@@ -333,14 +329,12 @@ model Device {
   locationTag     String?
   manufacturerRef String?
   note            String?
-  // NEW FIELDS FOR VERIFICATION
-  specifications  DeviceSpecification[]   @relation("DeviceSpecs")
-  isVerified      Boolean                 @default(false)
+  extra           Json                  @default("{}")
+  isVerified      Boolean               @default(false)
   verifiedAt      DateTime?
-  
-  extra           Json                    @default("{}")
-  drawing         Drawing                 @relation(fields: [drawingId], references: [id])
-  system          System?                 @relation(fields: [systemId], references: [id])
+  drawing         Drawing               @relation(fields: [drawingId], references: [id])
+  system          System?               @relation(fields: [systemId], references: [id])
+  specifications  DeviceSpecification[] @relation("DeviceSpecs")
   wireEndpoints   WireEndpoint[]
 
   @@index([drawingId])
@@ -479,8 +473,8 @@ model Wire {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   wireAlias          String?        @unique
-  endpoints          WireEndpoint[]
   drawings           DrawingWire[]
+  endpoints          WireEndpoint[]
 
   @@index([wireNo])
   @@index([signalName])
@@ -490,15 +484,15 @@ model Wire {
 }
 
 model DrawingWire {
-  id         String   @id @default(cuid())
-  drawingId  String
-  wireId     String
-  pageNo     Int?
-  sheetNo    Int?
-  context    String?
-  createdAt  DateTime @default(now())
-  drawing    Drawing  @relation(fields: [drawingId], references: [id], onDelete: Cascade)
-  wire       Wire     @relation(fields: [wireId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  drawingId String
+  wireId    String
+  pageNo    Int?
+  sheetNo   Int?
+  context   String?
+  createdAt DateTime @default(now())
+  drawing   Drawing  @relation(fields: [drawingId], references: [id], onDelete: Cascade)
+  wire      Wire     @relation(fields: [wireId], references: [id], onDelete: Cascade)
 
   @@unique([drawingId, wireId])
   @@index([wireId])
@@ -649,99 +643,161 @@ model DocumentChunk {
   @@index([chunkType])
 }
 
-// ─── VCC System Description & Metadata ──────────────────────────────────────
-
 model VCCDescription {
   id                      String   @id @default(cuid())
   systemCode              String   @unique(map: "VCCDescription_systemCode_unique")
   systemName              String
-  description             String?  @db.Text
-  technicalSpecs          String?  @db.Text
+  description             String?
+  technicalSpecs          String?
   powerRequirements       String?
   voltage                 String?
   current                 String?
   frequency               String?
-  environmentalConditions String?  @db.Text
-  safetyFeatures          String?  @db.Text
-  maintenanceSchedule     String?  @db.Text
-  sparePartsInfo          String?  @db.Text
+  environmentalConditions String?
+  safetyFeatures          String?
+  maintenanceSchedule     String?
+  sparePartsInfo          String?
   documentVersion         String?
   lastUpdated             DateTime @default(now())
-  source                  String?  // "PDF", "Manual", "Database"
+  source                  String?
   extra                   Json     @default("{}")
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
-  system                  System?  @relation("SystemDescription", fields: [systemCode], references: [code])
+  system                  System   @relation("SystemDescription", fields: [systemCode], references: [code])
 
-  @@index([systemCode], map: "VCCDescription_systemCode_idx")
+  @@index([systemCode])
   @@index([source])
   @@index([lastUpdated])
 }
 
 model SystemMetadata {
-  id                String   @id @default(cuid())
-  systemCode        String   @unique(map: "SystemMetadata_systemCode_unique")
-  dataCompleteness  Float    @default(0.0)  // 0-1 scale for UI display
-  lastSyncTime      DateTime?
-  syncStatus        String   @default("PENDING")  // PENDING, SYNCING, COMPLETE, FAILED
-  syncErrors        String?  @db.Text
-  totalDrawings     Int      @default(0)
-  verifiedDrawings  Int      @default(0)
-  totalDevices      Int      @default(0)
-  totalConnectors   Int      @default(0)
-  totalWires        Int      @default(0)
-  extra             Json     @default("{}")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  system            System?  @relation("SystemMetadata", fields: [systemCode], references: [code])
+  id               String    @id @default(cuid())
+  systemCode       String    @unique(map: "SystemMetadata_systemCode_unique")
+  dataCompleteness Float     @default(0.0)
+  lastSyncTime     DateTime?
+  syncStatus       String    @default("PENDING")
+  syncErrors       String?
+  totalDrawings    Int       @default(0)
+  verifiedDrawings Int       @default(0)
+  totalDevices     Int       @default(0)
+  totalConnectors  Int       @default(0)
+  totalWires       Int       @default(0)
+  extra            Json      @default("{}")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  system           System    @relation("SystemMetadata", fields: [systemCode], references: [code])
 
-  @@index([systemCode], map: "SystemMetadata_systemCode_idx")
+  @@index([systemCode])
   @@index([syncStatus])
   @@index([dataCompleteness])
 }
 
-// ─── Device Specifications & Details ──────────────────────────────────────────
-
 model DeviceSpecification {
-  id              String   @id @default(cuid())
-  deviceId        String
-  specCode        String
-  specName        String
-  specValue       String?
-  unit            String?
-  category        String  // "electrical", "mechanical", "performance"
-  verified        Boolean  @default(false)
-  source          String?  // "database", "pdf", "manual"
-  extra           Json     @default("{}")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  device          Device   @relation("DeviceSpecs", fields: [deviceId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  deviceId  String
+  specCode  String
+  specName  String
+  specValue String?
+  unit      String?
+  category  String
+  verified  Boolean  @default(false)
+  source    String?
+  extra     Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  device    Device   @relation("DeviceSpecs", fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@unique([deviceId, specCode])
   @@index([deviceId])
   @@index([category])
 }
 
-// ─── Drawing Verification Status ───────────────────────────────────────────────
-
 model DrawingVerificationStatus {
-  id              String   @id @default(cuid())
-  drawingId       String   @unique
-  drawingNumber   String
-  status          String   @default("UNVERIFIED")  // VERIFIED, UNVERIFIED, PARTIAL
+  id               String    @id @default(cuid())
+  drawingId        String    @unique
+  drawingNumber    String
+  status           String    @default("UNVERIFIED")
   verificationDate DateTime?
-  verifiedBy      String?
-  notes           String?  @db.Text
-  pagesVerified   Int      @default(0)
-  totalPages      Int      @default(0)
-  confidence      Float    @default(0.0)  // Overall confidence
-  extra           Json     @default("{}")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  drawing         Drawing  @relation("VerificationStatus", fields: [drawingId], references: [id], onDelete: Cascade)
+  verifiedBy       String?
+  notes            String?
+  pagesVerified    Int       @default(0)
+  totalPages       Int       @default(0)
+  confidence       Float     @default(0.0)
+  extra            Json      @default("{}")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  drawing          Drawing   @relation("VerificationStatus", fields: [drawingId], references: [id], onDelete: Cascade)
 
   @@index([drawingNumber])
   @@index([status])
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String?
+  passwordHash String?
+  role         UserRole   @default(VIEWER)
+  isActive     Boolean    @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  apiKeys      ApiKey[]
+  auditLogs    AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model ApiKey {
+  id        String    @id @default(cuid())
+  userId    String
+  keyHash   String    @unique
+  name      String
+  scopes    String[]  @default(["read"])
+  lastUsed  DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+model AuditLog {
+  id            String      @id @default(cuid())
+  userId        String?
+  action        AuditAction
+  entityType    String
+  entityId      String?
+  changes       Json?
+  ipAddress     String?
+  userAgent     String?
+  status        String      @default("SUCCESS")
+  errorMessage  String?
+  executionTime Int?
+  createdAt     DateTime    @default(now())
+  user          User?       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+model QueryPerformance {
+  id            String   @id @default(cuid())
+  queryType     String
+  executionTime Int
+  rowsAffected  Int?
+  cacheHit      Boolean  @default(false)
+  queryHash     String
+  createdAt     DateTime @default(now())
+
+  @@index([queryType])
+  @@index([executionTime])
+  @@index([createdAt])
 }
 
 enum DrawingStatus {
@@ -775,78 +831,4 @@ enum AuditAction {
   SYNC
   VALIDATE
   ANALYZE
-}
-
-// ─── Authentication & Access Control ───────────────────────────────────────
-
-model User {
-  id            String       @id @default(cuid())
-  email         String       @unique
-  name          String?
-  passwordHash  String?
-  role          UserRole     @default(VIEWER)
-  isActive      Boolean      @default(true)
-  lastLogin     DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  apiKeys       ApiKey[]
-  auditLogs     AuditLog[]
-
-  @@index([email])
-  @@index([role])
-}
-
-model ApiKey {
-  id        String   @id @default(cuid())
-  userId    String
-  keyHash   String   @unique
-  name      String
-  scopes    String[] @default(["read"])
-  lastUsed  DateTime?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  expiresAt DateTime?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([isActive])
-}
-
-// ─── Audit Trail ───────────────────────────────────────────────────────────
-
-model AuditLog {
-  id            String       @id @default(cuid())
-  userId        String?
-  action        AuditAction
-  entityType    String
-  entityId      String?
-  changes       Json?
-  ipAddress     String?
-  userAgent     String?
-  status        String       @default("SUCCESS")
-  errorMessage  String?
-  executionTime Int?
-  createdAt     DateTime     @default(now())
-  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([action])
-  @@index([entityType])
-  @@index([createdAt])
-}
-
-// ─── Performance Indexes ───────────────────────────────────────────────────
-
-model QueryPerformance {
-  id              String   @id @default(cuid())
-  queryType       String
-  executionTime   Int
-  rowsAffected    Int?
-  cacheHit        Boolean  @default(false)
-  queryHash       String
-  createdAt       DateTime @default(now())
-
-  @@index([queryType])
-  @@index([executionTime])
-  @@index([createdAt])
 }

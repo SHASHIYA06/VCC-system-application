@@ -155,6 +155,16 @@ export async function GET(request: NextRequest) {
 }
 
 function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): number {
+  // Extract sheet index from alphabetic suffix: A=0, B=1, C=2, etc.
+  const suffixMatch = drawingNo.match(/[A-Za-z]+$/);
+  let sheetOffset = 0;
+  if (suffixMatch) {
+    const suffix = suffixMatch[0].toUpperCase();
+    if (suffix.length === 1) {
+      sheetOffset = suffix.charCodeAt(0) - 65; // 'A' -> 0, 'B' -> 1
+    }
+  }
+
   // Strip prefix and handle alphabetic suffixes
   const cleanNo = drawingNo.replace(/^942[-_]/i, '').replace(/[A-Za-z]+$/, '');
   const numMatch = cleanNo.match(/\d+/);
@@ -182,7 +192,7 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
       38322: 22, // Anti Skid Auto Coupler: 1 sheet (page 22)
       38323: 26  // HTEB HTJB: 1 sheet (page 26)
     };
-    return DMC_UF_MAPPING[num] || 1;
+    return (DMC_UF_MAPPING[num] || 1) + sheetOffset;
   }
 
   // CAB PIN Drawings mapping - CORRECTED FOR 942-38409
@@ -206,7 +216,7 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
       38128: 46,
       38409: 15  // Intercar Jumper & Connector Layout - TC Car
     };
-    return CAB_PIN_MAPPING[num] || 1;
+    return (CAB_PIN_MAPPING[num] || 1) + sheetOffset;
   }
 
   // DMC Ceiling mapping
@@ -223,7 +233,7 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
       38411: 19,
       38413: 23
     };
-    return DMC_CEILING_MAPPING[num] || 1;
+    return (DMC_CEILING_MAPPING[num] || 1) + sheetOffset;
   }
 
   // TC Underframe mapping
@@ -244,7 +254,7 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
       38520: 20,
       38521: 21
     };
-    return TC_UF_MAPPING[num] || 1;
+    return (TC_UF_MAPPING[num] || 1) + sheetOffset;
   }
 
   // TC Ceiling mapping
@@ -260,7 +270,7 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
       38612: 19,
       38614: 23
     };
-    return TC_CEILING_MAPPING[num] || 1;
+    return (TC_CEILING_MAPPING[num] || 1) + sheetOffset;
   }
 
   // MC Ceiling mapping
@@ -276,7 +286,7 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
       38710: 26,
       38711: 27
     };
-    return MC_CEILING_MAPPING[num] || 1;
+    return (MC_CEILING_MAPPING[num] || 1) + sheetOffset;
   }
 
   // MC Underframe mapping
@@ -300,7 +310,7 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
       38123: 24,
       38124: 25
     };
-    return MC_UF_MAPPING[num] || 1;
+    return (MC_UF_MAPPING[num] || 1) + sheetOffset;
   }
 
   // Schematics file KMRCL VCC Drawings_OCR.pdf mapping
@@ -358,7 +368,7 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
         58153: 74, // Train Radio
         58154: 75  // CCTV
       };
-      return KMRCL_MAPPING[num] || 1;
+      return (KMRCL_MAPPING[num] || 1) + sheetOffset;
     }
   }
 
@@ -366,11 +376,11 @@ function inferPageFromDrawingNumber(drawingNo: string, sourceFile: string): numb
   if (sourceFile.includes('VCC DESCRIPTION')) {
     if (drawingNo.startsWith('VCC-REF-')) {
       const pageNum = parseInt(drawingNo.replace('VCC-REF-', ''));
-      return pageNum || 1;
+      return (pageNum || 1) + sheetOffset;
     }
   }
 
-  return 1;
+  return 1 + sheetOffset;
 }
 
 
