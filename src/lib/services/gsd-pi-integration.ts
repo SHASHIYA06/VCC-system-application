@@ -188,7 +188,13 @@ class GSDPiService {
               deviceName: true,
               deviceType: true,
               locationTag: true,
-              wireEndpoints: { select: { wire: { select: { wireNo: true } } } }
+              wireEndpoints: { 
+                select: { 
+                  wire: { select: { wireNo: true, cableSpec: true } },
+                  connector: { select: { connectorCode: true } },
+                  pin: { select: { pinNo: true } }
+                } 
+              }
             }
           },
           drawings: {

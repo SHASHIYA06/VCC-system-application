@@ -221,7 +221,7 @@ export default function GSDPage() {
                     <p className="text-slate-400">System</p>
                     <p className="text-slate-200 font-semibold">{selectedNode.system}</p>
                   </div>
-                  {Object.entries(selectedNode.metadata).map(([key, value]) => (
+                  {selectedNode.metadata && Object.entries(selectedNode.metadata).map(([key, value]) => (
                     <div key={key}>
                       <p className="text-slate-400 capitalize">{key}</p>
                       <p className="text-slate-200 font-semibold text-xs break-words">{String(value)}</p>
@@ -250,7 +250,7 @@ export default function GSDPage() {
                       <p className="text-slate-200 font-semibold">{selectedEdge.wireNo}</p>
                     </div>
                   )}
-                  {Object.entries(selectedEdge.metadata).map(([key, value]) => (
+                  {selectedEdge.metadata && Object.entries(selectedEdge.metadata).map(([key, value]) => (
                     <div key={key}>
                       <p className="text-slate-400 capitalize">{key}</p>
                       <p className="text-slate-200 font-semibold text-xs break-words">{String(value)}</p>

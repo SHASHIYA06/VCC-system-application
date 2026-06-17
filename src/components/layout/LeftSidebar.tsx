@@ -101,9 +101,13 @@ export function LeftSidebar() {
           <FileText className="w-4 h-4 text-purple-400" />
           All Drawings
         </Link>
-        <Link href="/topology" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 text-slate-300 hover:text-white transition-all text-xs font-medium group">
+        <Link href="/gsd" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/10 to-transparent hover:from-emerald-500/20 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-300 hover:text-emerald-200 transition-all text-xs font-bold group shadow-[0_0_15px_rgba(16,185,129,0.1)]">
           <Network className="w-4 h-4 text-emerald-400" />
-          Topology
+          3D Galaxy Topology
+        </Link>
+        <Link href="/admin/verify" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 text-slate-300 hover:text-white transition-all text-xs font-medium group">
+          <AlertCircle className="w-4 h-4 text-amber-400" />
+          DB Sync Master
         </Link>
       </div>
 
@@ -121,28 +125,24 @@ export function LeftSidebar() {
         ) : (
           <div className="space-y-1.5">
             {filteredSystems.map(sys => (
-              <div key={sys.code} className="bg-white/[0.02] rounded-xl border border-white/5 overflow-hidden">
+              <div key={sys.code} className="bg-white/[0.02] rounded-xl border border-white/5 overflow-hidden transition-all duration-300 hover:border-white/10 shadow-sm">
                 {/* System Item */}
                 <button
                   onClick={() => toggleSystem(sys.code)}
                   className={`w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 text-slate-300 hover:text-white transition-all group text-xs ${expanded[sys.code] ? 'bg-white/5' : ''}`}
                 >
-                  <div className={`p-1 rounded-md transition-colors ${expanded[sys.code] ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-slate-400 group-hover:bg-white/10'}`}>
-                    {expanded[sys.code] ? (
-                      <ChevronDown className="w-3 h-3" />
-                    ) : (
-                      <ChevronUp className="w-3 h-3" />
-                    )}
+                  <div className={`p-1 rounded-md transition-all duration-300 ${expanded[sys.code] ? 'bg-cyan-500/20 text-cyan-400 rotate-0' : 'bg-white/5 text-slate-400 group-hover:bg-white/10 -rotate-90'}`}>
+                    <ChevronDown className="w-3 h-3" />
                   </div>
                   <span className="flex-1 text-left font-medium tracking-wide">{sys.name}</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono border ${expanded[sys.code] ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300' : 'bg-black/30 border-white/10 text-slate-400'}`}>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono border transition-all ${expanded[sys.code] ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.3)]' : 'bg-black/30 border-white/10 text-slate-400'}`}>
                     {sys.drawingCount}
                   </span>
                 </button>
 
                 {/* System Details (when expanded) */}
                 {expanded[sys.code] && (
-                  <div className="p-2 pt-0 space-y-1 bg-black/20">
+                  <div className="p-2 pt-0 space-y-1 bg-black/20 animate-in slide-in-from-top-2 duration-200 fade-in">
                     <Link
                       href={`/drawings?system_code=${sys.code}`}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-all border border-transparent hover:border-cyan-500/20"
@@ -151,11 +151,11 @@ export function LeftSidebar() {
                       View Drawings
                     </Link>
                     <Link
-                      href={`/topology?system=${sys.code}`}
+                      href={`/gsd?system=${sys.code}`}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-all border border-transparent hover:border-emerald-500/20"
                     >
                       <Network className="w-3.5 h-3.5" />
-                      Network Topology
+                      3D Galaxy Subsystem
                     </Link>
                   </div>
                 )}

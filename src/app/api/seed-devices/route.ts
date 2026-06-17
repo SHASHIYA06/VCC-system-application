@@ -42,7 +42,16 @@ const ADDITIONAL_DEVICES = [
   { name: 'ICC Lock Mechanism', tag: 'COUPL_LOCK', system: 'COUPL', carType: 'ALL', location: 'Front' },
   
   // COMMS - more devices
-  { name: 'Central Control Unit', tag: 'CCU_01', system: 'COMMS', carType: 'DMC', location: 'Ceiling' },
+  { name: 'Central Control Unit 1', tag: 'CCU_01', system: 'COMMS', carType: 'DMC', location: 'Cab' },
+  { name: 'Central Control Unit 2', tag: 'CCU_02', system: 'COMMS', carType: 'DMC', location: 'Cab' },
+  { name: 'Intercom Unit 1', tag: 'ICOM_01', system: 'COMMS', carType: 'ALL', location: 'Saloon' },
+  { name: 'Intercom Unit 2', tag: 'ICOM_02', system: 'COMMS', carType: 'ALL', location: 'Saloon' },
+  { name: 'MOXA Ethernet Switch 1', tag: 'MOXA_01', system: 'COMMS', carType: 'DMC', location: 'Ceiling' },
+  { name: 'MOXA Ethernet Switch 2', tag: 'MOXA_02', system: 'COMMS', carType: 'MC', location: 'Ceiling' },
+  { name: 'PA Speaker 1', tag: 'SPK_01', system: 'COMMS', carType: 'ALL', location: 'Ceiling' },
+  { name: 'PA Speaker 2', tag: 'SPK_02', system: 'COMMS', carType: 'ALL', location: 'Ceiling' },
+  { name: 'PA Speaker 3', tag: 'SPK_03', system: 'COMMS', carType: 'ALL', location: 'Ceiling' },
+  { name: 'PA Speaker 4', tag: 'SPK_04', system: 'COMMS', carType: 'ALL', location: 'Ceiling' },
   { name: 'PIS Controller', tag: 'PIS_CTL', system: 'COMMS', carType: 'ALL', location: 'Ceiling' },
   { name: 'Passenger Display 1', tag: 'PIS_DISP_1', system: 'COMMS', carType: 'ALL', location: 'Saloon' },
   { name: 'Passenger Display 2', tag: 'PIS_DISP_2', system: 'COMMS', carType: 'ALL', location: 'Saloon' },
