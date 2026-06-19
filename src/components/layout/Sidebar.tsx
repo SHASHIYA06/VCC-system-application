@@ -34,7 +34,8 @@ const navigationGroups = [
     name: 'Intelligence',
     items: [
       { name: 'AI Assistant', href: '/ai-assistant', icon: Brain, color: 'text-violet-400' },
-      { name: 'GSD Topology', href: '/gsd', icon: Network, color: 'text-emerald-400' },
+      { name: 'GSD Explorer', href: '/gsd/explore', icon: Network, color: 'text-emerald-400' },
+      { name: 'GSD Topology', href: '/gsd', icon: Layers, color: 'text-teal-400' },
       { name: 'Troubleshooting', href: '/troubleshooting', icon: Wrench, color: 'text-red-400' },
     ]
   },
