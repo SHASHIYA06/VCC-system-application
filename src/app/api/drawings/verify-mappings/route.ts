@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       include: {
         system: true,
         pageMappings: true,
-        applicability: { include: { carType: true } },
+        applicability: true,
       },
       orderBy: { drawingNo: 'asc' },
     });
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     // Apply filters if provided
     if (carTypeFilter) {
       filteredDrawings = drawings.filter(d => 
-        d.applicability.some(a => a.carType?.code === carTypeFilter)
+        d.applicability.some(a => a.carType === carTypeFilter)
       );
     }
 
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     for (const drawing of filteredDrawings) {
       const mapping = drawing.pageMappings?.[0];
       const systemCode = drawing.system?.code || 'GEN';
-      const carTypes = drawing.applicability.map(a => a.carType?.code || 'UNKNOWN');
+      const carTypes = drawing.applicability.map(a => a.carType || 'UNKNOWN');
 
       systemsAnalyzed.add(systemCode);
       carTypes.forEach(ct => carTypesAnalyzed.add(ct));

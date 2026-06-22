@@ -159,36 +159,56 @@ export async function POST(request: NextRequest) {
  */
 async function fallbackDatabaseSearch(query: string) {
   try {
-    const searchTerm = query.toLowerCase();
-    
+    // The raw query is a natural-language phrase (e.g. "what is wire 3003").
+    // Searching the whole phrase as a substring never matches, so extract
+    // meaningful tokens: alphanumeric codes, wire/drawing numbers, etc.
+    const stopWords = new Set([
+      'what', 'is', 'the', 'a', 'an', 'of', 'for', 'to', 'in', 'on', 'show',
+      'me', 'tell', 'about', 'find', 'where', 'which', 'how', 'does', 'do',
+      'and', 'or', 'with', 'this', 'that', 'are', 'list', 'all', 'wire',
+      'drawing', 'connector', 'system', 'pin', 'please', 'can', 'you',
+    ]);
+
+    const tokens = query
+      .toLowerCase()
+      .split(/[^a-z0-9-]+/i)
+      .filter(t => t.length >= 2 && !stopWords.has(t));
+
+    // Always keep the longest tokens first (codes/numbers are most specific).
+    const searchTokens = tokens.sort((a, b) => b.length - a.length).slice(0, 5);
+    // Fall back to the trimmed phrase if tokenization removed everything.
+    if (searchTokens.length === 0) {
+      searchTokens.push(query.trim().toLowerCase());
+    }
+
+    const drawingOr = searchTokens.flatMap(t => [
+      { drawingNo: { contains: t, mode: 'insensitive' as const } },
+      { title: { contains: t, mode: 'insensitive' as const } },
+    ]);
+    const wireOr = searchTokens.flatMap(t => [
+      { wireNo: { contains: t, mode: 'insensitive' as const } },
+      { signalName: { contains: t, mode: 'insensitive' as const } },
+    ]);
+    const connectorOr = searchTokens.map(t => ({
+      connectorCode: { contains: t, mode: 'insensitive' as const },
+    }));
+
     // Search drawings
     const drawings = await prisma.drawing.findMany({
-      where: {
-        OR: [
-          { drawingNo: { contains: searchTerm, mode: 'insensitive' } },
-          { title: { contains: searchTerm, mode: 'insensitive' } },
-        ],
-      },
+      where: { OR: drawingOr },
       include: { system: true },
       take: 5,
     });
-    
+
     // Search wires
     const wires = await prisma.wire.findMany({
-      where: {
-        OR: [
-          { wireNo: { contains: searchTerm, mode: 'insensitive' } },
-          { signalName: { contains: searchTerm, mode: 'insensitive' } },
-        ],
-      },
+      where: { OR: wireOr },
       take: 5,
     });
-    
+
     // Search connectors
     const connectors = await prisma.connector.findMany({
-      where: {
-        connectorCode: { contains: searchTerm, mode: 'insensitive' },
-      },
+      where: { OR: connectorOr },
       include: { drawing: true },
       take: 5,
     });

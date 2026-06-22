@@ -10,7 +10,7 @@ export async function GET() {
       connectors: await prisma.connector.count(),
       wires: await prisma.wire.count(),
       devices: await prisma.device.count(),
-      carTypes: await prisma.carType.count(),
+      cars: await prisma.car.count(),
       signals: await prisma.signal.count(),
     };
 

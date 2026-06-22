@@ -65,7 +65,11 @@ export async function GET(request: NextRequest) {
     if (voltageClass) where.voltageClass = voltageClass;
     if (wireType) where.conductorClassCode = wireType;
 
-    const [wires, total, voltageStats] = await Promise.all([
+    // NOTE: groupBy(['voltageClass']) scans the entire wire table (100k+ rows)
+    // and previously exhausted the connection pool (P2024). Run the list +
+    // count first (fast, indexed), then fetch voltage facets separately with a
+    // guarded fallback so a slow facet query can never break the listing.
+    const [wires, total] = await Promise.all([
       prisma.wire.findMany({
         where,
         take: limit,
@@ -81,11 +85,12 @@ export async function GET(request: NextRequest) {
         }
       }),
       prisma.wire.count({ where }),
-      prisma.wire.groupBy({
-        by: ['voltageClass'],
-        _count: true,
-      }).catch(() => []),
     ]);
+
+    // Voltage facets are best-effort only; never let them fail the request.
+    const voltageStats = await prisma.wire
+      .groupBy({ by: ['voltageClass'], _count: true })
+      .catch(() => [] as { voltageClass: string | null; _count: number }[]);
 
     return NextResponse.json({
       wires,

@@ -12,6 +12,10 @@ pnpm-lock.yaml
 .next/
 dist/
 build/
+
+# Local IDE / MCP settings — contain API keys, must not be pushed
+.kiro/settings/mcp.json
+.playwright-mcp/
 *.tsbuildinfo
 
 # Testing

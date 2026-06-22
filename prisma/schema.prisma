@@ -46,30 +46,21 @@ model Car {
   carLabel    String?
   createdAt   DateTime  @default(now())
   formation   Formation @relation(fields: [formationId], references: [id])
+  carSystems  CarSystem[]
 
   @@unique([formationId, carPosition])
   @@unique([formationId, carCode])
 }
 
-model CarType {
-  id                   String                 @id @default(cuid())
-  code                 String                 @unique
-  name                 String
-  description          String?
-  createdAt            DateTime               @default(now())
-  positions            CarPosition[]
-  drawingApplicability DrawingApplicability[]
-}
+model CarSystem {
+  id        String   @id @default(cuid())
+  carId     String
+  systemId  String
+  createdAt DateTime @default(now())
+  car       Car      @relation(fields: [carId], references: [id])
+  system    System   @relation(fields: [systemId], references: [id])
 
-model CarPosition {
-  id            String   @id @default(cuid())
-  carTypeId     String
-  formationCode String
-  positionNo    Int
-  createdAt     DateTime @default(now())
-  carType       CarType  @relation(fields: [carTypeId], references: [id])
-
-  @@unique([formationCode, positionNo])
+  @@unique([carId, systemId])
 }
 
 model System {
@@ -88,9 +79,27 @@ model System {
   drawings          Drawing[]
   metadata          SystemMetadata? @relation("SystemMetadata")
   vccDescription    VCCDescription? @relation("SystemDescription")
+  subsystems        Subsystem[]
+  carSystems        CarSystem[]
 
   @@index([dataStatus])
   @@index([isActive])
+}
+
+model Subsystem {
+  id          String   @id @default(cuid())
+  systemId    String
+  code        String
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  system      System   @relation(fields: [systemId], references: [id])
+  devices     Device[]
+
+  @@unique([systemId, code])
+  @@index([systemId])
 }
 
 model ReferenceDrawing {
@@ -153,15 +162,14 @@ model Drawing {
 }
 
 model DrawingApplicability {
-  id         String   @id @default(cuid())
+  id         String  @id @default(cuid())
   drawingId  String
-  applicable Boolean  @default(true)
+  applicable Boolean @default(true)
   remark     String?
-  carTypeId  String?
-  carType    CarType? @relation(fields: [carTypeId], references: [id])
-  drawing    Drawing  @relation(fields: [drawingId], references: [id])
+  carType    String?
+  drawing    Drawing @relation(fields: [drawingId], references: [id])
 
-  @@unique([drawingId, carTypeId])
+  @@unique([drawingId, carType])
 }
 
 model DrawingReference {
@@ -322,6 +330,7 @@ model Device {
   id              String                @id @default(cuid())
   drawingId       String
   systemId        String?
+  subsystemId     String?
   tagNo           String?
   deviceName      String
   deviceType      String?
@@ -334,6 +343,7 @@ model Device {
   verifiedAt      DateTime?
   drawing         Drawing               @relation(fields: [drawingId], references: [id])
   system          System?               @relation(fields: [systemId], references: [id])
+  subsystem       Subsystem?            @relation(fields: [subsystemId], references: [id])
   specifications  DeviceSpecification[] @relation("DeviceSpecs")
   wireEndpoints   WireEndpoint[]
 
@@ -341,6 +351,7 @@ model Device {
   @@index([tagNo])
   @@index([deviceName])
   @@index([systemId])
+  @@index([subsystemId])
   @@index([isVerified])
 }
 
@@ -481,6 +492,7 @@ model Wire {
   @@index([sourceEquipment])
   @@index([destEquipment])
   @@index([createdAt])
+  @@index([voltageClass])
 }
 
 model DrawingWire {

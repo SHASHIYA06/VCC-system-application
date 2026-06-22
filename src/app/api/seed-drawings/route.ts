@@ -98,23 +98,6 @@ export async function POST() {
       console.log(`Created project: ${project.projectName}\n`);
     }
 
-    const carTypes = await prisma.carType.findMany();
-    const carMap = new Map(carTypes.map(c => [c.code, c.id]));
-    if (carMap.size === 0) {
-      console.log('Creating car types...');
-      await prisma.carType.createMany({
-        data: [
-          { code: 'DMC', name: 'Driving Motor Car', description: 'DMC - Driving Motor Car with cab' },
-          { code: 'TC', name: 'Trailer Car', description: 'TC - Trailer Car without traction' },
-          { code: 'MC', name: 'Motor Car', description: 'MC - Motor Car without cab' },
-        ]
-      });
-      const newCarTypes = await prisma.carType.findMany();
-      carMap.set('DMC', newCarTypes.find(c => c.code === 'DMC')?.id || '');
-      carMap.set('TC', newCarTypes.find(c => c.code === 'TC')?.id || '');
-      carMap.set('MC', newCarTypes.find(c => c.code === 'MC')?.id || '');
-    }
-
     const systems = await prisma.system.findMany();
     const sysMap = new Map(systems.map(s => [s.code, s.id]));
 

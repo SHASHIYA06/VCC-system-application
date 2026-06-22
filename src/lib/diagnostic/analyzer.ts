@@ -58,46 +58,56 @@ export interface DiagnosticReport {
 export async function analyzeSystemHealth(systemCode?: string): Promise<SystemHealth[]> {
   try {
     const where = systemCode ? { code: systemCode } : {};
+    // Use count aggregations instead of loading full device/connector/wire
+    // relations. Loading the relations pulled tens of thousands of rows per
+    // system and made the report take 30s+ / time out.
     const systems = await prisma.system.findMany({
       where,
-      include: {
-        devices: { include: { _count: { select: { wireEndpoints: true } } } },
-        drawings: { include: { connectors: true, wires: true } },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        _count: { select: { devices: true } },
+        drawings: {
+          select: {
+            _count: { select: { connectors: true, wires: true } },
+          },
+        },
       },
     });
 
-    const systemHealths: SystemHealth[] = [];
+    const systemHealths = await Promise.all(
+      systems.map(async (system) => {
+        const issues = await detectSystemIssues(system.id);
+        const deviceCount = system._count.devices;
+        const connectorCount = system.drawings.reduce((sum, d) => sum + d._count.connectors, 0);
+        const wireCount = system.drawings.reduce((sum, d) => sum + d._count.wires, 0);
 
-    for (const system of systems) {
-      const issues = await detectSystemIssues(system.id);
-      const deviceCount = system.devices.length;
-      const connectorCount = system.drawings.reduce((sum, d) => sum + d.connectors.length, 0);
-      const wireCount = system.drawings.reduce((sum, d) => sum + d.wires.length, 0);
+        const issueCount = issues.length;
+        const criticalCount = issues.filter(i => i.severity === 'critical').length;
+        const warningCount = issues.filter(i => i.severity === 'warning').length;
 
-      // Calculate health score
-      const issueCount = issues.length;
-      const criticalCount = issues.filter(i => i.severity === 'critical').length;
-      const warningCount = issues.filter(i => i.severity === 'warning').length;
+        let healthScore = 100;
+        healthScore -= criticalCount * 20;
+        healthScore -= warningCount * 5;
+        healthScore = Math.max(0, Math.min(100, healthScore));
 
-      let healthScore = 100;
-      healthScore -= criticalCount * 20;
-      healthScore -= warningCount * 5;
-      healthScore = Math.max(0, Math.min(100, healthScore));
+        const status: SystemHealth['status'] =
+          healthScore >= 80 ? 'healthy' : healthScore >= 50 ? 'warning' : 'critical';
 
-      const status = healthScore >= 80 ? 'healthy' : healthScore >= 50 ? 'warning' : 'critical';
-
-      systemHealths.push({
-        systemCode: system.code,
-        systemName: system.name,
-        healthScore,
-        status,
-        deviceCount,
-        connectorCount,
-        wireCount,
-        issueCount,
-        issues,
-      });
-    }
+        return {
+          systemCode: system.code,
+          systemName: system.name,
+          healthScore,
+          status,
+          deviceCount,
+          connectorCount,
+          wireCount,
+          issueCount,
+          issues,
+        };
+      })
+    );
 
     return systemHealths;
   } catch (error) {
@@ -113,13 +123,33 @@ async function detectSystemIssues(systemId: string): Promise<DiagnosticIssue[]> 
   const issues: DiagnosticIssue[] = [];
 
   try {
-    // Check for devices without connections
-    const devicesWithoutConnections = await prisma.device.findMany({
-      where: {
-        systemId,
-        wireEndpoints: { none: {} },
-      },
-    });
+    // Run the three scans concurrently to keep per-system latency low.
+    const [devicesWithoutConnections, incompleteWires, connectorsWithoutPins] = await Promise.all([
+      prisma.device.findMany({
+        where: {
+          systemId,
+          wireEndpoints: { none: {} },
+        },
+        select: { id: true, tagNo: true, deviceName: true },
+        take: 50,
+      }),
+      prisma.wire.findMany({
+        where: {
+          drawings: { some: { drawing: { systemId } } },
+          endpoints: { none: {} },
+        },
+        select: { id: true, wireNo: true },
+        take: 25,
+      }),
+      prisma.connector.findMany({
+        where: {
+          drawing: { systemId },
+          pins: { none: {} },
+        },
+        select: { id: true, connectorCode: true },
+        take: 50,
+      }),
+    ]);
 
     for (const device of devicesWithoutConnections) {
       issues.push({
@@ -135,34 +165,19 @@ async function detectSystemIssues(systemId: string): Promise<DiagnosticIssue[]> 
       });
     }
 
-    // Check for incomplete wires
-    const allWires = await prisma.wire.findMany({
-      include: { endpoints: true },
-    });
-
-    const incompleteWires = allWires.filter(w => w.endpoints.length < 2);
-
     for (const wire of incompleteWires) {
       issues.push({
         id: `issue_${wire.id}_incomplete`,
         severity: 'critical',
         type: 'incomplete_wire',
         title: 'Incomplete Wire Connection',
-        description: `Wire ${wire.wireNo} has only ${wire.endpoints.length} endpoint(s), expected 2`,
+        description: `Wire ${wire.wireNo} has no endpoints defined, expected 2`,
         affectedEntity: 'wire',
         affectedId: wire.id,
         recommendation: 'Complete wire connections by adding missing endpoints',
         timestamp: new Date(),
       });
     }
-
-    // Check for connectors without pins
-    const connectorsWithoutPins = await prisma.connector.findMany({
-      where: {
-        drawing: { systemId },
-        pins: { none: {} },
-      },
-    });
 
     for (const connector of connectorsWithoutPins) {
       issues.push({
@@ -189,9 +204,11 @@ async function detectSystemIssues(systemId: string): Promise<DiagnosticIssue[]> 
  */
 export async function checkWireContinuity(wireNo?: string): Promise<WireContinuity[]> {
   try {
-    const where = wireNo ? { wireNo } : {};
+    // When a specific wire is requested, look it up directly. Otherwise only
+    // sample wires that actually have endpoints and cap the result so the
+    // report stays fast on large datasets (the wire table can hold 100k+ rows).
     const wires = await prisma.wire.findMany({
-      where,
+      where: wireNo ? { wireNo } : { endpoints: { some: {} } },
       include: {
         endpoints: {
           include: {
@@ -200,6 +217,7 @@ export async function checkWireContinuity(wireNo?: string): Promise<WireContinui
           },
         },
       },
+      ...(wireNo ? {} : { take: 200 }),
     });
 
     const continuities: WireContinuity[] = [];
