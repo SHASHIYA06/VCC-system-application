@@ -484,6 +484,10 @@ model Wire {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   wireAlias          String?        @unique
+  // Wire integrity tracking for Phase 2
+  wireStatus         WireStatus     @default(UNVERIFIED)
+  verificationSource String?        // Where this wire was verified from (e.g., "pin-drawing", "manual")
+  verifiedAt         DateTime?
   drawings           DrawingWire[]
   endpoints          WireEndpoint[]
 
@@ -493,6 +497,14 @@ model Wire {
   @@index([destEquipment])
   @@index([createdAt])
   @@index([voltageClass])
+  @@index([wireStatus])
+}
+
+enum WireStatus {
+  VERIFIED     // Confirmed real engineering data from drawings
+  SYNTHETIC    // Auto-generated, not from actual drawings  
+  UNVERIFIED   // Not yet checked
+  DEPRECATED   // Marked for removal/legacy
 }
 
 model DrawingWire {
