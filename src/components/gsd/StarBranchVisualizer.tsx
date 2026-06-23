@@ -14,6 +14,7 @@ interface StarBranchVisualizerProps {
 
 export default function StarBranchVisualizer({ data, onNodeClick }: StarBranchVisualizerProps) {
   const fgRef = useRef<any>(null);
+  const intervalRef = useRef<any>(null); // Store interval here to clear
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const containerRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -31,7 +32,13 @@ export default function StarBranchVisualizer({ data, onNodeClick }: StarBranchVi
     
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+    return () => {
+      window.removeEventListener('resize', updateDimensions);
+      // Clear interval on unmount
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, []);
 
   // Process data for react-force-graph
@@ -62,7 +69,7 @@ export default function StarBranchVisualizer({ data, onNodeClick }: StarBranchVi
   }, [data]);
 
   const handleNodeClick = useCallback((node: any) => {
-    if (fgRef.current) {
+    if (fgRef.current && typeof fgRef.current.cameraPosition === 'function') {
       // Aim at node from outside it
       const distance = 40;
       const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
@@ -86,7 +93,7 @@ export default function StarBranchVisualizer({ data, onNodeClick }: StarBranchVi
       ref={containerRef} 
       className="w-full h-full min-h-[600px] relative glass-card-premium overflow-hidden border border-glass-border rounded-xl shadow-glow-lg bg-black"
     >
-      <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.05] mix-blend-screen pointer-events-none z-0"></div>
+      <div className="absolute inset-0 grid-pattern opacity-[0.05] mix-blend-screen pointer-events-none z-0"></div>
       
       {/* Decorative Glow Orbs */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px] pointer-events-none z-0 mix-blend-screen"></div>
@@ -113,20 +120,6 @@ export default function StarBranchVisualizer({ data, onNodeClick }: StarBranchVi
             d3VelocityDecay={0.3}
             cooldownTicks={100}
             nodeResolution={32}
-            // Add some rotation to the entire graph to feel like a galaxy
-            onEngineStop={() => {
-              if (fgRef.current) {
-                // Auto-rotate the camera around the center
-                let angle = 0;
-                setInterval(() => {
-                  fgRef.current.cameraPosition({
-                    x: 200 * Math.sin(angle),
-                    z: 200 * Math.cos(angle)
-                  });
-                  angle += Math.PI / 300;
-                }, 50);
-              }
-            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

@@ -539,7 +539,7 @@ export default function DashboardPage() {
       <div className="glow-orb glow-orb-cyan" />
       <div className="glow-orb glow-orb-purple" />
       
-      <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03] pointer-events-none mix-blend-screen"></div>
+      <div className="absolute inset-0 grid-pattern opacity-[0.03] pointer-events-none mix-blend-screen"></div>
 
       {/* Title Header */}
       <motion.div 

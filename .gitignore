@@ -41,6 +41,20 @@ prisma/dev.db-journal
 temp/
 .cache/
 
+# Vercel
+.vercel/
+
+# Next.js generated types
+next-env.d.ts
+
+# Example/local env templates (not needed in repo history)
+.env.local.example
+
+# Stale nested duplicate project dirs / worktrees (local-only, must NOT be committed)
+vcc-explorer/
+vcc-explorer.worktrees/
+layra-sidecar/
+
 # Legacy documentation (to be archived)
 # Uncomment to exclude from git
 # PHASE_*.md

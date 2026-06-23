@@ -218,10 +218,7 @@ Some drawings span multiple sheets:
 
 Once Phase 1 is complete:
 1. Proceed to Phase 2: GSD Module Implementation
-2. Proceed to Phase 3: Diagnostic & AI System
-3. Proceed to Phase 4: AI Search with 100% Accuracy
-4. Proceed to Phase 5: 3D UI/UX Upgrade
-5. Proceed to Phase 6: MCP Configuration
+that to upgarde the application but still many phase is pending. can you please upgarde the remianing phase mentioned below with correct complete setup 
 
 ---
 

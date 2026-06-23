@@ -231,8 +231,8 @@ export default function VCCReferencePage() {
         if (response.ok) {
           const data = await response.json();
           const map: DrawingMap = {};
-          data.data.forEach((d: any) => {
-            map[d.drawingNo] = { id: d.id, pages: d.pageCount };
+          (data.drawings || []).forEach((d: any) => {
+            map[d.drawingNo] = { id: d.id, pages: d.totalSheets || 0 };
           });
           setDrawingMap(map);
         }

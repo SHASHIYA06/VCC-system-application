@@ -1,5 +1,15 @@
-import Sidebar from './Sidebar';
+'use client';
+
+import dynamic from 'next/dynamic';
 import TopBar from './TopBar';
+
+// Import Sidebar dynamically with SSR disabled to prevent hydration mismatches
+const Sidebar = dynamic(() => import('./Sidebar'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-60 bg-slate-900/50 border-r border-slate-800/50" />
+  ),
+});
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
