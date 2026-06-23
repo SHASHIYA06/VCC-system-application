@@ -5,6 +5,8 @@ export interface TinyFishSearchResult {
   title: string;
   url: string;
   snippet?: string;
+  position?: number;
+  site_name?: string;
   published_date?: string;
 }
 
@@ -12,6 +14,7 @@ export interface TinyFishSearchResponse {
   results: TinyFishSearchResult[];
   total_results: number;
   query: string;
+  page?: number;
 }
 
 export interface TinyFishFetchResponse {
@@ -41,37 +44,62 @@ export class TinyFishClient {
       ...(options?.numResults && { num_results: options.numResults.toString() }),
     });
 
-    const response = await fetch(`${this.baseUrl}?${params}`, {
-      headers: {
-        'X-API-Key': this.apiKey,
-        'Content-Type': 'application/json',
-      },
-    });
+    // Guard with a timeout so a slow upstream never hangs a request.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch(`${this.baseUrl}?${params}`, {
+        headers: {
+          'X-API-Key': this.apiKey,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`TinyFish search failed: ${error}`);
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`TinyFish search failed (${response.status}): ${error}`);
+      }
+
+      return response.json();
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error('TinyFish search timed out after 20s');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
     }
-
-    return response.json();
   }
 
   async fetch(url: string): Promise<TinyFishFetchResponse> {
-    const response = await fetch(`${this.baseUrl}/fetch`, {
-      method: 'POST',
-      headers: {
-        'X-API-Key': this.apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url }),
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(`${this.baseUrl}/fetch`, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': this.apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+        signal: controller.signal,
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`TinyFish fetch failed: ${error}`);
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`TinyFish fetch failed (${response.status}): ${error}`);
+      }
+
+      return response.json();
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error('TinyFish fetch timed out after 30s');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
     }
-
-    return response.json();
   }
 }
 

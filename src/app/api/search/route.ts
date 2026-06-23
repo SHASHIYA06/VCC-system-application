@@ -23,6 +23,65 @@ export async function GET(request: NextRequest) {
       return await searchWireEverywhere(wireNo, limit);
     }
 
+    // Helper function to build wire search conditions
+    const buildSearchConditions = (query: string): any[] => {
+      const match = query.match(/^(\d+(?:-\d+)?)(.*)?$/);
+      let numericBase = '';
+      let suffix = '';
+      
+      if (match) {
+        numericBase = match[1];
+        suffix = match[2] || '';
+      }
+      
+      if (!numericBase) {
+        const drawingMatch = query.match(/^([A-Z0-9-]+?)([A-Z]+)?$/);
+        if (drawingMatch) {
+          numericBase = drawingMatch[1];
+          suffix = drawingMatch[2] || '';
+        }
+      }
+      
+      const upper = query.toUpperCase();
+      const normalizedNoSpecial = query.replace(/[\/\-\s]/g, '');
+      const normalizedNoSpaces = query.replace(/\s/g, '');
+      
+      const conditions: any[] = [
+        { wireNo: { equals: query } },
+        { wireNo: { equals: upper } },
+        { wireAlias: { equals: query, mode: 'insensitive' } },
+        { wireAlias: { equals: upper, mode: 'insensitive' } },
+        { wireNo: { contains: query, mode: 'insensitive' } },
+        { wireNo: { contains: normalizedNoSpaces, mode: 'insensitive' } },
+        { wireAlias: { contains: query, mode: 'insensitive' } },
+        { signalName: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+      ];
+      
+      if (numericBase && numericBase.length >= 2) {
+        conditions.push({ wireNo: { startsWith: numericBase } });
+        const normalizedBase = numericBase.replace(/-/g, '');
+        if (normalizedBase !== numericBase) {
+          conditions.push({ wireNo: { startsWith: normalizedBase } });
+        }
+      }
+      
+      if (normalizedNoSpecial && normalizedNoSpecial !== query && normalizedNoSpecial.length >= 2) {
+        conditions.push({ wireNo: { contains: normalizedNoSpecial, mode: 'insensitive' } });
+        conditions.push({ wireAlias: { contains: normalizedNoSpecial, mode: 'insensitive' } });
+      }
+      
+      if (suffix && suffix.length >= 1) {
+        conditions.push({ wireNo: { endsWith: suffix } });
+        const normalizedSuffix = suffix.replace(/[\/\-]/g, '');
+        if (normalizedSuffix !== suffix) {
+          conditions.push({ wireNo: { endsWith: normalizedSuffix } });
+        }
+      }
+      
+      return conditions;
+    };
+
     const results: Record<string, any> = {
       query: searchQuery,
       type,
@@ -31,21 +90,33 @@ export async function GET(request: NextRequest) {
 
     if (type === 'all' || type === 'wires') {
       // Alphanumeric wire search: support 3001a, 3001/1, 3001A, 3001-1
-      const numBase = searchQuery.replace(/[a-zA-Z]+$/, '').replace(/[\/-]/g, '');
-      const wireWhere: any = { OR: [
-        { wireNo: { contains: searchQuery, mode: 'insensitive' } },
-        { wireAlias: { contains: searchQuery, mode: 'insensitive' } },
-        { signalName: { contains: searchQuery, mode: 'insensitive' } },
-        { description: { contains: searchQuery, mode: 'insensitive' } },
-      ]};
-      if (numBase && numBase.length >= 2 && numBase !== searchQuery) {
-        wireWhere.OR.push({ wireNo: { startsWith: numBase } });
-      }
-      const wires = await prisma.wire.findMany({
+      const wireWhere: any = { OR: buildSearchConditions(searchQuery) };
+      const rawWires = await prisma.wire.findMany({
         where: wireWhere,
-        take: limit,
+        take: Math.min(limit * 5, 500),
         orderBy: { wireNo: 'asc' },
       });
+      // Re-rank by relevance so exact match (3001a) beats incidental (01222a)
+      const q = searchQuery.trim().toLowerCase();
+      const qNoSpecial = q.replace(/[\/\-\s]/g, '');
+      const base = q.match(/^(\d+(?:-\d+)?)/)?.[1] || '';
+      const score = (wireNo: string): number => {
+        const w = wireNo.toLowerCase();
+        const wNoSpecial = w.replace(/[\/\-\s]/g, '');
+        if (w === q) return 1000;
+        if (wNoSpecial === qNoSpecial) return 900;
+        if (w.startsWith(q)) return 800;
+        if (base && w === base) return 700;
+        if (base && w.startsWith(base)) return 600;
+        if (w.includes(q)) return 400;
+        if (wNoSpecial.includes(qNoSpecial)) return 300;
+        return 100;
+      };
+      const wires = rawWires
+        .map(w => ({ w, s: score(w.wireNo) }))
+        .sort((a, b) => (b.s - a.s) || a.w.wireNo.localeCompare(b.w.wireNo))
+        .slice(0, limit)
+        .map(x => x.w);
       results.wires = wires;
       results.total += wires.length;
     }
@@ -193,9 +264,11 @@ export async function GET(request: NextRequest) {
 }
 
 async function searchWireEverywhere(wireNo: string, limit: number) {
-  // Alphanumeric normalization: 3001a → base 3001, 3001/1 → 3001
+  // Alphanumeric normalization: 3001a → base 3001, 3001/1 → base 3001
   const normalizedWireNo = wireNo.trim().toUpperCase();
-  const numBase = normalizedWireNo.replace(/[A-Z]+$/, '').replace(/[\/\-]/g, '');
+  // Extract numeric base correctly: leading digits (with optional -digits),
+  // ignoring any alpha/slash suffix. 3001A → 3001, 3001/1 → 3001, 942-58142 → 942-58142
+  const numBase = (normalizedWireNo.match(/^(\d+(?:-\d+)?)/)?.[1]) || normalizedWireNo.replace(/[A-Z]+$/, '').replace(/[\/\-]/g, '');
   const normalized = normalizedWireNo.replace(/[\/\-\s]/g, '');
 
   const wireDetails = await prisma.wire.findFirst({
