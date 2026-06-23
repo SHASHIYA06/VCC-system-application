@@ -1,184 +1,269 @@
 'use client';
 
-/**
- * VALIDATION CENTER
- * Runs the wiring integrity report and presents an engineering-grade
- * health score with categorised findings. Powered by /api/twin/validate.
- */
-import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import {
-  ShieldCheck, ShieldAlert, AlertTriangle, Info, Loader2, RefreshCw,
-  Cable, Cpu, Box, FileText, MapPin,
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CheckCircle, XCircle, AlertTriangle, Loader2, Database, FileText, GitBranch } from 'lucide-react';
 
-interface Finding {
-  code: string;
-  title: string;
-  severity: 'critical' | 'warning' | 'info';
-  count: number;
-  description: string;
-  sample?: string[];
-}
-interface Report {
-  generatedAt: string;
-  overallScore: number;
-  totals: Record<string, number>;
-  findings: Finding[];
+interface CoverageMetrics {
+  drawingCoverage: number;
+  connectorCoverage: number;
+  pinCoverage: number;
+  wireCoverage: number;
+  systemCoverage: number;
+  revisionCoverage: number;
+  validationScore: number;
+  syntheticDataRemaining: number;
+  verifiedWires: number;
+  totalWires: number;
+  verifiedConnectors: number;
+  totalConnectors: number;
+  verifiedDevices: number;
+  totalDevices: number;
 }
 
-const SEV = {
-  critical: { color: 'text-red-300', bg: 'bg-red-500/10 border-red-500/30', icon: ShieldAlert },
-  warning: { color: 'text-amber-300', bg: 'bg-amber-500/10 border-amber-500/30', icon: AlertTriangle },
-  info: { color: 'text-sky-300', bg: 'bg-sky-500/10 border-sky-500/30', icon: Info },
-};
-
-const TOTAL_ICONS: Record<string, React.ReactNode> = {
-  wires: <Cable className="h-4 w-4 text-green-400" />,
-  pins: <MapPin className="h-4 w-4 text-amber-400" />,
-  connectors: <Cpu className="h-4 w-4 text-pink-400" />,
-  devices: <Box className="h-4 w-4 text-orange-400" />,
-  drawings: <FileText className="h-4 w-4 text-sky-400" />,
-  endpoints: <Cable className="h-4 w-4 text-cyan-400" />,
-};
-
-function scoreColor(s: number) {
-  if (s >= 80) return 'text-green-400';
-  if (s >= 50) return 'text-amber-400';
-  return 'text-red-400';
-}
-
-export default function ValidationCenterPage() {
-  const [report, setReport] = useState<Report | null>(null);
+export default function ValidationPage() {
+  const [metrics, setMetrics] = useState<CoverageMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  useEffect(() => {
+    fetchMetrics();
+    const interval = setInterval(fetchMetrics, 60000); // Refresh every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchMetrics = async () => {
     try {
-      const res = await fetch('/api/twin/validate');
-      const data = await res.json();
-      if (res.ok && data.success) setReport(data.report);
-    } catch {
-      /* surfaced via empty state */
+      const response = await fetch('/api/twin/validate');
+      const data = await response.json();
+      if (data.success && data.data) {
+        setMetrics(data.data);
+        setLastUpdated(new Date().toLocaleTimeString());
+      }
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  useEffect(() => { load(); }, [load]);
+  const getStatusColor = (value: number, threshold: number = 80) => {
+    if (value >= threshold) return 'text-green-400';
+    if (value >= 50) return 'text-yellow-400';
+    return 'text-red-400';
+  };
+
+  const getStatusIcon = (value: number, threshold: number = 80) => {
+    if (value >= threshold) return <CheckCircle className="w-5 h-5 text-green-400" />;
+    if (value >= 50) return <AlertTriangle className="w-5 h-5 text-yellow-400" />;
+    return <XCircle className="w-5 h-5 text-red-400" />;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-cyan-400 mx-auto mb-4" />
+          <p className="text-slate-400">Loading Engineering Accuracy Metrics...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen p-4 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30">
-            <ShieldCheck className="h-7 w-7 text-emerald-300" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Validation Center</h1>
-            <p className="text-slate-400 text-sm mt-1">
-              Automatic wiring integrity checks across the connectivity graph.
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2">
+            Engineering Accuracy Dashboard
+          </h1>
+          <p className="text-slate-400">Digital Twin Certification - Real-time Data Quality Monitoring</p>
+          {lastUpdated && <p className="text-slate-500 text-sm mt-2">Last updated: {lastUpdated}</p>}
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-medium flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Re-run
-        </button>
-      </div>
 
-      {loading && !report ? (
-        <div className="flex items-center justify-center py-20 text-slate-400">
-          <Loader2 className="h-6 w-6 animate-spin mr-3" /> Running validation…
-        </div>
-      ) : report ? (
-        <>
-          {/* Score + totals */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 flex flex-col items-center justify-center"
-            >
-              <div className="text-xs uppercase tracking-wider text-slate-400 mb-2">Connectivity Health</div>
-              <div className={`text-6xl font-bold ${scoreColor(report.overallScore)}`}>
-                {report.overallScore}
-              </div>
-              <div className="text-slate-500 text-sm mt-1">out of 100</div>
-            </motion.div>
-
-            <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {Object.entries(report.totals).map(([k, v]) => (
-                <div key={k} className="rounded-xl border border-slate-700/50 bg-slate-800/40 p-4">
-                  <div className="flex items-center gap-2 text-slate-400 text-xs uppercase tracking-wider mb-1.5">
-                    {TOTAL_ICONS[k]} {k}
-                  </div>
-                  <div className="text-2xl font-bold text-white">{v.toLocaleString()}</div>
-                </div>
-              ))}
+        {/* Main Score */}
+        <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-xl p-6 mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-400 mb-2">Overall Validation Score</p>
+              <p className={`text-6xl font-bold ${getStatusColor(metrics?.validationScore || 0)}`}>
+                {metrics?.validationScore?.toFixed(1) || 0}%
+              </p>
+            </div>
+            <div className="text-right">
+              {getStatusIcon(metrics?.validationScore || 0)}
+              <p className="text-slate-400 mt-2">
+                {metrics?.validationScore && metrics.validationScore >= 80 
+                  ? 'Engineering Grade Certified' 
+                  : 'Data Quality Needs Improvement'}
+              </p>
             </div>
           </div>
-
-          {/* Findings */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
-              Findings ({report.findings.length})
-            </h3>
-            {report.findings.length === 0 ? (
-              <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-6 text-green-300 flex items-center gap-3">
-                <ShieldCheck className="h-6 w-6" /> No integrity issues found. The connectivity graph is sound.
-              </div>
-            ) : (
-              report.findings.map((f, i) => {
-                const sev = SEV[f.severity];
-                const Icon = sev.icon;
-                return (
-                  <motion.div
-                    key={f.code}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className={`rounded-xl border p-5 ${sev.bg}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Icon className={`h-5 w-5 shrink-0 mt-0.5 ${sev.color}`} />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <h4 className="font-semibold text-white">{f.title}</h4>
-                          <span className={`px-2.5 py-1 rounded-md text-sm font-bold ${sev.color}`}>
-                            {f.count.toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-slate-400 text-sm mt-1.5">{f.description}</p>
-                        {f.sample && f.sample.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-3">
-                            {f.sample.map((s) => (
-                              <span key={s} className="px-2 py-0.5 rounded text-xs bg-slate-800/80 text-slate-300 font-mono">
-                                {s}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })
-            )}
-          </div>
-          <p className="text-xs text-slate-600">
-            Generated {new Date(report.generatedAt).toLocaleString()}
-          </p>
-        </>
-      ) : (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-red-300">
-          Could not load validation report. Check the database connection and try Re-run.
         </div>
-      )}
+
+        {/* Coverage Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {/* Drawing Coverage */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-cyan-400" />
+                <span className="text-slate-300 font-medium">Drawing Coverage</span>
+              </div>
+              {getStatusIcon(metrics?.drawingCoverage || 0)}
+            </div>
+            <p className={`text-3xl font-bold ${getStatusColor(metrics?.drawingCoverage || 0)}`}>
+              {metrics?.drawingCoverage?.toFixed(1) || 0}%
+            </p>
+            <p className="text-slate-500 text-sm mt-1">Drawings mapped to database</p>
+          </div>
+
+          {/* Connector Coverage */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <GitBranch className="w-5 h-5 text-cyan-400" />
+                <span className="text-slate-300 font-medium">Connector Coverage</span>
+              </div>
+              {getStatusIcon(metrics?.connectorCoverage || 0)}
+            </div>
+            <p className={`text-3xl font-bold ${getStatusColor(metrics?.connectorCoverage || 0)}`}>
+              {metrics?.connectorCoverage?.toFixed(1) || 0}%
+            </p>
+            <p className="text-slate-500 text-sm mt-1">
+              {metrics?.verifiedConnectors || 0} / {metrics?.totalConnectors || 0} verified
+            </p>
+          </div>
+
+          {/* Pin Coverage */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Database className="w-5 h-5 text-cyan-400" />
+                <span className="text-slate-300 font-medium">Pin Coverage</span>
+              </div>
+              {getStatusIcon(metrics?.pinCoverage || 0)}
+            </div>
+            <p className={`text-3xl font-bold ${getStatusColor(metrics?.pinCoverage || 0)}`}>
+              {metrics?.pinCoverage?.toFixed(1) || 0}%
+            </p>
+            <p className="text-slate-500 text-sm mt-1">Pins with wire references</p>
+          </div>
+
+          {/* Wire Coverage */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <GitBranch className="w-5 h-5 text-purple-400" />
+                <span className="text-slate-300 font-medium">Wire Coverage</span>
+              </div>
+              {getStatusIcon(metrics?.wireCoverage || 0)}
+            </div>
+            <p className={`text-3xl font-bold ${getStatusColor(metrics?.wireCoverage || 0)}`}>
+              {metrics?.wireCoverage?.toFixed(1) || 0}%
+            </p>
+            <p className="text-slate-500 text-sm mt-1">
+              {metrics?.verifiedWires || 0} / {metrics?.totalWires || 0} verified
+            </p>
+          </div>
+
+          {/* System Coverage */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Database className="w-5 h-5 text-green-400" />
+                <span className="text-slate-300 font-medium">System Coverage</span>
+              </div>
+              {getStatusIcon(metrics?.systemCoverage || 0)}
+            </div>
+            <p className={`text-3xl font-bold ${getStatusColor(metrics?.systemCoverage || 0)}`}>
+              {metrics?.systemCoverage?.toFixed(1) || 0}%
+            </p>
+            <p className="text-slate-500 text-sm mt-1">Systems with drawings</p>
+          </div>
+
+          {/* Revision Coverage */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-orange-400" />
+                <span className="text-slate-300 font-medium">Revision Coverage</span>
+              </div>
+              {getStatusIcon(metrics?.revisionCoverage || 0)}
+            </div>
+            <p className={`text-3xl font-bold ${getStatusColor(metrics?.revisionCoverage || 0)}`}>
+              {metrics?.revisionCoverage?.toFixed(1) || 0}%
+            </p>
+            <p className="text-slate-500 text-sm mt-1">Drawings with revisions tracked</p>
+          </div>
+        </div>
+
+        {/* Synthetic Data Alert */}
+        <div className={`border rounded-lg p-5 mb-8 ${
+          (metrics?.syntheticDataRemaining || 0) > 50 
+            ? 'bg-red-500/10 border-red-500/30' 
+            : (metrics?.syntheticDataRemaining || 0) > 20
+            ? 'bg-yellow-500/10 border-yellow-500/30'
+            : 'bg-green-500/10 border-green-500/30'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg mb-1">Synthetic Data Remaining</h3>
+              <p className="text-slate-400">
+                {(metrics?.syntheticDataRemaining || 0).toFixed(1)}% of wires are synthetic/auto-generated
+              </p>
+            </div>
+            <div className="text-right">
+              <p className={`text-3xl font-bold ${
+                (metrics?.syntheticDataRemaining || 0) > 50 
+                  ? 'text-red-400' 
+                  : (metrics?.syntheticDataRemaining || 0) > 20
+                  ? 'text-yellow-400'
+                  : 'text-green-400'
+              }`}>
+                {(metrics?.syntheticDataRemaining || 0).toFixed(1)}%
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Goal Progress */}
+        <div className="bg-slate-800/30 border border-slate-700 rounded-lg p-5">
+          <h3 className="text-lg font-semibold text-slate-300 mb-4">Phase 2 Completion Goal: 100% Verified Engineering Relationships</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-4">
+              <div className="w-32 text-slate-400">Wires</div>
+              <div className="flex-1 bg-slate-700 rounded-full h-3">
+                <div 
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 h-3 rounded-full transition-all"
+                  style={{ width: `${Math.min((metrics?.wireCoverage || 0), 100)}%` }}
+                />
+              </div>
+              <div className="w-16 text-right text-slate-400">{metrics?.wireCoverage?.toFixed(0) || 0}%</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="w-32 text-slate-400">Connectors</div>
+              <div className="flex-1 bg-slate-700 rounded-full h-3">
+                <div 
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all"
+                  style={{ width: `${Math.min((metrics?.connectorCoverage || 0), 100)}%` }}
+                />
+              </div>
+              <div className="w-16 text-right text-slate-400">{metrics?.connectorCoverage?.toFixed(0) || 0}%</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="w-32 text-slate-400">Systems</div>
+              <div className="flex-1 bg-slate-700 rounded-full h-3">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all"
+                  style={{ width: `${Math.min((metrics?.systemCoverage || 0), 100)}%` }}
+                />
+              </div>
+              <div className="w-16 text-right text-slate-400">{metrics?.systemCoverage?.toFixed(0) || 0}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
