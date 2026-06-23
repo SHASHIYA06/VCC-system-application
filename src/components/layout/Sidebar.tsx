@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Search, Layers, Cpu, Cable, FileText, Settings,
   Network, Brain, BookOpen, Wrench, Train, Box, MapPin,
-  ChevronLeft, ChevronRight, Zap, X, type LucideIcon,
+  ChevronLeft, ChevronRight, Zap, X, Workflow, ShieldCheck, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +33,7 @@ const navigationGroups: NavGroup[] = [
   {
     name: 'Digital Twin',
     items: [
+      { name: 'Twin Explorer', href: '/twin', icon: Workflow, accent: 'text-cyan-400' },
       { name: 'Train Explorer', href: '/cars', icon: Train, accent: 'text-blue-400' },
       { name: 'Systems', href: '/systems', icon: Layers, accent: 'text-purple-400' },
       { name: 'Equipment', href: '/equipment', icon: Box, accent: 'text-orange-400' },
@@ -55,6 +56,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: 'GSD Pi Topology', href: '/gsd', icon: Network, accent: 'text-emerald-400' },
       { name: 'AI Assistant', href: '/ai-assistant', icon: Brain, accent: 'text-violet-400' },
+      { name: 'Validation Center', href: '/validation', icon: ShieldCheck, accent: 'text-emerald-400' },
       { name: 'Troubleshooting', href: '/troubleshooting', icon: Wrench, accent: 'text-red-400' },
     ],
   },
