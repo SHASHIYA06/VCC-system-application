@@ -1,334 +1,386 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { 
-  Train, Layers, FileText, Cpu, MapPin, Cable, ChevronRight, 
-  ChevronDown, Loader2, ArrowLeft, Zap, Search, AlertTriangle
+import {
+  ChevronRight, ChevronDown, Train, Layers, Box, Cpu, MapPin, Cable,
+  FileText, Loader2, RefreshCw, Search, Zap, Activity, Shield,
+  DoorOpen, Wind, Radio, Battery, Settings, Lightbulb,
 } from 'lucide-react';
 
-interface SystemData {
-  code: string; name: string; category: string;
-  drawings: number; devices: number; connectors: number; wires: number; completeness: number;
-}
+// Types
+interface Formation { id: string; code: string; name: string; carCount: number; project: string; cars: CarSummary[]; }
+interface CarSummary { id: string; carCode: string; carType: string; carPosition: number; carLabel: string | null; }
+interface SystemSummary { id: string; code: string; name: string; category: string | null; deviceCount: number; drawingCount: number; subsystemCount: number; }
+interface DeviceSummary { id: string; deviceName: string; deviceType: string | null; tagNo: string | null; carType: string | null; _count: { wireEndpoints: number }; }
+interface ConnectorSummary { id: string; connectorCode: string; description: string | null; carType: string | null; pinCount: number | null; _count: { pins: number; wireEndpoints: number }; }
+interface PinSummary { id: string; pinNo: string; pinLabel: string | null; wireNo: string | null; signalName: string | null; conductorClassCode: string | null; voltageText: string | null; }
 
-interface DrawingData {
-  drawingNo: string; title: string; sheets: number;
-  connectors: { code: string; pins: number }[];
-  connectorCount: number; deviceCount: number; trainlineCount: number;
-}
-
-interface ConnectorData {
-  code: string; carType: string; location: string; totalPins: number;
-  pins: { pin: string; signal: string; wire: string; voltage: string; class: string }[];
-}
-
-interface WireTrace {
-  wireNo: string; signalName: string; description: string;
-  wireSize: string; wireColor: string; voltageClass: string;
-  source: { equipment: string; connector: string; pin: string };
-  destination: { equipment: string; connector: string; pin: string };
-  appearances: { connector: string; pin: string; signal: string; drawing: string; system: string }[];
-}
+// System icon map
+const SYSTEM_ICONS: Record<string, any> = {
+  TRAC: Zap, BRAKE: Shield, DOOR: DoorOpen, VAC: Wind, APS: Battery,
+  COMMS: Radio, TMS: Cpu, HV: Activity, LIGHT: Lightbulb, GEN: Settings,
+  TRL: Train, CAB: Settings, BOGIE: Box,
+};
+const SYSTEM_COLORS: Record<string, string> = {
+  TRAC: 'text-orange-400', BRAKE: 'text-red-400', DOOR: 'text-amber-400',
+  VAC: 'text-cyan-400', APS: 'text-green-400', COMMS: 'text-emerald-400',
+  TMS: 'text-purple-400', HV: 'text-rose-400', LIGHT: 'text-yellow-400',
+  GEN: 'text-slate-400', TRL: 'text-blue-400', CAB: 'text-indigo-400',
+  BOGIE: 'text-stone-400',
+};
 
 export default function GSDExplorePage() {
-  const [level, setLevel] = useState<'train' | 'system' | 'drawing' | 'connector' | 'wire'>('train');
-  const [systems, setSystems] = useState<SystemData[]>([]);
-  const [selectedSystem, setSelectedSystem] = useState<string>('');
-  const [drawings, setDrawings] = useState<DrawingData[]>([]);
-  const [selectedDrawing, setSelectedDrawing] = useState<string>('');
-  const [connectors, setConnectors] = useState<ConnectorData[]>([]);
-  const [selectedConnector, setSelectedConnector] = useState<string>('');
-  const [wireTrace, setWireTrace] = useState<WireTrace | null>(null);
-  const [wireSearch, setWireSearch] = useState('');
+  const [formations, setFormations] = useState<Formation[]>([]);
+  const [systems, setSystems] = useState<SystemSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [breadcrumb, setBreadcrumb] = useState<string[]>(['Train']);
+  const [search, setSearch] = useState('');
 
-  // Load train overview
-  useEffect(() => { loadTrainOverview(); }, []);
+  // Expanded state tracking
+  const [expandedFormations, setExpandedFormations] = useState<Set<string>>(new Set());
+  const [expandedCars, setExpandedCars] = useState<Set<string>>(new Set());
+  const [expandedSystems, setExpandedSystems] = useState<Set<string>>(new Set());
+  const [expandedDevices, setExpandedDevices] = useState<Set<string>>(new Set());
+  const [expandedConnectors, setExpandedConnectors] = useState<Set<string>>(new Set());
 
-  async function loadTrainOverview() {
-    setLoading(true); setError('');
-    try {
-      const res = await fetch('/api/gsd/explore');
-      const data = await res.json();
-      if (data.success) setSystems(data.data.systems);
-      else setError(data.error);
-    } catch (e) { setError('Failed to load train data'); }
-    setLoading(false);
-  }
+  // Loaded child data
+  const [systemDevices, setSystemDevices] = useState<Record<string, DeviceSummary[]>>({});
+  const [systemConnectors, setSystemConnectors] = useState<Record<string, ConnectorSummary[]>>({});
+  const [connectorPins, setConnectorPins] = useState<Record<string, PinSummary[]>>({});
+  const [loadingNodes, setLoadingNodes] = useState<Set<string>>(new Set());
 
-  async function selectSystem(code: string) {
-    setLoading(true); setError(''); setSelectedSystem(code);
-    try {
-      const res = await fetch(`/api/gsd/explore?system=${code}`);
-      const data = await res.json();
-      if (data.success) { setDrawings(data.data.drawings); setLevel('system'); setBreadcrumb(['Train', code]); }
-      else setError(data.error);
-    } catch (e) { setError('Failed to load system'); }
-    setLoading(false);
-  }
+  useEffect(() => {
+    async function load() {
+      try {
+        const [formRes, sysRes] = await Promise.all([
+          fetch('/api/twin/hierarchy?level=formation'),
+          fetch('/api/twin/hierarchy?level=system'),
+        ]);
+        const formData = await formRes.json();
+        const sysData = await sysRes.json();
+        if (formData.success) setFormations(formData.data);
+        if (sysData.success) setSystems(sysData.data);
+      } catch (err) {
+        console.error('Failed to load hierarchy:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
-  async function selectDrawing(dwgNo: string) {
-    setLoading(true); setError(''); setSelectedDrawing(dwgNo);
-    try {
-      const res = await fetch(`/api/gsd/explore?drawing=${dwgNo}`);
-      const data = await res.json();
-      if (data.success) { setConnectors(data.data.connectors); setLevel('drawing'); setBreadcrumb(['Train', selectedSystem, dwgNo]); }
-      else setError(data.error);
-    } catch (e) { setError('Failed to load drawing'); }
-    setLoading(false);
-  }
+  const toggleFormation = (id: string) => {
+    setExpandedFormations(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
-  async function traceWire(wire: string) {
-    if (!wire.trim()) return;
-    setLoading(true); setError('');
-    try {
-      const res = await fetch(`/api/gsd/explore?wire=${wire.trim()}`);
-      const data = await res.json();
-      if (data.success) { setWireTrace(data.data); setLevel('wire'); setBreadcrumb(['Train', 'Wire Trace', wire]); }
-      else setError(`Wire ${wire} not found`);
-    } catch (e) { setError('Failed to trace wire'); }
-    setLoading(false);
-  }
+  const toggleCar = (id: string) => {
+    setExpandedCars(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
-  function goBack() {
-    if (level === 'wire') { setLevel('train'); setBreadcrumb(['Train']); setWireTrace(null); }
-    else if (level === 'drawing') { setLevel('system'); setBreadcrumb(['Train', selectedSystem]); }
-    else if (level === 'system') { setLevel('train'); setBreadcrumb(['Train']); }
+  const toggleSystem = useCallback(async (systemId: string) => {
+    const isExpanded = expandedSystems.has(systemId);
+    setExpandedSystems(prev => {
+      const next = new Set(prev);
+      isExpanded ? next.delete(systemId) : next.add(systemId);
+      return next;
+    });
+
+    if (!isExpanded && !systemDevices[systemId]) {
+      setLoadingNodes(prev => new Set(prev).add(systemId));
+      try {
+        const res = await fetch(`/api/twin/hierarchy?level=system&parentId=${systemId}`);
+        const data = await res.json();
+        if (data.success && data.data) {
+          setSystemDevices(prev => ({ ...prev, [systemId]: data.data.devices || [] }));
+        }
+      } catch (err) { console.error(err); }
+      finally { setLoadingNodes(prev => { const n = new Set(prev); n.delete(systemId); return n; }); }
+    }
+  }, [expandedSystems, systemDevices]);
+
+  const toggleDevice = useCallback(async (deviceId: string) => {
+    const isExpanded = expandedDevices.has(deviceId);
+    setExpandedDevices(prev => {
+      const next = new Set(prev);
+      isExpanded ? next.delete(deviceId) : next.add(deviceId);
+      return next;
+    });
+  }, [expandedDevices]);
+
+  const toggleConnector = useCallback(async (connectorId: string) => {
+    const isExpanded = expandedConnectors.has(connectorId);
+    setExpandedConnectors(prev => {
+      const next = new Set(prev);
+      isExpanded ? next.delete(connectorId) : next.add(connectorId);
+      return next;
+    });
+
+    if (!isExpanded && !connectorPins[connectorId]) {
+      setLoadingNodes(prev => new Set(prev).add(connectorId));
+      try {
+        const res = await fetch(`/api/twin/hierarchy?level=connector&parentId=${connectorId}`);
+        const data = await res.json();
+        if (data.success && data.data) {
+          setConnectorPins(prev => ({ ...prev, [connectorId]: data.data.pins || [] }));
+        }
+      } catch (err) { console.error(err); }
+      finally { setLoadingNodes(prev => { const n = new Set(prev); n.delete(connectorId); return n; }); }
+    }
+  }, [expandedConnectors, connectorPins]);
+
+  const filteredSystems = systems.filter(s =>
+    !search || s.code.toLowerCase().includes(search.toLowerCase()) || s.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 text-cyan-400 animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <div className="p-4 sm:p-6 min-h-screen">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-          <Train className="h-6 w-6 text-cyan-400" />
-          GSD-Pi: Train Wiring Explorer
-        </h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Navigate: Train → System → Drawing → Connector → Pin → Wire
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-white tracking-tight">GSD Topology Explorer</h1>
+          <p className="text-slate-400 mt-1">Navigate the complete train hierarchy — expand any node to drill down</p>
+        </div>
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1 mb-4 text-sm">
-        {breadcrumb.map((item, i) => (
-          <span key={i} className="flex items-center gap-1">
-            {i > 0 && <ChevronRight className="h-3 w-3 text-slate-600" />}
-            <button onClick={() => { if (i === 0) { setLevel('train'); setBreadcrumb(['Train']); } }} className="text-slate-400 hover:text-cyan-400 cursor-pointer">
-              {item}
-            </button>
-          </span>
-        ))}
-      </div>
-
-      {/* Wire Search */}
-      <div className="flex items-center gap-2 mb-6">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+        {/* Search */}
+        <div className="mb-6 relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
-            type="text" value={wireSearch} onChange={e => setWireSearch(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && traceWire(wireSearch)}
-            placeholder="Trace wire number (e.g. 3001, 6009)..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Filter systems..."
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-800/80 border border-slate-700/50 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
           />
         </div>
-        <button onClick={() => traceWire(wireSearch)} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg cursor-pointer">
-          Trace
-        </button>
-        {level !== 'train' && (
-          <button onClick={goBack} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm rounded-lg cursor-pointer flex items-center gap-1">
-            <ArrowLeft className="h-3 w-3" /> Back
-          </button>
-        )}
-      </div>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4" /> {error}
-        </div>
-      )}
+        {/* Tree */}
+        <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 space-y-1">
 
-      {loading && (
-        <div className="flex items-center gap-3 p-8 justify-center">
-          <Loader2 className="h-5 w-5 text-cyan-400 animate-spin" />
-          <span className="text-slate-400 text-sm">Loading...</span>
-        </div>
-      )}
+          {/* Formation Level */}
+          {formations.map(formation => (
+            <div key={formation.id}>
+              <TreeNode
+                icon={<Train className="h-4 w-4 text-blue-400" />}
+                label={`${formation.name} (${formation.code})`}
+                badge={`${formation.carCount} cars`}
+                expanded={expandedFormations.has(formation.id)}
+                onToggle={() => toggleFormation(formation.id)}
+                depth={0}
+              />
 
-      {/* LEVEL 1: Train Overview - All Systems */}
-      {!loading && level === 'train' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {systems.map(sys => (
-            <button key={sys.code} onClick={() => selectSystem(sys.code)}
-              className="text-left p-4 bg-slate-900/80 border border-slate-800 rounded-xl hover:border-cyan-500/40 hover:bg-slate-800/80 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">{sys.code}</span>
-                <ChevronRight className="h-4 w-4 text-slate-600 group-hover:text-cyan-400" />
-              </div>
-              <p className="text-xs text-slate-400 mb-3">{sys.name}</p>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <span className="text-slate-500"><FileText className="h-3 w-3 inline mr-1" />{sys.drawings} dwgs</span>
-                <span className="text-slate-500"><Cpu className="h-3 w-3 inline mr-1" />{sys.devices} dev</span>
-              </div>
-              <div className="mt-2 h-1 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${sys.completeness}%` }} />
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+              {expandedFormations.has(formation.id) && formation.cars.map(car => (
+                <div key={car.id}>
+                  <TreeNode
+                    icon={<Box className="h-4 w-4 text-purple-400" />}
+                    label={`${car.carCode} — ${car.carType}`}
+                    badge={car.carLabel || `Pos ${car.carPosition}`}
+                    expanded={expandedCars.has(car.id)}
+                    onToggle={() => toggleCar(car.id)}
+                    depth={1}
+                    href={`/cars/${car.carType}`}
+                  />
 
-      {/* LEVEL 2: System - Drawings List */}
-      {!loading && level === 'system' && (
-        <div className="space-y-2">
-          <h2 className="text-lg font-bold text-white mb-4">{selectedSystem} — Drawings</h2>
-          {drawings.map(dwg => (
-            <button key={dwg.drawingNo} onClick={() => selectDrawing(dwg.drawingNo)}
-              className="w-full text-left p-3 bg-slate-900/80 border border-slate-800 rounded-lg hover:border-cyan-500/40 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="font-mono text-sm text-cyan-400">{dwg.drawingNo}</span>
-                  <span className="ml-3 text-sm text-slate-300">{dwg.title}</span>
+                  {expandedCars.has(car.id) && (
+                    <div className="ml-8 pl-4 border-l border-slate-700/50">
+                      <p className="text-xs text-slate-500 py-1 pl-6">Systems installed on this car:</p>
+                      {filteredSystems.map(sys => (
+                        <SystemTreeNode
+                          key={`${car.id}-${sys.id}`}
+                          system={sys}
+                          expanded={expandedSystems.has(sys.id)}
+                          onToggle={() => toggleSystem(sys.id)}
+                          devices={systemDevices[sys.id]}
+                          expandedDevices={expandedDevices}
+                          onToggleDevice={toggleDevice}
+                          expandedConnectors={expandedConnectors}
+                          onToggleConnector={toggleConnector}
+                          connectorPins={connectorPins}
+                          loadingNodes={loadingNodes}
+                          depth={2}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-3 text-xs text-slate-500">
-                  <span>{dwg.connectorCount} connectors</span>
-                  <span>{dwg.deviceCount} devices</span>
-                  <ChevronRight className="h-4 w-4 text-slate-600 group-hover:text-cyan-400" />
-                </div>
-              </div>
-              {dwg.connectors.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {dwg.connectors.slice(0, 8).map(c => (
-                    <span key={c.code} className="px-2 py-0.5 bg-slate-800 rounded text-[10px] text-slate-400">{c.code} ({c.pins}p)</span>
-                  ))}
-                  {dwg.connectors.length > 8 && <span className="text-[10px] text-slate-500">+{dwg.connectors.length - 8} more</span>}
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* LEVEL 3: Drawing - Connectors with Pins */}
-      {!loading && level === 'drawing' && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-white mb-4">{selectedDrawing} — Connectors & Pins</h2>
-          {connectors.length === 0 && <p className="text-slate-400">No connectors found on this drawing</p>}
-          {connectors.map(conn => (
-            <details key={conn.code} className="bg-slate-900/80 border border-slate-800 rounded-xl overflow-hidden group">
-              <summary className="px-4 py-3 cursor-pointer hover:bg-slate-800/50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Cpu className="h-4 w-4 text-purple-400" />
-                  <span className="font-mono font-bold text-white">{conn.code}</span>
-                  {conn.carType && <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">{conn.carType}</span>}
-                  {conn.location && <span className="text-xs text-slate-500">{conn.location}</span>}
-                </div>
-                <span className="text-xs text-slate-400">{conn.totalPins} pins</span>
-              </summary>
-              <div className="border-t border-slate-800">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-slate-800/50 text-slate-400">
-                      <th className="px-3 py-2 text-left">Pin</th>
-                      <th className="px-3 py-2 text-left">Signal</th>
-                      <th className="px-3 py-2 text-left">Wire</th>
-                      <th className="px-3 py-2 text-left">Voltage</th>
-                      <th className="px-3 py-2 text-left">Class</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {conn.pins.map((p, i) => (
-                      <tr key={i} className="border-t border-slate-800/50 hover:bg-slate-800/30">
-                        <td className="px-3 py-1.5 font-mono font-bold text-cyan-400">{p.pin}</td>
-                        <td className="px-3 py-1.5 text-white">{p.signal || '—'}</td>
-                        <td className="px-3 py-1.5">
-                          {p.wire ? (
-                            <button onClick={() => traceWire(p.wire)} className="text-cyan-400 hover:text-cyan-300 font-mono cursor-pointer underline">
-                              {p.wire}
-                            </button>
-                          ) : '—'}
-                        </td>
-                        <td className="px-3 py-1.5 text-slate-400">{p.voltage || '—'}</td>
-                        <td className="px-3 py-1.5 text-slate-500">{p.class || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </details>
-          ))}
-        </div>
-      )}
-
-      {/* LEVEL 4: Wire Trace */}
-      {!loading && level === 'wire' && wireTrace && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Cable className="h-5 w-5 text-green-400" />
-            Wire Trace: {wireTrace.wireNo}
-          </h2>
-
-          {/* Wire Info */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-              <div><span className="text-slate-500 block text-xs">Signal</span><span className="text-white">{wireTrace.signalName || '—'}</span></div>
-              <div><span className="text-slate-500 block text-xs">Size</span><span className="text-white">{wireTrace.wireSize || '—'}</span></div>
-              <div><span className="text-slate-500 block text-xs">Color</span><span className="text-white">{wireTrace.wireColor || '—'}</span></div>
-              <div><span className="text-slate-500 block text-xs">Voltage</span><span className="text-white">{wireTrace.voltageClass || '—'}</span></div>
+              ))}
             </div>
-            {wireTrace.description && <p className="mt-3 text-sm text-slate-400">{wireTrace.description}</p>}
-          </div>
+          ))}
 
-          {/* Route */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
-            <h3 className="text-sm font-bold text-white mb-3">Route</h3>
-            <div className="flex items-center gap-3 text-sm flex-wrap">
-              <div className="px-3 py-2 bg-green-500/10 border border-green-500/30 rounded-lg">
-                <span className="text-green-400 font-bold">{wireTrace.source.equipment || '?'}</span>
-                <span className="text-slate-500 ml-1">({wireTrace.source.connector}:{wireTrace.source.pin})</span>
-              </div>
-              <div className="text-slate-600">→ Wire {wireTrace.wireNo} →</div>
-              <div className="px-3 py-2 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                <span className="text-orange-400 font-bold">{wireTrace.destination.equipment || '?'}</span>
-                <span className="text-slate-500 ml-1">({wireTrace.destination.connector}:{wireTrace.destination.pin})</span>
-              </div>
-            </div>
-          </div>
+          {/* Also show all systems at root level for direct access */}
+          {formations.length === 0 && (
+            <>
+              <p className="text-sm text-slate-400 mb-2 px-2">All Systems:</p>
+              {filteredSystems.map(sys => (
+                <SystemTreeNode
+                  key={sys.id}
+                  system={sys}
+                  expanded={expandedSystems.has(sys.id)}
+                  onToggle={() => toggleSystem(sys.id)}
+                  devices={systemDevices[sys.id]}
+                  expandedDevices={expandedDevices}
+                  onToggleDevice={toggleDevice}
+                  expandedConnectors={expandedConnectors}
+                  onToggleConnector={toggleConnector}
+                  connectorPins={connectorPins}
+                  loadingNodes={loadingNodes}
+                  depth={0}
+                />
+              ))}
+            </>
+          )}
 
-          {/* All appearances across drawings */}
-          {wireTrace.appearances.length > 0 && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-sm font-bold text-white mb-3">Appears on ({wireTrace.appearances.length} locations)</h3>
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-slate-400 border-b border-slate-800">
-                    <th className="py-2 text-left">Drawing</th>
-                    <th className="py-2 text-left">System</th>
-                    <th className="py-2 text-left">Connector</th>
-                    <th className="py-2 text-left">Pin</th>
-                    <th className="py-2 text-left">Signal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {wireTrace.appearances.map((a, i) => (
-                    <tr key={i} className="border-t border-slate-800/50 hover:bg-slate-800/30">
-                      <td className="py-1.5"><Link href={`/drawings/${a.drawing}`} className="text-cyan-400 hover:underline cursor-pointer">{a.drawing}</Link></td>
-                      <td className="py-1.5 text-slate-400">{a.system}</td>
-                      <td className="py-1.5 text-purple-400 font-mono">{a.connector}</td>
-                      <td className="py-1.5 text-white font-mono">{a.pin}</td>
-                      <td className="py-1.5 text-slate-300">{a.signal}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {/* Direct Systems access below formations */}
+          {formations.length > 0 && (
+            <>
+              <div className="pt-4 mt-4 border-t border-slate-700/50">
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-2 px-2">All Systems (Direct Access)</p>
+              </div>
+              {filteredSystems.map(sys => (
+                <SystemTreeNode
+                  key={`direct-${sys.id}`}
+                  system={sys}
+                  expanded={expandedSystems.has(sys.id)}
+                  onToggle={() => toggleSystem(sys.id)}
+                  devices={systemDevices[sys.id]}
+                  expandedDevices={expandedDevices}
+                  onToggleDevice={toggleDevice}
+                  expandedConnectors={expandedConnectors}
+                  onToggleConnector={toggleConnector}
+                  connectorPins={connectorPins}
+                  loadingNodes={loadingNodes}
+                  depth={0}
+                />
+              ))}
+            </>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── System Tree Node (renders devices + connectors underneath) ─────────────────
+
+function SystemTreeNode({ system, expanded, onToggle, devices, expandedDevices, onToggleDevice, expandedConnectors, onToggleConnector, connectorPins, loadingNodes, depth }: {
+  system: SystemSummary;
+  expanded: boolean;
+  onToggle: () => void;
+  devices?: DeviceSummary[];
+  expandedDevices: Set<string>;
+  onToggleDevice: (id: string) => void;
+  expandedConnectors: Set<string>;
+  onToggleConnector: (id: string) => void;
+  connectorPins: Record<string, PinSummary[]>;
+  loadingNodes: Set<string>;
+  depth: number;
+}) {
+  const Icon = SYSTEM_ICONS[system.code] || Layers;
+  const color = SYSTEM_COLORS[system.code] || 'text-slate-400';
+
+  return (
+    <div>
+      <TreeNode
+        icon={<Icon className={`h-4 w-4 ${color}`} />}
+        label={`${system.code} — ${system.name}`}
+        badge={`${system.deviceCount} devices · ${system.drawingCount} dwgs`}
+        expanded={expanded}
+        onToggle={onToggle}
+        loading={loadingNodes.has(system.id)}
+        depth={depth}
+        href={`/systems/${system.code}`}
+      />
+
+      {expanded && devices && (
+        <div className="space-y-0.5">
+          {devices.length === 0 ? (
+            <p className="text-xs text-slate-500 py-1" style={{ paddingLeft: `${(depth + 1) * 24 + 28}px` }}>
+              No devices registered
+            </p>
+          ) : (
+            devices.map(device => (
+              <div key={device.id}>
+                <TreeNode
+                  icon={<Cpu className="h-3.5 w-3.5 text-pink-400" />}
+                  label={device.deviceName}
+                  badge={device.tagNo || device.deviceType || ''}
+                  expanded={expandedDevices.has(device.id)}
+                  onToggle={() => onToggleDevice(device.id)}
+                  depth={depth + 1}
+                  href={`/equipment/${encodeURIComponent(device.deviceName)}`}
+                  small
+                />
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {expanded && loadingNodes.has(system.id) && (
+        <div className="flex items-center gap-2 py-1" style={{ paddingLeft: `${(depth + 1) * 24 + 28}px` }}>
+          <Loader2 className="h-3 w-3 text-cyan-400 animate-spin" />
+          <span className="text-xs text-slate-500">Loading devices...</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Generic Tree Node ──────────────────────────────────────────────────────────
+
+function TreeNode({ icon, label, badge, expanded, onToggle, loading, depth, href, small }: {
+  icon: React.ReactNode;
+  label: string;
+  badge?: string;
+  expanded: boolean;
+  onToggle: () => void;
+  loading?: boolean;
+  depth: number;
+  href?: string;
+  small?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-lg hover:bg-slate-800/50 transition-colors cursor-pointer group ${
+        small ? 'py-1 px-2' : 'py-2 px-3'
+      }`}
+      style={{ paddingLeft: `${depth * 24 + 8}px` }}
+      onClick={onToggle}
+    >
+      <button className="shrink-0 w-5 h-5 flex items-center justify-center text-slate-500 group-hover:text-slate-300">
+        {loading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-400" />
+        ) : expanded ? (
+          <ChevronDown className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
+      </button>
+      {icon}
+      <span className={`font-medium text-slate-200 ${small ? 'text-xs' : 'text-sm'}`}>
+        {href ? (
+          <Link href={href} className="hover:text-cyan-400 transition-colors" onClick={(e) => e.stopPropagation()}>
+            {label}
+          </Link>
+        ) : label}
+      </span>
+      {badge && (
+        <span className="ml-auto text-xs text-slate-500 font-mono">{badge}</span>
       )}
     </div>
   );

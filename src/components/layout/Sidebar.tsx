@@ -56,7 +56,8 @@ const navigationGroups: NavGroup[] = [
   {
     name: 'Intelligence',
     items: [
-      { name: 'GSD Pi Topology', href: '/gsd', icon: Network, accent: 'text-emerald-400' },
+      { name: 'GSD Topology', href: '/gsd/explore', icon: Network, accent: 'text-emerald-400' },
+      { name: 'GSD Graph', href: '/gsd', icon: Network, accent: 'text-teal-400' },
       { name: 'AI Assistant', href: '/ai-assistant', icon: Brain, accent: 'text-violet-400' },
       { name: 'Validation Center', href: '/validation', icon: ShieldCheck, accent: 'text-emerald-400' },
       { name: 'Troubleshooting', href: '/troubleshooting', icon: Wrench, accent: 'text-red-400' },
