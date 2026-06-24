@@ -33,7 +33,7 @@ export default function ValidationPage() {
 
   const fetchMetrics = async () => {
     try {
-      const response = await fetch('/api/twin/validate');
+      const response = await fetch('/api/twin/metrics');
       const data = await response.json();
       if (data.success && data.data) {
         setMetrics(data.data);
