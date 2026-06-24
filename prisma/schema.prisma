@@ -148,6 +148,8 @@ model Drawing {
   sheets               DrawingSheet[]
   verificationStatus   DrawingVerificationStatus? @relation("VerificationStatus")
   wires                DrawingWire[]
+  revisions            DrawingRevision[]
+  parentRevisions      DrawingRevision[]         @relation("DrawingRevisionParent")
   noteEntities         Note[]
   signals              Signal[]
   trainLines           TrainLine[]
@@ -484,6 +486,10 @@ model Wire {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   wireAlias          String?        @unique
+  // Wire integrity tracking for Phase 2
+  wireStatus         WireStatus     @default(UNVERIFIED)
+  verificationSource String?        // Where this wire was verified from (e.g., "pin-drawing", "manual")
+  verifiedAt         DateTime?
   drawings           DrawingWire[]
   endpoints          WireEndpoint[]
 
@@ -493,6 +499,14 @@ model Wire {
   @@index([destEquipment])
   @@index([createdAt])
   @@index([voltageClass])
+  @@index([wireStatus])
+}
+
+enum WireStatus {
+  VERIFIED     // Confirmed real engineering data from drawings
+  SYNTHETIC    // Auto-generated, not from actual drawings  
+  UNVERIFIED   // Not yet checked
+  DEPRECATED   // Marked for removal/legacy
 }
 
 model DrawingWire {
@@ -742,6 +756,29 @@ model DrawingVerificationStatus {
 
   @@index([drawingNumber])
   @@index([status])
+}
+
+// Task 3: Drawing Revision Intelligence - Track parent/child drawings and revision chains
+model DrawingRevision {
+  id              String    @id @default(cuid())
+  drawingId       String
+  parentDrawingId String?   // Parent drawing (e.g., 942-38409 is parent of 942-38409A)
+  revisionLabel   String    // A, B, C, D, etc.
+  revisionNo      Int       @default(0) // Numeric revision: 0=A, 1=B, 2=C
+  isCurrent       Boolean   @default(false)
+  effectiveFrom   DateTime?
+  effectiveTo     DateTime?
+  notes           String?
+  extra           Json      @default("{}")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  drawing         Drawing   @relation(fields: [drawingId], references: [id])
+  parentDrawing   Drawing?  @relation("DrawingRevisionParent", fields: [parentDrawingId], references: [id])
+
+  @@unique([drawingId, revisionLabel])
+  @@index([drawingId])
+  @@index([parentDrawingId])
+  @@index([isCurrent])
 }
 
 model User {

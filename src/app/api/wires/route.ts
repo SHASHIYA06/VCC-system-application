@@ -129,6 +129,15 @@ export async function GET(request: NextRequest) {
     if (voltageClass) where.voltageClass = voltageClass;
     if (wireType) where.conductorClassCode = wireType;
 
+    // Exclude DEPRECATED wires by default (engineering data accuracy)
+    // Users can explicitly request deprecated wires with ?includeDeprecated=true
+    const includeDeprecated = searchParams.get('includeDeprecated') === 'true';
+    if (!includeDeprecated) {
+      where.wireStatus = {
+        in: ['VERIFIED', 'SYNTHETIC', 'UNVERIFIED']
+      };
+    }
+
     // NOTE: groupBy(['voltageClass']) scans the entire wire table (100k+ rows)
     // and previously exhausted the connection pool (P2024). Run the list +
     // count first (fast, indexed), then fetch voltage facets separately with a
