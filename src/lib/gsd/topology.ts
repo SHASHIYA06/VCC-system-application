@@ -323,133 +323,138 @@ async function calculateStatistics(systemCode?: string): Promise<TopologyStatist
 }
 
 /**
- * Get complete system topology
+ * Get complete system topology — EDGE-FIRST approach
+ * Builds graph from wires with 2+ endpoints to guarantee connectivity.
  */
 export async function getSystemTopology(systemCode?: string): Promise<SystemTopology> {
   try {
     console.log(`🔍 Getting system topology for: ${systemCode || 'all systems'}`);
 
-    // Fetch data with proper error handling for each component
-    let systems: SystemInfo[] = [];
-    let deviceNodes: SystemNode[] = [];
-    let connectorNodes: SystemNode[] = [];
-    let wireEdges: SystemEdge[] = [];
-    let connectorEdges: SystemEdge[] = [];
-    let statistics: TopologyStatistics;
+    // Step 1: Get systems info
+    const systems = await getSystemsInfo();
 
-    // Get systems info
-    try {
-      systems = await getSystemsInfo();
-    } catch (err) {
-      console.error('❌ Critical: Could not fetch systems info:', err);
-      systems = [
-        { code: 'DMC', name: 'Driving Motor Car', devices: 12, connections: 30, color: '#3b82f6' },
-        { code: 'TC', name: 'Trailer Car', devices: 8, connections: 25, color: '#10b981' },
-      ];
+    // Step 2: Get statistics
+    const statistics = await calculateStatistics(systemCode);
+
+    // Step 3: EDGE-FIRST — find wires with 2+ endpoints (actual connections)
+    const wireWhere: any = { endpoints: { some: {} } };
+    if (systemCode) {
+      wireWhere.drawings = { some: { drawing: { system: { code: systemCode } } } };
     }
 
-    // Get device nodes
-    try {
-      deviceNodes = await getDeviceNodes(systemCode);
-      console.log(`📦 Found ${deviceNodes.length} device nodes`);
-    } catch (err) {
-      console.error('⚠️ Warning: Could not fetch device nodes:', err);
-      deviceNodes = [];
+    const connectedWires = await prisma.wire.findMany({
+      where: wireWhere,
+      include: {
+        endpoints: {
+          include: {
+            device: { include: { system: true } },
+            connector: { include: { drawing: { include: { system: true } } } },
+          },
+        },
+      },
+      take: 200, // Performance cap
+    });
+
+    const nodeMap = new Map<string, SystemNode>();
+    const edges: SystemEdge[] = [];
+    let nodeIndex = 0;
+
+    for (const wire of connectedWires) {
+      if (wire.endpoints.length < 2) continue;
+
+      // Build node IDs for first two endpoints
+      const eps = wire.endpoints.slice(0, 2);
+      const nodeIds: string[] = [];
+
+      for (const ep of eps) {
+        let nodeId = '';
+        if (ep.device) {
+          nodeId = `device_${ep.device.id}`;
+          if (!nodeMap.has(nodeId)) {
+            nodeMap.set(nodeId, {
+              id: nodeId,
+              label: ep.device.tagNo || ep.device.deviceName,
+              type: 'device',
+              system: ep.device.system?.code || 'GEN',
+              position: generatePosition(nodeIndex++, 60, 280),
+              metadata: {
+                deviceId: ep.device.id,
+                deviceName: ep.device.deviceName,
+                deviceType: ep.device.deviceType,
+                tagNo: ep.device.tagNo,
+              },
+              color: SYSTEM_COLORS[ep.device.system?.code || 'DEFAULT'] || SYSTEM_COLORS.DEFAULT,
+              icon: 'Cpu',
+            });
+          }
+        } else if (ep.connector) {
+          nodeId = `connector_${ep.connector.id}`;
+          if (!nodeMap.has(nodeId)) {
+            const sys = ep.connector.drawing?.system?.code || 'GEN';
+            nodeMap.set(nodeId, {
+              id: nodeId,
+              label: ep.connector.connectorCode,
+              type: 'connector',
+              system: sys,
+              position: generatePosition(nodeIndex++, 60, 180),
+              metadata: {
+                connectorId: ep.connector.id,
+                connectorCode: ep.connector.connectorCode,
+                drawingNo: ep.connector.drawing?.drawingNo,
+              },
+              color: SYSTEM_COLORS[sys] || SYSTEM_COLORS.DEFAULT,
+              icon: 'Plug',
+            });
+          }
+        }
+        if (nodeId) nodeIds.push(nodeId);
+      }
+
+      // Create edge if both endpoints resolved to nodes
+      if (nodeIds.length >= 2 && nodeIds[0] !== nodeIds[1]) {
+        edges.push({
+          id: `edge_${wire.id}`,
+          source: nodeIds[0],
+          target: nodeIds[1],
+          label: wire.wireNo,
+          type: (wire.voltageClass?.toLowerCase().includes('power') ? 'power' : 'signal') as any,
+          wireNo: wire.wireNo,
+          metadata: {
+            wireId: wire.id,
+            signalName: wire.signalName,
+            voltageClass: wire.voltageClass,
+          },
+          color: wire.voltageClass?.toLowerCase().includes('power') ? EDGE_COLORS.power : EDGE_COLORS.signal,
+          animated: true,
+        });
+      }
     }
 
-    // Get connector nodes
-    try {
-      connectorNodes = await getConnectorNodes(systemCode);
-      console.log(`🔌 Found ${connectorNodes.length} connector nodes`);
-    } catch (err) {
-      console.error('⚠️ Warning: Could not fetch connector nodes:', err);
-      connectorNodes = [];
-    }
+    let nodes = Array.from(nodeMap.values());
 
-    // Get wire edges
-    try {
-      wireEdges = await getWireEdges(systemCode);
-      console.log(`🔗 Found ${wireEdges.length} wire edges`);
-    } catch (err) {
-      console.error('⚠️ Warning: Could not fetch wire edges:', err);
-      wireEdges = [];
-    }
-
-    // Calculate statistics
-    try {
-      statistics = await calculateStatistics(systemCode);
-    } catch (err) {
-      console.error('⚠️ Warning: Could not calculate statistics:', err);
-      statistics = {
-        totalDevices: deviceNodes.length,
-        totalConnections: connectorNodes.length,
-        totalWires: wireEdges.length,
-        systemCount: systems.length,
-        connectorCount: connectorNodes.length,
-        devicesBySystem: {},
-        connectionsByType: {},
-      };
-    }
-
-    let nodes = [...deviceNodes, ...connectorNodes];
-    let edges = [...wireEdges, ...connectorEdges];
-
-    // Generate fallback demo data if no real data is available
+    // If we still have no connected nodes, add ALL devices and connectors for a visual layout
     if (nodes.length === 0) {
-      console.log('ℹ️ No real topology data found, generating demo data');
-      // Demo nodes
-      nodes = [
-        { id: 'device_demo1', label: 'Inverter Module', type: 'device', system: 'DMC', position: { x: -150, y: 0 }, metadata: { deviceType: 'Inverter', tagNo: 'INV-01' }, color: '#3b82f6', icon: 'Cpu' },
-        { id: 'device_demo2', label: 'Battery Unit', type: 'device', system: 'DMC', position: { x: 150, y: 0 }, metadata: { deviceType: 'Battery', tagNo: 'BAT-01' }, color: '#10b981', icon: 'Battery' },
-        { id: 'connector_demo1', label: 'CN-001', type: 'connector', system: 'DMC', position: { x: 0, y: -100 }, metadata: { pinCount: 8 }, color: '#f97316', icon: 'Plug' },
-        { id: 'connector_demo2', label: 'CN-002', type: 'connector', system: 'DMC', position: { x: 0, y: 100 }, metadata: { pinCount: 12 }, color: '#06b6d4', icon: 'Plug' },
-      ];
-      // Demo edges
-      edges = [
-        { id: 'edge_demo1', source: 'device_demo1', target: 'connector_demo1', label: 'Power', type: 'power', metadata: {}, color: '#ef4444', animated: true },
-        { id: 'edge_demo2', source: 'device_demo2', target: 'connector_demo2', label: 'Signal', type: 'signal', metadata: {}, color: '#3b82f6', animated: true },
-      ];
-      // Update statistics with demo data
-      statistics = {
-        ...statistics,
-        totalDevices: 2,
-        totalConnections: 2,
-        connectorCount: 2,
-      };
+      console.log('ℹ️ No connected topology, showing all devices + connectors');
+      const deviceNodes = await getDeviceNodes(systemCode);
+      const connectorNodes = await getConnectorNodes(systemCode);
+      nodes = [...deviceNodes, ...connectorNodes];
     }
 
     console.log(`✅ System topology generated: ${nodes.length} nodes, ${edges.length} edges`);
 
-    return {
-      nodes,
-      edges,
-      systems,
-      statistics,
-    };
+    return { nodes, edges, systems, statistics };
   } catch (error) {
     console.error('❌ Error getting system topology:', error);
-    // Return demo topology on error instead of failing
+    // Return systems-only fallback on error
+    const systems = await getSystemsInfo().catch(() => [
+      { code: 'DMC', name: 'Driving Motor Car', devices: 12, connections: 30, color: '#3b82f6' },
+      { code: 'TC', name: 'Trailer Car', devices: 8, connections: 25, color: '#10b981' },
+    ]);
     return {
-      nodes: [
-        { id: 'device_demo1', label: 'Inverter Module', type: 'device', system: 'DMC', position: { x: -150, y: 0 }, metadata: { deviceType: 'Inverter', tagNo: 'INV-01' }, color: '#3b82f6', icon: 'Cpu' },
-        { id: 'device_demo2', label: 'Battery Unit', type: 'device', system: 'TC', position: { x: 150, y: 0 }, metadata: { deviceType: 'Battery', tagNo: 'BAT-01' }, color: '#10b981', icon: 'Battery' },
-      ],
-      edges: [
-        { id: 'edge_demo1', source: 'device_demo1', target: 'device_demo2', label: 'Power', type: 'power', metadata: {}, color: '#ef4444', animated: true },
-      ],
-      systems: [
-        { code: 'DMC', name: 'Driving Motor Car', devices: 12, connections: 30, color: '#3b82f6' },
-        { code: 'TC', name: 'Trailer Car', devices: 8, connections: 25, color: '#10b981' },
-      ],
-      statistics: {
-        totalDevices: 2,
-        totalConnections: 1,
-        totalWires: 1,
-        systemCount: 2,
-        connectorCount: 0,
-        devicesBySystem: {},
-        connectionsByType: {},
-      },
+      nodes: [],
+      edges: [],
+      systems,
+      statistics: { totalDevices: 0, totalConnections: 0, totalWires: 0, systemCount: systems.length, connectorCount: 0, devicesBySystem: {}, connectionsByType: {} },
     };
   }
 }
