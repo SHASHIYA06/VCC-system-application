@@ -1,9 +1,9 @@
 # VCC System Application - Vehicle Control Circuits Explorer
 
 **Project**: KMRCL RS(3R) Metro Vehicle Control Circuits Intelligence System  
-**Version**: 2.0  
+**Version**: 3.0  
 **Status**: ✅ Production Ready  
-**Last Updated**: June 7, 2026  
+**Last Updated**: June 24, 2026  
 
 ---
 
@@ -23,9 +23,12 @@
 
 The VCC System Application is a comprehensive intelligence platform for exploring and analyzing Vehicle Control Circuits (VCC) in the KMRCL RS(3R) Metro project. It provides:
 
-- **574 Engineering Drawings** with intelligent PDF page mapping
-- **19,016 Wire Connections** with complete topology
-- **1,605 Connectors** with pin-level details
+- **575 Engineering Drawings** with intelligent PDF page mapping
+- **167,758 Wire Connections** with integrity classification (853 verified, synthetic removed)
+- **1,606 Connectors** with pin-level details (72,032 pins)
+- **21 Railway Systems** with full hierarchy (Train → Car → System → Device → Connector → Pin → Wire)
+- **Digital Twin Engine** — End-to-end wire tracing across the whole train
+- **Engineering Accuracy Dashboard** — Real-time data quality monitoring
 - **Multi-Agent AI System** for intelligent query processing
 - **Real-time Voice Assistant** with Web Speech API
 - **Interactive Network Visualization** with GSD topology
