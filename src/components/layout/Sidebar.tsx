@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -16,6 +16,8 @@ interface NavItem {
   icon: LucideIcon;
   /** Tailwind text color used for the icon when active/hovered */
   accent: string;
+  /** Key into the live counts map for a badge */
+  countKey?: string;
 }
 
 interface NavGroup {
@@ -35,18 +37,18 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: 'Twin Explorer', href: '/twin', icon: Workflow, accent: 'text-cyan-400' },
       { name: 'Train Explorer', href: '/cars', icon: Train, accent: 'text-blue-400' },
-      { name: 'Systems', href: '/systems', icon: Layers, accent: 'text-purple-400' },
-      { name: 'Equipment', href: '/equipment', icon: Box, accent: 'text-orange-400' },
-      { name: 'Connectors', href: '/connectors', icon: Cpu, accent: 'text-pink-400' },
-      { name: 'Wire Harness', href: '/wires', icon: Cable, accent: 'text-green-400' },
-      { name: 'Pin Diagrams', href: '/pins', icon: MapPin, accent: 'text-amber-400' },
-      { name: 'Trainlines', href: '/trainlines', icon: Zap, accent: 'text-yellow-400' },
+      { name: 'Systems', href: '/systems', icon: Layers, accent: 'text-purple-400', countKey: 'systems' },
+      { name: 'Equipment', href: '/equipment', icon: Box, accent: 'text-orange-400', countKey: 'devices' },
+      { name: 'Connectors', href: '/connectors', icon: Cpu, accent: 'text-pink-400', countKey: 'connectors' },
+      { name: 'Wire Harness', href: '/wires', icon: Cable, accent: 'text-green-400', countKey: 'wires' },
+      { name: 'Pin Diagrams', href: '/pins', icon: MapPin, accent: 'text-amber-400', countKey: 'pins' },
+      { name: 'Trainlines', href: '/trainlines', icon: Zap, accent: 'text-yellow-400', countKey: 'trainlines' },
     ],
   },
   {
     name: 'Documentation',
     items: [
-      { name: 'Drawing Search', href: '/drawings', icon: Search, accent: 'text-blue-400' },
+      { name: 'Drawing Search', href: '/drawings', icon: Search, accent: 'text-blue-400', countKey: 'drawings' },
       { name: 'VCC Reference', href: '/vcc-reference', icon: BookOpen, accent: 'text-teal-400' },
       { name: 'Reports', href: '/reports', icon: FileText, accent: 'text-sky-400' },
     ],
@@ -68,10 +70,42 @@ const navigationGroups: NavGroup[] = [
   },
 ];
 
+/** Compact number formatter: 167758 -> 167.8k */
+function formatCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
+  return String(n);
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [filter, setFilter] = useState('');
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [dbOnline, setDbOnline] = useState(true);
+
+  // Fetch live entity counts once for sidebar badges.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/stats')
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled || !d?.overview) return;
+        setCounts({
+          systems: d.overview.systems ?? 0,
+          devices: d.overview.equipment ?? 0,
+          connectors: d.overview.connectors ?? 0,
+          wires: d.overview.wires ?? 0,
+          pins: d.overview.pins ?? 0,
+          drawings: d.overview.drawings ?? 0,
+          trainlines: d.overview.trainLines ?? 0,
+        });
+        setDbOnline(true);
+      })
+      .catch(() => !cancelled && setDbOnline(false));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const isItemActive = (href: string) =>
     pathname === href ||
@@ -184,10 +218,27 @@ export default function Sidebar() {
                       />
                       {!collapsed && <span className="truncate">{item.name}</span>}
 
+                      {/* Live count badge (expanded only) */}
+                      {!collapsed && item.countKey && counts[item.countKey] > 0 && (
+                        <span
+                          className={cn(
+                            'ml-auto text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-md transition-colors',
+                            active
+                              ? 'bg-cyan-400/15 text-cyan-300'
+                              : 'bg-slate-800/80 text-slate-500 group-hover:text-slate-300',
+                          )}
+                        >
+                          {formatCount(counts[item.countKey])}
+                        </span>
+                      )}
+
                       {/* Collapsed tooltip */}
                       {collapsed && (
                         <span className="absolute left-full ml-3 px-2.5 py-1 rounded-md bg-slate-800 text-white text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-150 z-50 shadow-lg border border-slate-700/60">
                           {item.name}
+                          {item.countKey && counts[item.countKey] > 0 && (
+                            <span className="ml-1.5 text-cyan-300">{formatCount(counts[item.countKey])}</span>
+                          )}
                         </span>
                       )}
                     </Link>
@@ -207,10 +258,20 @@ export default function Sidebar() {
           {!collapsed && (
             <div className="flex items-center gap-2 px-3 py-1.5 text-[11px] text-slate-500">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                <span
+                  className={cn(
+                    'absolute inline-flex h-full w-full rounded-full opacity-60',
+                    dbOnline ? 'bg-emerald-400 animate-ping' : 'bg-red-400',
+                  )}
+                />
+                <span
+                  className={cn(
+                    'relative inline-flex h-2 w-2 rounded-full',
+                    dbOnline ? 'bg-emerald-400' : 'bg-red-400',
+                  )}
+                />
               </span>
-              <span>Database connected</span>
+              <span>{dbOnline ? 'Database connected' : 'Database offline'}</span>
             </div>
           )}
           <button
