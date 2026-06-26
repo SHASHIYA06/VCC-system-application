@@ -87,39 +87,68 @@ export default function WiresPage() {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [offset, setOffset] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [usingFallback, setUsingFallback] = useState(false);
   const limit = 200;
 
   useEffect(() => {
     async function fetchWires() {
       try {
+        setError(null);
+        setUsingFallback(false);
+        
         const params = new URLSearchParams();
         params.set('limit', String(limit));
         params.set('offset', String(offset));
         if (search) params.set('search', search);
         
+        console.log(`📡 Fetching wires: offset=${offset}, limit=${limit}, search=${search}`);
+        
         const response = await fetch(`/api/wires?${params.toString()}`);
-        if (!response.ok) throw new Error('Failed to fetch');
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}`);
+        }
+        
         const data = await response.json();
         
-        if (offset === 0) {
-          setWires(data.wires || []);
-        } else {
-          setWires(prev => [...prev, ...(data.wires || [])]);
+        if (!data.wires || !Array.isArray(data.wires)) {
+          throw new Error('Invalid API response: wires not an array');
         }
+        
+        console.log(`✅ Received ${data.wires.length} wires, total: ${data.pagination?.total || 0}`);
+        
+        if (offset === 0) {
+          setWires(data.wires);
+          setTotalCount(data.pagination?.total || data.wires.length);
+        } else {
+          setWires(prev => [...prev, ...data.wires]);
+        }
+        
         setHasMore(data.pagination?.hasMore || false);
         setError(null);
+        setUsingFallback(false);
+        
       } catch (err) {
-        console.error('Wire fetch error:', err);
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+        console.error('❌ Wire fetch error:', errorMsg);
+        
         if (offset === 0) {
+          // Only use fallback on initial load failure
+          console.warn('⚠️ Falling back to offline data');
           setWires(FALLBACK_WIRES);
-          setError('Using offline data - database may be unavailable');
+          setTotalCount(FALLBACK_WIRES.length);
+          setError(`Failed to load from database: ${errorMsg}. Showing ${FALLBACK_WIRES.length} offline wires.`);
+          setUsingFallback(true);
+        } else {
+          // Don't fall back when loading more
+          setError(`Failed to load more: ${errorMsg}`);
         }
       } finally {
         setLoading(false);
       }
     }
     fetchWires();
-  }, [offset, search]); // Added search to dependency array so it refetches when search changes
+  }, [offset, search]); // Refetch when offset or search changes
 
   // Get unique systems from wires for filter dropdown
   const uniqueSystems = Array.from(new Set(wires.flatMap(w => w.endpoints?.map(e => e.device?.carType) || []).filter(Boolean) as string[])).sort();
@@ -175,7 +204,11 @@ export default function WiresPage() {
           Complete wire registry with specifications for point-to-point tracing
         </p>
         <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
-          <span>{wires.length} wires loaded</span>
+          <span>
+            {wires.length} wires loaded 
+            {totalCount > wires.length && ` (${totalCount} total in database)`}
+            {usingFallback && ' ⚠️ OFFLINE'}
+          </span>
           {CROSS_CONNECTED.length > 0 && (
             <span className="flex items-center gap-1">
               <AlertTriangle className="h-3 w-3 text-amber-400" /> {CROSS_CONNECTED.length} cross-connected
@@ -183,7 +216,9 @@ export default function WiresPage() {
           )}
         </div>
         {error && (
-          <div className="mt-2 text-amber-400 text-sm">{error}</div>
+          <div className={`mt-2 text-sm ${usingFallback ? 'text-amber-400' : 'text-red-400'}`}>
+            {error}
+          </div>
         )}
       </div>
 

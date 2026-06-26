@@ -1,83 +1,116 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Connector Pins API
+ * Returns all connector pins with filtering and pagination
+ */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
+  const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
+  const offset = parseInt(searchParams.get('offset') || '0');
+  const search = searchParams.get('search') || '';
   const connectorCode = searchParams.get('connector_code');
   const carType = searchParams.get('car_type');
   const systemCode = searchParams.get('system_code');
-  const search = searchParams.get('search');
-  const limit = parseInt(searchParams.get('limit') || '200');
+  const wireNo = searchParams.get('wire_no');
 
   try {
     const where: any = {};
 
-    if (connectorCode) {
-      where.connector = { connectorCode: { contains: connectorCode, mode: Prisma.QueryMode.insensitive } };
-    }
-
-    if (carType) {
-      where.connector = { ...where.connector, carType: { contains: carType, mode: Prisma.QueryMode.insensitive } };
-    }
-
-    if (search) {
+    if (search.trim()) {
       where.OR = [
-        { signalName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-        { pinNo: { contains: search } },
-        { wireNo: { contains: search } },
+        { pinNo: { contains: search, mode: 'insensitive' } },
+        { signalName: { contains: search, mode: 'insensitive' } },
+        { wireNo: { contains: search, mode: 'insensitive' } },
+        { connector: { connectorCode: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
-    const [pins, connectors, cars, systems] = await Promise.all([
+    if (connectorCode) {
+      where.connector = { connectorCode };
+    }
+
+    if (wireNo) {
+      where.wireNo = wireNo;
+    }
+
+    if (carType || systemCode) {
+      where.connector = {
+        ...where.connector,
+        ...(carType && { carType }),
+        ...(systemCode && { drawing: { system: { code: systemCode } } }),
+      };
+    }
+
+    const [pins, total] = await Promise.all([
       prisma.connectorPin.findMany({
         where,
-        include: { 
-          connector: { 
-            include: { 
-              drawing: { 
-                include: { system: true } 
-              } 
-            } 
-          } 
-        },
-        orderBy: { pinNo: 'asc' },
         take: limit,
+        skip: offset,
+        orderBy: { pinNo: 'asc' },
+        include: {
+          connector: {
+            include: {
+              drawing: { include: { system: true } },
+            },
+          },
+        },
       }),
-      prisma.connector.findMany({ select: { connectorCode: true, carType: true }, distinct: ['connectorCode'] }),
-      prisma.device.findMany({ select: { carType: true }, distinct: ['carType'] }),
-      prisma.system.findMany({ select: { code: true }, distinct: ['code'] }),
+      prisma.connectorPin.count({ where }),
     ]);
 
-    const formattedPins = pins.map(pin => ({
-      id: pin.id,
-      connector_code: pin.connector?.connectorCode || 'N/A',
-      equipment_code: pin.connector?.drawing?.system?.code || 'N/A',
-      car_code: pin.connector?.carType || 'N/A',
-      system_code: pin.connector?.drawing?.system?.code || 'N/A',
-      pin_no: pin.pinNo,
-      signal_name: pin.signalName || '-',
-      wire: pin.wireNo || '-',
-      description: `${pin.connector?.connectorCode || ''} - Pin ${pin.pinNo}`,
-      voltageText: pin.voltageText,
-      terminalFrom: pin.terminalFrom,
-      terminalTo: pin.terminalTo,
-      sourceSheetRef: pin.sourceSheetRef,
-      note: pin.note,
-      conductorClassCode: pin.conductorClassCode,
-    }));
+    // Get distinct filter values
+    const [connectors, cars, systems] = await Promise.all([
+      prisma.connector.findMany({
+        select: { connectorCode: true },
+        distinct: ['connectorCode'],
+        orderBy: { connectorCode: 'asc' },
+        take: 100,
+      }),
+      prisma.connector.findMany({
+        select: { carType: true },
+        distinct: ['carType'],
+        where: { carType: { not: null } },
+        orderBy: { carType: 'asc' },
+      }),
+      prisma.system.findMany({
+        select: { code: true, name: true },
+        orderBy: { code: 'asc' },
+      }),
+    ]);
 
     return NextResponse.json({
-      pins: formattedPins,
-      connectors: connectors.map(c => c.connectorCode),
-      cars: cars.map(c => c.carType).filter(Boolean),
-      systems: systems.map(s => s.code),
-      total: formattedPins.length,
+      pins: pins.map(p => ({
+        id: p.id,
+        pinNo: p.pinNo,
+        signalName: p.signalName,
+        wireNo: p.wireNo,
+        note: p.note,
+        connectorCode: p.connector?.connectorCode,
+        carType: p.connector?.carType,
+        systemCode: p.connector?.drawing?.system?.code,
+        drawingNo: p.connector?.drawing?.drawingNo,
+      })),
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+      filters: {
+        connectors: connectors.map(c => c.connectorCode),
+        cars: cars.map(c => c.carType),
+        systems: systems.map(s => ({ code: s.code, name: s.name })),
+      },
     });
   } catch (error) {
     console.error('Error fetching pins:', error);
-    return NextResponse.json({ error: 'Failed to fetch pins', details: String(error) }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch pins', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }

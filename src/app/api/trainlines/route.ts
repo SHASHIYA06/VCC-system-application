@@ -1,60 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
+/**
+ * Trainlines API
+ * Returns all trainlines (cross-car wiring) with cross-references
+ */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const lineGroup = searchParams.get('line_group');
-  const carType = searchParams.get('car_type');
-  const drawingNo = searchParams.get('drawing_no');
-  const search = searchParams.get('search');
   const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
   const offset = parseInt(searchParams.get('offset') || '0');
+  const search = searchParams.get('search') || '';
+  const wireNo = searchParams.get('wire_no');
+  const systemCode = searchParams.get('system_code');
 
   try {
-    const where: Record<string, unknown> = {};
+    const where: any = {};
 
-    if (lineGroup) where.lineGroup = lineGroup;
-    if (carType) where.carType = carType;
-    if (drawingNo) {
-      const drawings = await prisma.drawing.findMany({
-        where: { drawingNo: { contains: drawingNo, mode: Prisma.QueryMode.insensitive } },
-        select: { id: true }
-      });
-      where.drawingId = { in: drawings.map(d => d.id) };
-    }
-    if (search) {
+    if (search.trim()) {
       where.OR = [
-        { itemName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-        { wireNo: { contains: search, mode: Prisma.QueryMode.insensitive } },
-        { note: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        { wireNo: { contains: search, mode: 'insensitive' } },
+        { itemName: { contains: search, mode: 'insensitive' } },
       ];
+    }
+
+    if (wireNo) {
+      where.wireNo = wireNo;
+    }
+
+    if (systemCode) {
+      where.drawing = { system: { code: systemCode } };
     }
 
     const [trainlines, total] = await Promise.all([
       prisma.trainLine.findMany({
         where,
-        include: {
-          drawing: { include: { system: true } },
-        },
         take: limit,
         skip: offset,
         orderBy: { wireNo: 'asc' },
+        include: {
+          drawing: { include: { system: true } },
+          conductorClass: true,
+        },
       }),
       prisma.trainLine.count({ where }),
     ]);
 
+    // Get filter options
+    const systems = await prisma.system.findMany({
+      select: { code: true, name: true },
+      orderBy: { code: 'asc' },
+    });
+
     return NextResponse.json({
-      data: trainlines,
+      trainlines: trainlines.map(tl => ({
+        id: tl.id,
+        wireNo: tl.wireNo,
+        itemName: tl.itemName,
+        conductorClass: tl.conductorClass?.description,
+        carType: tl.carType,
+        systemCode: tl.drawing?.system?.code,
+        drawingNo: tl.drawing?.drawingNo,
+        lineGroup: tl.lineGroup,
+      })),
       pagination: {
         total,
         limit,
         offset,
-        hasMore: offset + limit < total
-      }
+        hasMore: offset + limit < total,
+      },
+      filters: {
+        systems: systems.map(s => ({ code: s.code, name: s.name })),
+      },
     });
   } catch (error) {
     console.error('Error fetching trainlines:', error);
-    return NextResponse.json({ error: 'Failed to fetch trainlines' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch trainlines', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }

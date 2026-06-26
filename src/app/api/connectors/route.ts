@@ -3,127 +3,91 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Connectors API
+ * Returns all electrical connectors with pin counts and metadata
+ */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const drawingId = searchParams.get('drawing_id');
-  const connectorCode = searchParams.get('connector_code');
+  const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
+  const offset = parseInt(searchParams.get('offset') || '0');
+  const search = searchParams.get('search') || '';
   const carType = searchParams.get('car_type');
   const systemCode = searchParams.get('system_code');
-  const wireNo = searchParams.get('wire_no');
-  const limit = Math.min(parseInt(searchParams.get('limit') || '200'), 500);
 
   try {
-    const where: Record<string, unknown> = {};
-    
-    if (drawingId) where.drawingId = drawingId;
-    if (connectorCode) where.connectorCode = { contains: connectorCode };
-    
+    const where: any = {};
+
+    if (search.trim()) {
+      where.OR = [
+        { connectorCode: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
     if (carType) {
       where.carType = carType;
     }
-    
+
     if (systemCode) {
-      const system = await prisma.system.findFirst({ where: { code: systemCode } });
-      if (system) {
-        where.drawing = { systemId: system.id };
-      }
-    }
-    
-    if (wireNo) {
-      where.pins = {
-        some: { wireNo: { contains: wireNo } }
-      };
+      where.drawing = { system: { code: systemCode } };
     }
 
-    const connectors = await prisma.connector.findMany({
-      where,
-      include: {
-        connectorType: true,
-        drawing: { include: { system: true } },
-        pins: { 
-          orderBy: { pinNo: 'asc' },
-          include: {
-            wireEndpoints: { include: { wire: true, device: true } },
-          },
+    const [connectors, total] = await Promise.all([
+      prisma.connector.findMany({
+        where,
+        take: limit,
+        skip: offset,
+        orderBy: { connectorCode: 'asc' },
+        include: {
+          drawing: { include: { system: true } },
+          _count: { select: { pins: true, wireEndpoints: true } },
         },
-        wireEndpoints: { 
-          include: { wire: true, device: true } 
-        },
-      },
-      orderBy: { connectorCode: 'asc' },
-      take: limit,
-    });
+      }),
+      prisma.connector.count({ where }),
+    ]);
 
-    const mapped = connectors.map(conn => ({
-      id: conn.id,
-      connectorCode: conn.connectorCode,
-      connectorTypeCode: conn.connectorTypeCode,
-      connectorType: conn.connectorType?.description || conn.connectorTypeCode || 'Standard',
-      pinCount: conn.pins.length, // Use actual pins array length
-      description: conn.description || `${conn.connectorCode} connector`,
-      scope: conn.scope,
-      carType: conn.carType,
-      locationTag: conn.locationTag,
-      sideTag: conn.sideTag,
-      instanceLabel: conn.instanceLabel,
-      drawing: {
-        id: conn.drawing?.id,
-        drawingNo: conn.drawing?.drawingNo,
-        title: conn.drawing?.title,
-        revision: conn.drawing?.revision,
-        totalSheets: conn.drawing?.totalSheets,
-      },
-      system: conn.drawing?.system ? {
-        code: conn.drawing.system.code,
-        name: conn.drawing.system.name,
-        category: conn.drawing.system.category,
-      } : null,
-      pins: conn.pins.map(p => ({
-        id: p.id,
-        pinNo: p.pinNo,
-        pinLabel: p.pinLabel,
-        wireNo: p.wireNo,
-        signalName: p.signalName,
-        conductorClassCode: p.conductorClassCode,
-        voltageText: p.voltageText,
-        terminalFrom: p.terminalFrom,
-        terminalTo: p.terminalTo,
-        sourceSheetRef: p.sourceSheetRef,
-        note: p.note,
-        endpointLabel: `${conn.connectorCode}:${p.pinNo} - ${p.signalName || 'N/A'}`,
-        wireEndpoints: p.wireEndpoints.map(we => ({
-          wireNo: we.wire?.wireNo,
-          signalName: we.wire?.signalName,
-          deviceTag: we.device?.tagNo,
-          deviceName: we.device?.deviceName,
-          endpointRole: we.endpointRole,
-          endpointLabel: we.endpointLabel,
-        })),
-      })),
-      wireEndpoints: conn.wireEndpoints.map(we => ({
-        wireNo: we.wire?.wireNo,
-        signalName: we.wire?.signalName,
-        deviceTag: we.device?.tagNo,
-        deviceName: we.device?.deviceName,
-        endpointRole: we.endpointRole,
-        endpointLabel: we.endpointLabel,
-      })),
-      _count: {
-        pins: conn.pins.length,
-        wireEndpoints: conn.wireEndpoints.length,
-      }
-    }));
+    // Get filter options
+    const [cars, systems] = await Promise.all([
+      prisma.connector.findMany({
+        select: { carType: true },
+        distinct: ['carType'],
+        where: { carType: { not: null } },
+        orderBy: { carType: 'asc' },
+      }),
+      prisma.system.findMany({
+        select: { code: true, name: true },
+        orderBy: { code: 'asc' },
+      }),
+    ]);
 
-    const total = await prisma.connector.count({ where });
-    
-    return NextResponse.json({ 
-      connectors: mapped, 
-      count: mapped.length,
-      total,
-      filters: { drawingId, connectorCode, carType, systemCode, wireNo }
+    return NextResponse.json({
+      connectors: connectors.map(c => ({
+        id: c.id,
+        connectorCode: c.connectorCode,
+        description: c.description,
+        carType: c.carType,
+        pinCount: c._count.pins,
+        wireEndpointCount: c._count.wireEndpoints,
+        systemCode: c.drawing?.system?.code,
+        drawingNo: c.drawing?.drawingNo,
+      })),
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+      filters: {
+        cars: cars.map(c => c.carType),
+        systems: systems.map(s => ({ code: s.code, name: s.name })),
+      },
     });
   } catch (error) {
-    console.error('Connector API error:', error);
-    return NextResponse.json({ connectors: [], count: 0, error: String(error) }, { status: 500 });
+    console.error('Error fetching connectors:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch connectors', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }
