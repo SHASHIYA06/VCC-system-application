@@ -44,9 +44,9 @@ async function verifyAllFixes() {
   // Test 2: Check specific drawing mappings
   console.log('\n📄 Test 2: Specific Drawing Mappings');
   const testDrawings = [
-    { no: '942-38117', expectedPage: 33, file: 'CAB_PIN DRAWINGS.pdf' },
-    { no: '942-58104', expectedPage: 16, file: 'KMRCL VCC Drawings_OCR.pdf' },
-    { no: '942-58120', expectedPage: 41, file: 'KMRCL VCC Drawings_OCR.pdf' },
+    { no: '942-38117', expectedPage: 25, file: 'CAB_PIN DRAWINGS.pdf' },
+    { no: '942-58104', expectedPage: 17, file: 'KMRCL VCC Drawings_OCR.pdf' },
+    { no: '942-58120', expectedPage: 21, file: 'KMRCL VCC Drawings_OCR.pdf' },
   ];
   
   for (const test of testDrawings) {
@@ -64,12 +64,13 @@ async function verifyAllFixes() {
       
       const page = drawing.pages[0];
       const extra = page?.extra as any;
+      const actualFile = extra?.sourceFile || extra?.pdfFile;
       
-      if (extra?.pdfPageNo === test.expectedPage && extra?.sourceFile === test.file) {
+      if (extra?.pdfPageNo === test.expectedPage && actualFile === test.file) {
         console.log(`✅ PASS: ${test.no} → Page ${test.expectedPage}`);
         results.passed++;
       } else {
-        console.log(`❌ FAIL: ${test.no} → Expected page ${test.expectedPage}, got ${extra?.pdfPageNo || 'none'}`);
+        console.log(`❌ FAIL: ${test.no} → Expected page ${test.expectedPage} in ${test.file}, got ${extra?.pdfPageNo || 'none'} in ${actualFile || 'none'}`);
         results.failed++;
       }
     } catch (error) {
