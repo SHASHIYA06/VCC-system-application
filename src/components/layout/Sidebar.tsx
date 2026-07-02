@@ -48,6 +48,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: 'Drawing Search', href: '/drawings', icon: Search, accent: 'text-blue-400', countKey: 'drawings' },
       { name: 'VCC Reference', href: '/vcc-reference', icon: BookOpen, accent: 'text-teal-400' },
+      { name: 'Encyclopedia', href: '/encyclopedia', icon: Cpu, accent: 'text-amber-400' },
       { name: 'Documents', href: '/documents', icon: FileText, accent: 'text-sky-400' },
       { name: 'Reports', href: '/reports', icon: FileText, accent: 'text-sky-400' },
     ],
