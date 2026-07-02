@@ -78,38 +78,15 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error('❌ GSD API Error:', error);
-    
-    // ALWAYS return demo data on any error
     return NextResponse.json({
-      success: true, // Return success even for demo data
+      success: false,
       action: 'topology',
-      data: {
-        nodes: [
-          { id: 'device_demo1', label: 'Inverter Module', type: 'device', system: 'DMC', position: { x: -150, y: 0 }, metadata: { deviceType: 'Inverter', tagNo: 'INV-01' }, color: '#3b82f6', icon: 'Cpu' },
-          { id: 'device_demo2', label: 'Battery Unit', type: 'device', system: 'TC', position: { x: 150, y: 0 }, metadata: { deviceType: 'Battery', tagNo: 'BAT-01' }, color: '#10b981', icon: 'Battery' },
-        ],
-        edges: [
-          { id: 'edge_demo1', source: 'device_demo1', target: 'device_demo2', label: 'Power', type: 'power', metadata: {}, color: '#ef4444', animated: true },
-        ],
-        systems: [
-          { code: 'DMC', name: 'Driving Motor Car', devices: 12, connections: 30, color: '#3b82f6' },
-          { code: 'TC', name: 'Trailer Car', devices: 8, connections: 25, color: '#10b981' },
-        ],
-        statistics: {
-          totalDevices: 2,
-          totalConnections: 1,
-          totalWires: 1,
-          systemCount: 2,
-          connectorCount: 0,
-          devicesBySystem: {},
-          connectionsByType: {},
-        },
-      },
+      error: 'Failed to load GSD topology',
+      details: String(error),
       metadata: {
-        isDemo: true,
         executionTime: Date.now() - startTime,
         generatedAt: new Date().toISOString(),
       },
-    });
+    }, { status: 500 });
   }
 }
