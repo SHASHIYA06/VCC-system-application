@@ -127,8 +127,6 @@ export async function GET(request: NextRequest) {
       error: error instanceof Error ? error.message : 'Failed to fetch system status',
       executionTime: Date.now() - startTime
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -174,7 +172,5 @@ export async function POST(request: NextRequest) {
       error: error instanceof Error ? error.message : 'Failed to update metadata',
       executionTime: Date.now() - startTime
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }

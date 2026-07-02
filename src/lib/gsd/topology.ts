@@ -99,31 +99,16 @@ async function getSystemsInfo(): Promise<SystemInfo[]> {
       orderBy: { sortOrder: 'asc' },
     });
 
-    if (!systems || systems.length === 0) {
-      // Return demo systems if none in DB
-      return [
-        { code: 'DMC', name: 'Driving Motor Car', devices: 12, connections: 30, color: '#3b82f6' },
-        { code: 'TC', name: 'Trailer Car', devices: 8, connections: 25, color: '#10b981' },
-        { code: 'MC', name: 'Motor Car', devices: 10, connections: 28, color: '#a855f7' },
-        { code: 'CAB', name: 'Controlling Cab', devices: 5, connections: 15, color: '#f97316' },
-        { code: 'LTEB', name: 'LT Equipment Box', devices: 15, connections: 40, color: '#06b6d4' },
-      ];
-    }
-
     return systems.map((sys) => ({
       code: sys.code,
       name: sys.name,
       devices: sys._count.devices,
-      connections: sys._count.drawings * 5, // Approximate
+      connections: sys._count.drawings * 5,
       color: SYSTEM_COLORS[sys.code] || SYSTEM_COLORS.DEFAULT,
     }));
   } catch (error) {
     console.error('Error fetching systems:', error);
-    // Fallback to demo systems on error
-    return [
-      { code: 'DMC', name: 'Driving Motor Car', devices: 12, connections: 30, color: '#3b82f6' },
-      { code: 'TC', name: 'Trailer Car', devices: 8, connections: 25, color: '#10b981' },
-    ];
+    return [];
   }
 }
 
@@ -302,10 +287,10 @@ async function calculateStatistics(systemCode?: string): Promise<TopologyStatist
       connectorCount,
       devicesBySystem: {},
       connectionsByType: {
-        power: Math.floor(totalWires * 0.3),
-        signal: Math.floor(totalWires * 0.4),
-        communication: Math.floor(totalWires * 0.2),
-        ground: Math.floor(totalWires * 0.1),
+        power: 0,
+        signal: 0,
+        communication: 0,
+        ground: 0,
       },
     };
   } catch (error) {
@@ -445,16 +430,11 @@ export async function getSystemTopology(systemCode?: string): Promise<SystemTopo
     return { nodes, edges, systems, statistics };
   } catch (error) {
     console.error('❌ Error getting system topology:', error);
-    // Return systems-only fallback on error
-    const systems = await getSystemsInfo().catch(() => [
-      { code: 'DMC', name: 'Driving Motor Car', devices: 12, connections: 30, color: '#3b82f6' },
-      { code: 'TC', name: 'Trailer Car', devices: 8, connections: 25, color: '#10b981' },
-    ]);
     return {
       nodes: [],
       edges: [],
-      systems,
-      statistics: { totalDevices: 0, totalConnections: 0, totalWires: 0, systemCount: systems.length, connectorCount: 0, devicesBySystem: {}, connectionsByType: {} },
+      systems: [],
+      statistics: { totalDevices: 0, totalConnections: 0, totalWires: 0, systemCount: 0, connectorCount: 0, devicesBySystem: {}, connectionsByType: {} },
     };
   }
 }
