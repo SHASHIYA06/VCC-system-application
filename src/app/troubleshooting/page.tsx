@@ -1,11 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   AlertTriangle, Search, ChevronRight, Wrench, 
-  Zap, Shield, DoorOpen, Wind, Battery, Cpu, Info, Lightbulb
+  Zap, Shield, DoorOpen, Wind, Battery, Cpu, Info, Lightbulb,
+  Loader2, RefreshCw, Database, ExternalLink, Radio, Activity,
+  CheckCircle2, XCircle, ChevronDown
 } from 'lucide-react';
+
+interface DatabaseLink {
+  id: string;
+  drawingNo: string;
+  title: string;
+  exists: boolean;
+}
+
+interface WireLink {
+  wireNo: string;
+  signalName: string;
+  description: string;
+  exists: boolean;
+}
 
 interface FaultCode {
   code: string;
@@ -17,693 +33,394 @@ interface FaultCode {
   causes: string[];
   solutions: string[];
   drawings: string[];
+  databaseLinks: {
+    drawings: DatabaseLink[];
+    wires: WireLink[];
+    missingDrawings: string[];
+    missingWires: string[];
+  };
 }
 
-const TROUBLESHOOTING_GUIDES = [
-  {
-    id: 'propulsion',
-    title: 'Traction & Propulsion Faults',
-    icon: Zap,
-    color: 'text-orange-400',
-    issues: [
-      {
-        code: 'VVVF_FAULT',
-        description: 'VVVF Inverter Fault',
-        severity: 'critical' as const,
-        system: 'TRAC',
-        trainlines: ['1207'],
-        symptoms: [
-          'Train fails to accelerate',
-          'VVVF fault indicator lit',
-          'HSCB may trip',
-        ],
-        causes: [
-          'Overcurrent condition in VVVF',
-          'Motor overload or short circuit',
-          'Cooling system failure',
-          'Internal VVVF protection trip',
-        ],
-        solutions: [
-          'Check trainline 1207 for fault signal',
-          'Verify VVVF CN2 connections',
-          'Check motor insulation',
-          'Monitor cooling system status',
-          'Reset VVVF using trainline 1032',
-        ],
-        drawings: ['942-58120', '942-58121'],
-      },
-      {
-        code: 'HSCB_TRIP',
-        description: 'High Speed Circuit Breaker Trip',
-        severity: 'critical' as const,
-        system: 'HV',
-        trainlines: ['1209'],
-        symptoms: [
-          'Traction power lost',
-          'HSCB indicator shows trip',
-          'Train coasts to stop',
-        ],
-        causes: [
-          'Overcurrent on traction circuit',
-          'Ground fault detection',
-          'VVVF fault causing trip',
-          'Protective relay operation',
-        ],
-        solutions: [
-          'Check trainline 1209 status',
-          'Verify HSCB CN1 connections',
-          'Check for ground faults',
-          'Check VVVF fault status',
-          'Reset HSCB after fault clearance',
-        ],
-        drawings: ['942-38103', '942-58106'],
-      },
-      {
-        code: 'MOTOR_OVERTEMP',
-        description: 'Traction Motor Overtemperature',
-        severity: 'warning' as const,
-        system: 'TRAC',
-        trainlines: ['1245'],
-        symptoms: [
-          'Reduced traction power',
-          'Motor temperature warning',
-          'Cooling fan running continuously',
-        ],
-        causes: [
-          'Motor cooling system failure',
-          'Excessive load or acceleration',
-          'Blocked air vents',
-          'Cooling fan fault',
-        ],
-        solutions: [
-          'Check trainline 1245 temperature signal',
-          'Verify cooling fan operation',
-          'Check air vents for blockage',
-          'Allow motor to cool before restart',
-          'Check motor insulation resistance',
-        ],
-        drawings: ['942-58120', '942-58121'],
-      },
-      {
-        code: 'PANTOGRAPH_FAULT',
-        description: 'Pantograph Raising/Lowering Fault',
-        severity: 'critical' as const,
-        system: 'HV',
-        trainlines: ['1003', '1004'],
-        symptoms: [
-          'Pantograph fails to raise',
-          'Pantograph fails to lower',
-          'No 750V DC supply',
-        ],
-        causes: [
-          'Air pressure insufficient',
-          'Pneumatic valve failure',
-          'Broken raising/lowering mechanism',
-          'Pantograph interlock fault',
-        ],
-        solutions: [
-          'Check trainline 1003 (pantograph raised)',
-          'Check trainline 1004 (pantograph lowered)',
-          'Verify air pressure (minimum 6 bar)',
-          'Check pneumatic valve operation',
-          'Inspect pantograph mechanism',
-        ],
-        drawings: ['942-58119'],
-      },
-    ],
-  },
-  {
-    id: 'brake',
-    title: 'Brake System Faults',
-    icon: Shield,
-    color: 'text-red-400',
-    issues: [
-      {
-        code: 'EM_BRAKE_FAULT',
-        description: 'Emergency Brake Application Fault',
-        severity: 'critical' as const,
-        system: 'BRAKE',
-        trainlines: ['4062', '4103'],
-        symptoms: [
-          'Emergency brake stuck on',
-          'Brake cannot be released',
-          'Train cannot move',
-        ],
-        causes: [
-          'Break in emergency brake loop (4062)',
-          'EBMV or EBSS failure',
-          'Wiring fault in redundant path (4103)',
-        ],
-        solutions: [
-          'Check trainline 4062 continuity',
-          'Check trainline 4103 redundant path',
-          'Verify BCU/EBCU connections',
-          'Check all car-to-car jumpers',
-        ],
-        drawings: ['942-58125', '942-58128'],
-      },
-      {
-        code: 'PARKING_BRAKE',
-        description: 'Parking Brake Fault',
-        severity: 'warning' as const,
-        system: 'BRAKE',
-        trainlines: ['4122', '4153'],
-        symptoms: [
-          'Parking brake not applying',
-          'Parking brake not releasing',
-          'Brake indicator flashing',
-        ],
-        causes: [
-          'PBMV (Parking Brake Magnetic Valve) fault',
-          'Air pressure insufficient',
-          'Wiring issue to PBMV1',
-        ],
-        solutions: [
-          'Check trainline 4122 (applied)',
-          'Check trainline 4153 (released)',
-          'Verify PBMV1 connections',
-          'Check air pressure',
-        ],
-        drawings: ['942-58126'],
-      },
-      {
-        code: 'COMPRESSOR_FAULT',
-        description: 'Air Compressor Failure',
-        severity: 'critical' as const,
-        system: 'BRAKE',
-        trainlines: ['4001'],
-        symptoms: [
-          'Low air pressure warning',
-          'Compressor not running',
-          'Brake pressure dropping',
-        ],
-        causes: [
-          'Compressor motor failure',
-          'Compressor thermal overload',
-          'Air leaks in system',
-          'Compressor contactor fault',
-        ],
-        solutions: [
-          'Check trainline 4001 (compressor status)',
-          'Verify compressor motor connections',
-          'Check thermal overload relay',
-          'Inspect air system for leaks',
-          'Check compressor contactor CM',
-        ],
-        drawings: ['942-58123'],
-      },
-      {
-        code: 'BRAKE_CYLINDER_LEAK',
-        description: 'Brake Cylinder Air Leak',
-        severity: 'warning' as const,
-        system: 'BRAKE',
-        trainlines: ['4103'],
-        symptoms: [
-          'Brake not holding properly',
-          'Air pressure loss',
-          'Hissing sound from bogie',
-        ],
-        causes: [
-          'Brake cylinder seal failure',
-          'Damaged air pipe',
-          'Loose brake cylinder connection',
-        ],
-        solutions: [
-          'Inspect brake cylinder for leaks',
-          'Check air pipe connections',
-          'Replace damaged seals',
-          'Verify brake cylinder mounting',
-        ],
-        drawings: ['942-58125', '942-58128'],
-      },
-    ],
-  },
-  {
-    id: 'door',
-    title: 'Door System Faults',
-    icon: DoorOpen,
-    color: 'text-amber-400',
-    issues: [
-      {
-        code: 'DOOR_FAULT',
-        description: 'Door System Fault',
-        severity: 'warning' as const,
-        system: 'DOOR',
-        trainlines: ['6073', '6076', '6112'],
-        symptoms: [
-          'Door not opening/closing',
-          'Door proving failure',
-          'Door safety loop open',
-        ],
-        causes: [
-          'Door proving circuit open (6073, 6076)',
-          'Zero speed signal issue (6112)',
-          'DCU internal fault',
-          'Door motor failure',
-        ],
-        solutions: [
-          'Check door proving status (6073, 6076)',
-          'Verify zero speed signal (6112)',
-          'Check DCU1 connections',
-          'Verify door edge sensors',
-          'Check door motor operation',
-        ],
-        drawings: ['942-58137', '942-58138', '942-58139', '942-58140'],
-      },
-      {
-        code: 'DOOR_CROSS_FAULT',
-        description: 'Door Cross Connection Fault',
-        severity: 'warning' as const,
-        system: 'DOOR',
-        trainlines: ['6009', '6014', '6046', '6051'],
-        symptoms: [
-          'Left and right doors operating together',
-          'Crossed wire condition',
-        ],
-        causes: [
-          'Crossed connections at jumpers 43-44',
-          'Crossed connections at jumpers 46-47',
-          'Wire mix-up in trainline routing',
-        ],
-        solutions: [
-          'Check jumper 43-44 for 6009/6046 cross',
-          'Check jumper 46-47 for 6014/6051 cross',
-          'Verify TCMS_RIO1 CN17 connections',
-          'Trace wire routing through X1',
-        ],
-        drawings: ['942-58138', '942-58139'],
-      },
-      {
-        code: 'DOOR_MOTOR_FAULT',
-        description: 'Door Motor Failure',
-        severity: 'critical' as const,
-        system: 'DOOR',
-        trainlines: ['6073', '6076'],
-        symptoms: [
-          'Door not moving',
-          'Door stuck partially open',
-          'Motor overheating',
-        ],
-        causes: [
-          'Door motor burnt out',
-          'Door mechanism jammed',
-          'Motor power supply fault',
-          'Motor thermal protection tripped',
-        ],
-        solutions: [
-          'Check door motor operation manually',
-          'Verify motor power supply',
-          'Check for mechanical obstructions',
-          'Test motor thermal protection',
-          'Replace motor if damaged',
-        ],
-        drawings: ['942-58137', '942-58140'],
-      },
-    ],
-  },
-  {
-    id: 'lighting',
-    title: 'Lighting System Faults',
-    icon: Lightbulb,
-    color: 'text-yellow-400',
-    issues: [
-      {
-        code: 'HEADLIGHT_FAULT',
-        description: 'Headlight Not Working',
-        severity: 'warning' as const,
-        system: 'LIGHT',
-        trainlines: ['5110', '5111'],
-        symptoms: [
-          'One or both headlights not working',
-          'Headlight switch has no effect',
-          'HLS relay not energizing',
-        ],
-        causes: [
-          'Bulb failure',
-          'HLS (Headlight Switch) relay fault',
-          'Wiring break in headlight circuit',
-          'Circuit breaker HLCB tripped',
-        ],
-        solutions: [
-          'Check trainline 5110 (left headlight)',
-          'Check trainline 5111 (right headlight)',
-          'Test HLS relay operation',
-          'Replace headlight bulbs if needed',
-          'Check HLCB circuit breaker status',
-        ],
-        drawings: ['942-58112'],
-      },
-      {
-        code: 'SALOON_LIGHT_FAULT',
-        description: 'Saloon Lights Not Working',
-        severity: 'warning' as const,
-        system: 'LIGHT',
-        trainlines: ['5201', '5202', '5203', '5204'],
-        symptoms: [
-          'Section of saloon lights out',
-          'All saloon lights out',
-          'Lights flickering',
-        ],
-        causes: [
-          'Circuit breaker ELCB tripped',
-          'Bulb failure in section',
-          'Wiring fault in lighting circuit',
-          'Power supply issue from APS',
-        ],
-        solutions: [
-          'Check ELCB1-4 circuit breakers',
-          'Test individual light circuits',
-          'Replace failed bulbs',
-          'Verify 230V AC supply from APS',
-          'Check trainline 5201-5204 status',
-        ],
-        drawings: ['942-58115'],
-      },
-      {
-        code: 'EMERGENCY_LIGHT_FAULT',
-        description: 'Emergency Lighting Not Activating',
-        severity: 'critical' as const,
-        system: 'LIGHT',
-        trainlines: ['5064'],
-        symptoms: [
-          'Emergency lights not coming on',
-          'Battery supply missing',
-          'Emergency lighting dim',
-        ],
-        causes: [
-          'Battery discharge',
-          'Emergency lighting circuit fault',
-          'Battery contactor BCB not closing',
-          'Wiring break in emergency circuit',
-        ],
-        solutions: [
-          'Check trainline 5064 (battery voltage)',
-          'Test battery voltage (should be 110V DC)',
-          'Verify BCB contactor operation',
-          'Check emergency light bulbs',
-          'Test battery charging system',
-        ],
-        drawings: ['942-58132'],
-      },
-    ],
-  },
-  {
-    id: 'vac',
-    title: 'VAC/HVAC Faults',
-    icon: Wind,
-    color: 'text-cyan-400',
-    issues: [
-      {
-        code: 'CAB_VAC_FAULT',
-        description: 'Cab VAC Fault',
-        severity: 'warning' as const,
-        system: 'VAC',
-        trainlines: ['7001'],
-        symptoms: [
-          'Cab air conditioning not working',
-          'Cab VAC fault indicator',
-          'Temperature not controlled',
-        ],
-        causes: [
-          'CAB_VAC1 unit fault',
-          'Power supply issue to VAC',
-          'Communication fault with TCMS',
-        ],
-        solutions: [
-          'Check trainline 7001 for fault signal',
-          'Verify CAB_VAC1 CN1 connections',
-          'Check power supply to cab VAC',
-          'Reset using TCMS interface',
-        ],
-        drawings: ['942-58143'],
-      },
-      {
-        code: 'SALOON_VAC_FAULT',
-        description: 'Saloon VAC Fault',
-        severity: 'warning' as const,
-        system: 'VAC',
-        trainlines: ['7050', '7060', '7070'],
-        symptoms: [
-          'Saloon not cooling',
-          'VAC status shows fault',
-          'Smoke detection alarm',
-        ],
-        causes: [
-          'VAC1 or VAC2 unit fault',
-          'Power supply issue (415V from APS)',
-          'Smoke detection triggered',
-          'Dampers not operating',
-        ],
-        solutions: [
-          'Check trainline 7050 (VAC1 status)',
-          'Check trainline 7060 (VAC2 status)',
-          'Check trainline 7070 (smoke detection)',
-          'Verify APS 415V supply via X3',
-          'Check damper operation (7071)',
-        ],
-        drawings: ['942-58144', '942-58145'],
-      },
-    ],
-  },
-  {
-    id: 'aps',
-    title: 'Auxiliary Power Faults',
-    icon: Battery,
-    color: 'text-green-400',
-    issues: [
-      {
-        code: 'AUX_FAULT',
-        description: 'Auxiliary System Fault',
-        severity: 'warning' as const,
-        system: 'APS',
-        trainlines: ['1215'],
-        symptoms: [
-          'Auxiliary power not available',
-          'SIV contact not closing',
-          'Battery not charging',
-        ],
-        causes: [
-          'APS1 internal fault',
-          'SIV (Static Inverter) failure',
-          'Battery charger fault',
-        ],
-        solutions: [
-          'Check trainline 1215 for fault signal',
-          'Verify SIV contact status (5030, 5031)',
-          'Check battery voltage (5064)',
-          'Verify APS1 connections',
-        ],
-        drawings: ['942-58130', '942-58131', '942-58132'],
-      },
-      {
-        code: 'BATTERY_FAULT',
-        description: 'Battery Under Voltage',
-        severity: 'warning' as const,
-        system: 'APS',
-        trainlines: ['5064'],
-        symptoms: [
-          'Low battery voltage warning',
-          'Battery discharge indicator',
-          'Emergency lighting may activate',
-        ],
-        causes: [
-          'Battery discharged',
-          'Battery failing',
-          'APS not charging battery',
-          'Excessive load on battery',
-        ],
-        solutions: [
-          'Check trainline 5064 battery voltage',
-          'Verify BATT1 connections',
-          'Check APS charging function',
-          'Connect shore supply for charging',
-        ],
-        drawings: ['942-58132'],
-      },
-    ],
-  },
-  {
-    id: 'tcms',
-    title: 'TCMS Faults',
-    icon: Cpu,
-    color: 'text-purple-400',
-    issues: [
-      {
-        code: 'TCMS_FAULT',
-        description: 'TCMS Communication Fault',
-        severity: 'warning' as const,
-        system: 'TMS',
-        trainlines: [],
-        symptoms: [
-          'TCMS not responding',
-          'Loss of monitoring data',
-          'Multiple system faults shown',
-        ],
-        causes: [
-          'TCMS_RIO failure',
-          'Ethernet network issue',
-          'Power supply to RIO',
-        ],
-        solutions: [
-          'Check TCMS_RIO1 (U15) status',
-          'Check TCMS_RIO2 (U25) status',
-          'Verify Ethernet switch connections',
-          'Check power supply to RIO units',
-        ],
-        drawings: ['942-58146'],
-      },
-    ],
-  },
-];
+interface SystemStat {
+  code: string;
+  name: string;
+  faultCount: number;
+  drawingCount: number;
+  deviceCount: number;
+}
+
+interface TroubleshootingData {
+  faults: FaultCode[];
+  total: number;
+  systems: SystemStat[];
+  statistics: {
+    totalFaults: number;
+    criticalCount: number;
+    warningCount: number;
+    systemsCovered: number;
+  };
+}
+
+const SYSTEM_ICONS: Record<string, any> = {
+  TRAC: Zap, BRAKE: Shield, DOOR: DoorOpen, VAC: Wind, APS: Battery,
+  TMS: Cpu, LIGHT: Lightbulb, HV: Activity, COMMS: Radio,
+};
+
+const SYSTEM_COLORS: Record<string, string> = {
+  TRAC: 'text-orange-400', BRAKE: 'text-red-400', DOOR: 'text-amber-400',
+  VAC: 'text-cyan-400', APS: 'text-green-400', TMS: 'text-purple-400',
+  LIGHT: 'text-yellow-400', HV: 'text-rose-400', COMMS: 'text-emerald-400',
+};
 
 const SEVERITY_STYLES = {
-  critical: 'bg-red-500/20 text-red-400 border-red-500/30',
-  warning: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  info: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  critical: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30', icon: XCircle },
+  warning: { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30', icon: AlertTriangle },
+  info: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30', icon: Info },
 };
 
 export default function TroubleshootingPage() {
-  const [selectedGuide, setSelectedGuide] = useState<string | null>('propulsion');
+  const [data, setData] = useState<TroubleshootingData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedSystem, setSelectedSystem] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedFault, setExpandedFault] = useState<string | null>(null);
 
-  const activeGuide = TROUBLESHOOTING_GUIDES.find(g => g.id === selectedGuide);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (selectedSystem) params.set('systemCode', selectedSystem);
+      if (searchTerm) params.set('search', searchTerm);
+      
+      const res = await fetch(`/api/troubleshooting?${params.toString()}`);
+      const json = await res.json();
+      
+      if (json.success) {
+        setData(json.data);
+      } else {
+        setError(json.error || 'Failed to load troubleshooting data');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedSystem, searchTerm]);
 
-  const filteredIssues = activeGuide?.issues.filter(issue => 
-    searchTerm === '' || 
-    issue.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    issue.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    issue.trainlines.some(tl => tl.includes(searchTerm))
-  ) || [];
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const filteredFaults = data?.faults || [];
+
+  const toggleFault = (code: string) => {
+    setExpandedFault(expandedFault === code ? null : code);
+  };
 
   return (
-    <div className="animated-bg min-h-screen p-6 grid-pattern">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold gradient-text">VCC Troubleshooting Guide</h1>
-        <p className="mt-2 text-slate-400">
-          Fault diagnosis and resolution for Vehicle Control Circuits - KMRCL RS(3R) Project
-        </p>
-      </div>
-
-      {/* Search */}
-      <div className="mb-6 relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Search fault codes, trainlines..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Guide List */}
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-slate-300 mb-4">System Guides</h2>
-          {TROUBLESHOOTING_GUIDES.map(guide => (
-            <button
-              key={guide.id}
-              onClick={() => setSelectedGuide(guide.id)}
-              className={`w-full text-left p-3 rounded-lg border flex items-center gap-3 transition-all ${
-                selectedGuide === guide.id
-                  ? 'border-cyan-500/50 bg-cyan-500/10'
-                  : 'border-slate-700/50 bg-slate-800/30 hover:border-slate-600/50'
-              }`}
-            >
-              <guide.icon className={`h-5 w-5 ${guide.color}`} />
-              <span className="text-sm font-medium text-white">{guide.title}</span>
-            </button>
-          ))}
+    <div className="min-h-screen p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+            <Wrench className="h-8 w-8 text-red-400" />
+            VCC Troubleshooting Center
+          </h1>
+          <p className="mt-2 text-slate-400">
+            Fault diagnosis and resolution for Vehicle Control Circuits — KMRCL RS(3R)
+          </p>
         </div>
-
-        {/* Fault Details */}
-        <div className="lg:col-span-3 space-y-4">
-          {filteredIssues.map((issue, idx) => (
-            <div key={idx} className="glass-card p-5 border border-slate-700/50">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-white">{issue.description}</span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium border ${SEVERITY_STYLES[issue.severity]}`}>
-                      {issue.severity.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-sm text-slate-400">Code: {issue.code}</span>
-                    <span className="text-slate-600">•</span>
-                    <span className="text-sm text-slate-400">System: {issue.system}</span>
-                  </div>
-                </div>
-                <AlertTriangle className={`h-6 w-6 ${
-                  issue.severity === 'critical' ? 'text-red-400' :
-                  issue.severity === 'warning' ? 'text-amber-400' : 'text-blue-400'
-                }`} />
-              </div>
-
-              {issue.trainlines.length > 0 && (
-                <div className="mb-4">
-                  <span className="text-sm text-slate-500">Related Trainlines:</span>
-                  <div className="flex gap-2 mt-1">
-                    {issue.trainlines.map(tl => (
-                      <Link key={tl} href={`/trainlines/${tl}`} className="px-2 py-1 bg-cyan-500/10 text-cyan-400 rounded text-sm font-mono hover:bg-cyan-500/20">
-                        {tl}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="bg-slate-800/30 p-3 rounded">
-                  <h4 className="font-medium text-slate-300 mb-2">Symptoms</h4>
-                  <ul className="space-y-1">
-                    {issue.symptoms.map((s, i) => (
-                      <li key={i} className="text-slate-400">• {s}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="bg-slate-800/30 p-3 rounded">
-                  <h4 className="font-medium text-slate-300 mb-2">Possible Causes</h4>
-                  <ul className="space-y-1">
-                    {issue.causes.map((c, i) => (
-                      <li key={i} className="text-slate-400">• {c}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mt-4 bg-green-500/10 border border-green-500/30 p-3 rounded">
-                <h4 className="font-medium text-green-400 mb-2">Solutions</h4>
-                <ol className="space-y-1">
-                  {issue.solutions.map((s, i) => (
-                    <li key={i} className="text-slate-300 text-sm">
-                      <span className="text-green-400 font-mono">{i + 1}.</span> {s}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-
-              {issue.drawings.length > 0 && (
-                <div className="mt-4 flex items-center gap-2">
-                  <span className="text-sm text-slate-500">Reference Drawings:</span>
-                  {issue.drawings.map(dwg => (
-                    <Link key={dwg} href={`/drawings/${dwg}`} className="px-2 py-1 bg-slate-700/50 text-slate-300 rounded text-sm hover:bg-slate-600/50">
-                      {dwg}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-
-          {filteredIssues.length === 0 && (
-            <div className="glass-card p-12 text-center">
-              <Wrench className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-              <p className="text-slate-400">No matching fault codes found</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:bg-slate-800 transition-colors text-sm"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          {data && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-sm">
+              <Database className="h-4 w-4 text-cyan-400" />
+              <span className="text-slate-300">{data.total} faults · {data.statistics.systemsCovered} systems</span>
             </div>
           )}
         </div>
       </div>
+
+      {/* Statistics Bar */}
+      {data && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+            <div className="text-2xl font-bold text-white">{data.statistics.totalFaults}</div>
+            <div className="text-xs text-slate-500 uppercase tracking-wider">Total Faults</div>
+          </div>
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+            <div className="text-2xl font-bold text-red-400">{data.statistics.criticalCount}</div>
+            <div className="text-xs text-slate-500 uppercase tracking-wider">Critical</div>
+          </div>
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+            <div className="text-2xl font-bold text-amber-400">{data.statistics.warningCount}</div>
+            <div className="text-xs text-slate-500 uppercase tracking-wider">Warning</div>
+          </div>
+          <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+            <div className="text-2xl font-bold text-cyan-400">{data.statistics.systemsCovered}</div>
+            <div className="text-xs text-slate-500 uppercase tracking-wider">Systems</div>
+          </div>
+        </div>
+      )}
+
+      {/* Search & Filters */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search fault codes, symptoms, trainlines..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && fetchData()}
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-800/80 border border-slate-700/50 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 text-sm"
+          />
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setSelectedSystem(null)}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              !selectedSystem
+                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:text-white'
+            }`}
+          >
+            All Systems
+          </button>
+          {data?.systems.filter(s => s.faultCount > 0).map(sys => {
+            const Icon = SYSTEM_ICONS[sys.code] || Cpu;
+            return (
+              <button
+                key={sys.code}
+                onClick={() => setSelectedSystem(sys.code === selectedSystem ? null : sys.code)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  sys.code === selectedSystem
+                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                    : 'bg-slate-800/50 text-slate-400 border border-slate-700/50 hover:text-white'
+                }`}
+              >
+                <Icon className={`h-4 w-4 ${SYSTEM_COLORS[sys.code] || 'text-slate-400'}`} />
+                {sys.code}
+                <span className="text-xs opacity-60">({sys.faultCount})</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 text-cyan-400 animate-spin" />
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="p-6 rounded-xl bg-red-500/10 border border-red-500/30 text-center">
+          <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-3" />
+          <p className="text-red-300 font-medium">{error}</p>
+          <button
+            onClick={fetchData}
+            className="mt-3 px-4 py-2 bg-red-500/20 text-red-300 rounded-lg text-sm hover:bg-red-500/30 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Fault Cards */}
+      {!loading && !error && (
+        <div className="space-y-3">
+          {filteredFaults.map((fault) => {
+            const severity = SEVERITY_STYLES[fault.severity];
+            const SeverityIcon = severity.icon;
+            const isExpanded = expandedFault === fault.code;
+            const SystemIcon = SYSTEM_ICONS[fault.system] || Cpu;
+            
+            return (
+              <div
+                key={fault.code}
+                className={`rounded-xl border transition-all ${
+                  isExpanded 
+                    ? 'bg-slate-800/60 border-slate-600/50 shadow-lg' 
+                    : 'bg-slate-800/30 border-slate-700/50 hover:border-slate-600/50'
+                }`}
+              >
+                {/* Fault Header */}
+                <button
+                  onClick={() => toggleFault(fault.code)}
+                  className="w-full text-left p-5 flex items-start gap-4 cursor-pointer"
+                >
+                  <div className={`p-2 rounded-lg ${severity.bg} shrink-0 mt-0.5`}>
+                    <SeverityIcon className={`h-5 w-5 ${severity.text}`} />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-white">{fault.description}</span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold border ${severity.bg} ${severity.text} ${severity.border}`}>
+                            {fault.severity.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1.5 text-sm text-slate-400">
+                          <span className="flex items-center gap-1">
+                            <SystemIcon className={`h-3.5 w-3.5 ${SYSTEM_COLORS[fault.system] || 'text-slate-400'}`} />
+                            {fault.system}
+                          </span>
+                          <span className="font-mono text-xs">Code: {fault.code}</span>
+                          {fault.trainlines.length > 0 && (
+                            <span className="text-xs">{fault.trainlines.length} trainlines</span>
+                          )}
+                          {fault.databaseLinks && (
+                            <span className="flex items-center gap-1 text-xs text-cyan-400/60">
+                              <Database className="h-3 w-3" />
+                              {fault.databaseLinks.drawings.length} drawings linked
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronDown className={`h-5 w-5 text-slate-500 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    </div>
+                  </div>
+                </button>
+
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className="px-5 pb-5 space-y-5 border-t border-slate-700/50 pt-4 ml-11">
+                    {/* Trainlines */}
+                    {fault.trainlines.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Related Trainlines</h4>
+                        <div className="flex gap-2 flex-wrap">
+                          {fault.trainlines.map(tl => {
+                            const wireExists = fault.databaseLinks?.wires.find(w => w.wireNo === tl)?.exists;
+                            return (
+                              <Link
+                                key={tl}
+                                href={`/wires?search=${tl}`}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-mono transition-colors ${
+                                  wireExists
+                                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20'
+                                    : 'bg-slate-700/50 text-slate-400 border border-slate-600/50 hover:bg-slate-700'
+                                }`}
+                              >
+                                {tl}
+                                {wireExists && <CheckCircle2 className="inline h-3 w-3 ml-1 text-green-400" />}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Symptoms & Causes Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/30">
+                        <h4 className="text-sm font-semibold text-amber-400 mb-2 flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4" />
+                          Symptoms
+                        </h4>
+                        <ul className="space-y-1.5">
+                          {fault.symptoms.map((s, i) => (
+                            <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                              <span className="text-amber-500 mt-0.5">•</span>
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/30">
+                        <h4 className="text-sm font-semibold text-rose-400 mb-2 flex items-center gap-2">
+                          <Info className="h-4 w-4" />
+                          Possible Causes
+                        </h4>
+                        <ul className="space-y-1.5">
+                          {fault.causes.map((c, i) => (
+                            <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                              <span className="text-rose-500 mt-0.5">•</span>
+                              {c}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Solutions */}
+                    <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-green-400 mb-3 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Resolution Steps
+                      </h4>
+                      <ol className="space-y-2">
+                        {fault.solutions.map((s, i) => (
+                          <li key={i} className="text-sm text-slate-300 flex items-start gap-3">
+                            <span className="shrink-0 w-5 h-5 rounded-full bg-green-500/20 text-green-400 text-xs font-bold flex items-center justify-center mt-0.5">
+                              {i + 1}
+                            </span>
+                            {s}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+
+                    {/* Database-linked Drawings */}
+                    {fault.databaseLinks && fault.databaseLinks.drawings.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <Database className="h-3.5 w-3.5 text-cyan-400" />
+                          Reference Drawings (from database)
+                        </h4>
+                        <div className="flex gap-2 flex-wrap">
+                          {fault.databaseLinks.drawings.map(dwg => (
+                            <Link
+                              key={dwg.id}
+                              href={`/drawings/${dwg.id}`}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 text-slate-300 rounded-lg text-sm border border-slate-700/50 hover:bg-slate-800 hover:text-white transition-colors"
+                            >
+                              <span className="font-mono">{dwg.drawingNo}</span>
+                              <ExternalLink className="h-3 w-3 text-slate-500" />
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Missing Drawings Warning */}
+                    {fault.databaseLinks?.missingDrawings && fault.databaseLinks.missingDrawings.length > 0 && (
+                      <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3">
+                        <p className="text-xs text-amber-400 flex items-center gap-2">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Drawings not found in database: {fault.databaseLinks.missingDrawings.join(', ')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {filteredFaults.length === 0 && !loading && (
+            <div className="text-center py-16 rounded-xl bg-slate-800/30 border border-slate-700/50">
+              <Wrench className="h-12 w-12 text-slate-600 mx-auto mb-4" />
+              <p className="text-slate-400 font-medium">No matching fault codes found</p>
+              <p className="text-slate-500 text-sm mt-1">Try adjusting your search or system filter</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

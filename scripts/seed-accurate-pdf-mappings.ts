@@ -46,11 +46,13 @@ const DRAWING_MAPPINGS = [
   
   // DOOR SYSTEM - CRITICAL
   // *** USER VERIFIED: 942-58142 IS ON PAGE 59 ***
+  // Previous mapping had BOTH 58141 and 58142 on page 59 (impossible).
+  // 58141 page needs verification — tentatively set to page 58.
   { drawingNo: '942-58137', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 54, verified: false },
-  { drawingNo: '942-58138', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 55, verified: false, sheets: 2 },
-  { drawingNo: '942-58139', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 57, verified: false, sheets: 2 },
-  { drawingNo: '942-58140', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 58, verified: false },
-  { drawingNo: '942-58141', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 59, verified: false },
+  { drawingNo: '942-58138', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 55, verified: false, sheets: 4 },
+  { drawingNo: '942-58139', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 59, verified: false, sheets: 4 },
+  { drawingNo: '942-58140', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 57, verified: false, sheets: 2 },
+  { drawingNo: '942-58141', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 58, verified: false, sheets: 2 },
   { drawingNo: '942-58142', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 59, verified: true }, // ✓ USER VERIFIED
   
   // BRAKE System
@@ -171,6 +173,67 @@ const DRAWING_MAPPINGS = [
   { drawingNo: '942-38608', pdf: 'MC_CEILING_PIN DRAWINGS.pdf', page: 9, verified: false },
   { drawingNo: '942-38710', pdf: 'MC_CEILING_PIN DRAWINGS.pdf', page: 11, verified: false },
   { drawingNo: '942-38711', pdf: 'MC_CEILING_PIN DRAWINGS.pdf', page: 13, verified: false },
+
+  // === MISSING DRAWINGS FROM SEED-COMPLETE (pages need verification) ===
+  // CAB System drawings in KMRCL VCC Drawings_OCR.pdf
+  { drawingNo: '942-58109', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 34, verified: false, notes: 'System Status Indication - PENDING VERIFICATION' },
+  { drawingNo: '942-58110', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 36, verified: false, notes: 'MCB Trip Status - PENDING VERIFICATION' },
+  { drawingNo: '942-58111', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 37, verified: false, notes: 'DC Train Line Supply Contactor - PENDING VERIFICATION' },
+  
+  // Light System
+  { drawingNo: '942-58112', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 38, verified: false, notes: 'Head Cab Main Light - PENDING VERIFICATION' },
+  { drawingNo: '942-58113', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 39, verified: false, notes: 'Tail Light/Door Open Console Light - PENDING VERIFICATION' },
+  { drawingNo: '942-58114', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 40, verified: false, sheets: 2, notes: 'Interior Light - PENDING VERIFICATION' },
+  { drawingNo: '942-58115', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 42, verified: false, notes: 'Wiper Control - PENDING VERIFICATION' },
+  
+  // Coupling
+  { drawingNo: '942-58117', pdf: 'KMRCL VCC Drawings_OCR.pdf', page: 43, verified: false, sheets: 2, notes: 'Coupling and Uncoupling Control - PENDING VERIFICATION' },
+
+  // TCMS RIO Pin Assignments (in DMC UF_PIN or CAB_PIN)
+  { drawingNo: '942-38342', pdf: 'DMC UF_PIN DRAWINGS.pdf', page: 22, verified: false, notes: 'TCMS RIO CN11 Pin - PENDING VERIFICATION' },
+  { drawingNo: '942-38343', pdf: 'DMC UF_PIN DRAWINGS.pdf', page: 24, verified: false, notes: 'TCMS RIO CN12 Pin - PENDING VERIFICATION' },
+  { drawingNo: '942-38344', pdf: 'DMC UF_PIN DRAWINGS.pdf', page: 26, verified: false, notes: 'TCMS RIO CN15 Pin - PENDING VERIFICATION' },
+  { drawingNo: '942-38345', pdf: 'DMC UF_PIN DRAWINGS.pdf', page: 28, verified: false, notes: 'TCMS RIO CN17 Pin - PENDING VERIFICATION' },
+
+  // DMC UF missing drawings
+  { drawingNo: '942-38308', pdf: 'DMC UF_PIN DRAWINGS.pdf', page: 6, verified: false, notes: 'Stinger Box Pin - PENDING VERIFICATION' },
+  { drawingNo: '942-38311', pdf: 'DMC UF_PIN DRAWINGS.pdf', page: 10, verified: false, notes: 'ASCOS EPIC SR Pin - PENDING VERIFICATION' },
+  { drawingNo: '942-38313', pdf: 'DMC UF_PIN DRAWINGS.pdf', page: 13, verified: false, notes: 'Filter Reactor Pin - PENDING VERIFICATION' },
+  { drawingNo: '942-38322', pdf: 'DMC UF_PIN DRAWINGS.pdf', page: 22, verified: false, notes: 'Anti Skid Valve Auto Coupler Pin - PENDING VERIFICATION' },
+
+  // TC UF missing drawings
+  { drawingNo: '942-38515', pdf: 'TC _UF PIN DRAWINGS.pdf', page: 14, verified: false, notes: 'ESK Box Pin - PENDING VERIFICATION' },
+  { drawingNo: '942-38520', pdf: 'TC _UF PIN DRAWINGS.pdf', page: 20, verified: false, notes: 'Anti Skid Valve FAEMV Earth Brush Pin - PENDING VERIFICATION' },
+
+  // TC Ceiling missing drawings
+  { drawingNo: '942-38403', pdf: 'DMC_CEILING.pdf', page: 2, verified: false, notes: 'Passenger Door Pin (TC) - PENDING VERIFICATION' },
+  { drawingNo: '942-38411', pdf: 'DMC_CEILING.pdf', page: 12, verified: false, notes: 'Socket Outlet Pin (TC) - PENDING VERIFICATION' },
+
+  // MC Ceiling missing drawings
+  { drawingNo: '942-38609', pdf: 'MC_CEILING_PIN DRAWINGS.pdf', page: 10, verified: false, notes: 'AAU Pin (MC) - PENDING VERIFICATION' },
+  { drawingNo: '942-38610', pdf: 'MC_CEILING_PIN DRAWINGS.pdf', page: 12, verified: false, notes: 'EDB Panel Pin (MC) - PENDING VERIFICATION' },
+  { drawingNo: '942-38611', pdf: 'MC_CEILING_PIN DRAWINGS.pdf', page: 14, verified: false, notes: 'Socket Outlet BIC PBMV Pin (MC) - PENDING VERIFICATION' },
+  { drawingNo: '942-38612', pdf: 'MC_CEILING_PIN DRAWINGS.pdf', page: 15, verified: false, notes: 'TCMS Communication Node-1 Pin (MC) - PENDING VERIFICATION' },
+
+  // MC Underframe missing drawings
+  { drawingNo: '942-38705', pdf: 'MC_UF.pdf', page: 1, verified: false, notes: 'LTEB Pin (MC UF) - PENDING VERIFICATION' },
+  { drawingNo: '942-38706', pdf: 'MC_UF.pdf', page: 3, verified: false, notes: 'VVVF Inverter Pin (MC UF) - PENDING VERIFICATION' },
+  { drawingNo: '942-38707', pdf: 'MC_UF.pdf', page: 6, verified: false, notes: 'CSJB Pin (MC UF) - PENDING VERIFICATION' },
+  { drawingNo: '942-38709', pdf: 'MC_UF.pdf', page: 7, verified: false, notes: 'Pressure Switch Box Pin (MC UF) - PENDING VERIFICATION' },
+  { drawingNo: '942-38710', pdf: 'MC_UF.pdf', page: 8, verified: false, notes: 'BCU Pin (MC UF) - PENDING VERIFICATION' },
+  { drawingNo: '942-38711', pdf: 'MC_UF.pdf', page: 10, verified: false, notes: 'ASCO EPIC SR Pin (MC UF) - PENDING VERIFICATION' },
+
+  // === VCC DESCRIPTION REFERENCE PDF ===
+  { drawingNo: 'VCC-001', pdf: 'VCC DESCRIPTION 13.12.2017.pdf', page: 1, verified: false, notes: 'VCC Description Cover' },
+  { drawingNo: 'VCC-002', pdf: 'VCC DESCRIPTION 13.12.2017.pdf', page: 3, verified: false, notes: 'Trainline Reference 1000-9000' },
+  { drawingNo: 'VCC-003', pdf: 'VCC DESCRIPTION 13.12.2017.pdf', page: 10, verified: false, notes: 'Connector Pin Assignments' },
+  { drawingNo: 'VCC-004', pdf: 'VCC DESCRIPTION 13.12.2017.pdf', page: 20, verified: false, notes: 'Equipment Layout - DMC' },
+  { drawingNo: 'VCC-005', pdf: 'VCC DESCRIPTION 13.12.2017.pdf', page: 25, verified: false, notes: 'Equipment Layout - TC' },
+  { drawingNo: 'VCC-006', pdf: 'VCC DESCRIPTION 13.12.2017.pdf', page: 30, verified: false, notes: 'Equipment Layout - MC' },
+  { drawingNo: 'VCC-007', pdf: 'VCC DESCRIPTION 13.12.2017.pdf', page: 35, verified: false, notes: 'Cross-Connection Details' },
+  { drawingNo: 'VCC-008', pdf: 'VCC DESCRIPTION 13.12.2017.pdf', page: 40, verified: false, notes: 'Inter-Car Jumper Pinout' },
+  { drawingNo: 'VCC-009', pdf: 'VCC DESCRIPTION 13.12.2017.pdf', page: 45, verified: false, notes: 'VVVF Connector Details' },
+  { drawingNo: 'VCC-010', pdf: 'VCC DESCRIPTION 13.12.2017.pdf', page: 50, verified: false, notes: 'TCMS RIO Point Mapping' },
 ];
 
 async function main() {

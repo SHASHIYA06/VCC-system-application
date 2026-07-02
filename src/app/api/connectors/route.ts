@@ -12,13 +12,16 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
   const offset = parseInt(searchParams.get('offset') || '0');
   const search = searchParams.get('search') || '';
+  const connectorCode = searchParams.get('connector_code') || '';
   const carType = searchParams.get('car_type');
   const systemCode = searchParams.get('system_code');
 
   try {
     const where: any = {};
 
-    if (search.trim()) {
+    if (connectorCode.trim()) {
+      where.connectorCode = connectorCode;
+    } else if (search.trim()) {
       where.OR = [
         { connectorCode: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
@@ -41,6 +44,20 @@ export async function GET(request: NextRequest) {
         orderBy: { connectorCode: 'asc' },
         include: {
           drawing: { include: { system: true } },
+          pins: {
+            orderBy: { pinNo: 'asc' },
+            select: {
+              pinNo: true,
+              pinLabel: true,
+              wireNo: true,
+              signalName: true,
+              conductorClassCode: true,
+              voltageText: true,
+              terminalFrom: true,
+              terminalTo: true,
+              note: true,
+            },
+          },
           _count: { select: { pins: true, wireEndpoints: true } },
         },
       }),
@@ -65,12 +82,16 @@ export async function GET(request: NextRequest) {
       connectors: connectors.map(c => ({
         id: c.id,
         connectorCode: c.connectorCode,
+        connectorType: c.connectorTypeCode,
         description: c.description,
         carType: c.carType,
         pinCount: c._count.pins,
         wireEndpointCount: c._count.wireEndpoints,
         systemCode: c.drawing?.system?.code,
         drawingNo: c.drawing?.drawingNo,
+        system: c.drawing?.system ? { code: c.drawing.system.code, name: c.drawing.system.name } : null,
+        drawing: c.drawing ? { id: c.drawing.id, drawingNo: c.drawing.drawingNo, title: c.drawing.title, revision: c.drawing.revision } : null,
+        pins: c.pins,
       })),
       pagination: {
         total,

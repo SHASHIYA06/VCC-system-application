@@ -56,12 +56,32 @@ export default async function SystemsPage() {
   let systems: System[] = ALL_SYSTEMS;
 
   try {
-    const dbSystems = await prisma.system.findMany({ orderBy: { name: 'asc' } });
+    const dbSystems = await prisma.system.findMany({ 
+      orderBy: { name: 'asc' },
+      include: { _count: { select: { drawings: true, devices: true } } }
+    });
     if (dbSystems.length > 0) {
       systems = ALL_SYSTEMS.map(s => {
         const db = dbSystems.find(d => d.code === s.code || d.name === s.name);
-        return db ? { ...s, id: db.id, drawing_count: (db as any).drawings?.length || 0, trainline_count: (db as any).trainlines?.length || 0 } : s;
+        return db ? { ...s, id: db.id, drawing_count: db._count.drawings, deviceCount: db._count.devices } : s;
       });
+      
+      // Add any DB systems not in ALL_SYSTEMS
+      for (const db of dbSystems) {
+        if (!systems.find(s => s.code === db.code)) {
+          systems.push({
+            id: db.id,
+            code: db.code,
+            name: db.name,
+            category: db.category || 'Other',
+            description: db.description || '',
+            icon_name: 'Settings',
+            sort_order: db.sortOrder || 99,
+            drawing_count: db._count.drawings,
+            deviceCount: db._count.devices,
+          });
+        }
+      }
     }
   } catch (e) {
     console.error('Failed to fetch systems from DB', e);

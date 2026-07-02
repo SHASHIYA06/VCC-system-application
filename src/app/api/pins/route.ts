@@ -85,14 +85,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       pins: pins.map(p => ({
         id: p.id,
-        pinNo: p.pinNo,
-        signalName: p.signalName,
-        wireNo: p.wireNo,
-        note: p.note,
-        connectorCode: p.connector?.connectorCode,
-        carType: p.connector?.carType,
-        systemCode: p.connector?.drawing?.system?.code,
-        drawingNo: p.connector?.drawing?.drawingNo,
+        connector_code: p.connector?.connectorCode || '',
+        equipment_code: '',
+        car_code: p.connector?.carType || '',
+        system_code: p.connector?.drawing?.system?.code || '',
+        pin_no: p.pinNo,
+        signal_name: p.signalName || '',
+        wire: p.wireNo || '',
+        description: p.note || p.signalName || '',
+        conductorClassCode: p.conductorClassCode,
+        voltageText: p.voltageText,
+        terminalFrom: p.terminalFrom,
+        terminalTo: p.terminalTo,
       })),
       pagination: {
         total,
@@ -100,11 +104,9 @@ export async function GET(request: NextRequest) {
         offset,
         hasMore: offset + limit < total,
       },
-      filters: {
-        connectors: connectors.map(c => c.connectorCode),
-        cars: cars.map(c => c.carType),
-        systems: systems.map(s => ({ code: s.code, name: s.name })),
-      },
+      connectors: connectors.map(c => c.connectorCode),
+      cars: cars.map(c => c.carType),
+      systems: systems.map(s => s.code),
     });
   } catch (error) {
     console.error('Error fetching pins:', error);

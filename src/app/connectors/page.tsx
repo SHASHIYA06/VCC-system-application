@@ -6,57 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card3D, GlassButton, GlassPanel } from '@/components/ui';
 import { Cable, Search, ArrowRight, ChevronDown, Box, Cpu, RefreshCw, ExternalLink, AlertTriangle, Loader2 } from 'lucide-react';
 
-const FALLBACK_CONNECTORS = [
-  { id: 'cn-v1-1', connectorCode: 'V1-CN1', connectorType: 'VVVF', pinCount: 20, description: 'VVVF main connector - propulsion commands', equipmentCode: 'V1', equipmentName: 'VVVF Inverter 1', carCode: 'DMC', systemCode: 'TRAC', drawingNo: '942-58120',
-    pins: [
-      { pinNo: '12', signalName: 'FORWARD_CMD', wireNo: '3003', endpointLabel: 'Forward command' },
-      { pinNo: '13', signalName: 'REVERSE_CMD', wireNo: '3004', endpointLabel: 'Reverse command' },
-      { pinNo: '14', signalName: 'POWERING_1', wireNo: '3005', endpointLabel: 'Powering level 1 (X1-19)' },
-      { pinNo: '15', signalName: 'POWERING_2', wireNo: '3006', endpointLabel: 'Powering level 2 (X1-20)' },
-      { pinNo: '16', signalName: 'BRAKE_CMD', wireNo: '3010', endpointLabel: 'Braking command' },
-    ]
-  },
-  { id: 'cn-rio1-1', connectorCode: 'TCMS_RIO1-CN1', connectorType: 'TCMS_RIO', pinCount: 40, description: 'TCMS RIO main connector - all digital I/O', equipmentCode: 'TCMS_RIO1', equipmentName: 'TCMS Remote IO Unit 1', carCode: 'MC', systemCode: 'TMS', drawingNo: '942-38610',
-    pins: [
-      { pinNo: 'J7', signalName: 'DOOR_OPEN_L', wireNo: '6009', endpointLabel: 'Left door open' },
-      { pinNo: 'J8', signalName: 'DOOR_OPEN_R', wireNo: '6046', endpointLabel: 'Right door open' },
-      { pinNo: 'J9', signalName: 'DOOR_CLOSE_L', wireNo: '6014', endpointLabel: 'Left door close' },
-      { pinNo: 'J10', signalName: 'DOOR_CLOSE_R', wireNo: '6051', endpointLabel: 'Right door close' },
-      { pinNo: 'K4', signalName: 'PB_APPLIED', wireNo: '4122', endpointLabel: 'Parking brake applied' },
-    ]
-  },
-  { id: 'cn-rio2-1', connectorCode: 'TCMS_RIO2-CN1', connectorType: 'TCMS_RIO', pinCount: 40, description: 'TCMS RIO2 connector - APS and battery monitoring', equipmentCode: 'TCMS_RIO2', equipmentName: 'TCMS Remote IO Unit 2', carCode: 'TC', systemCode: 'TMS', drawingNo: '942-38409',
-    pins: [
-      { pinNo: 'F2', signalName: 'CAB_VAC_FAULT', wireNo: '7001', endpointLabel: 'Cab VAC fault' },
-      { pinNo: 'G3', signalName: 'APS_FAULT', wireNo: '1215', endpointLabel: 'APS fault' },
-      { pinNo: 'G4', signalName: 'BAT_UNDER_VOLT', wireNo: '5064', endpointLabel: 'Battery under-voltage' },
-    ]
-  },
-  { id: 'cn-dcu1-1', connectorCode: 'DCU1-CN1', connectorType: 'DOOR', pinCount: 16, description: 'Door control unit main connector', equipmentCode: 'DCU1', equipmentName: 'Door Control Unit 1', carCode: 'MC', systemCode: 'DOOR', drawingNo: '942-58138',
-    pins: [
-      { pinNo: '3', signalName: 'DOOR_OPEN_L', wireNo: '6009', endpointLabel: 'Left door open command' },
-      { pinNo: '4', signalName: 'DOOR_OPEN_R', wireNo: '6046', endpointLabel: 'Right door open command' },
-      { pinNo: '5', signalName: 'DOOR_CLOSE_L', wireNo: '6014', endpointLabel: 'Left door close command' },
-      { pinNo: '6', signalName: 'DOOR_CLOSE_R', wireNo: '6051', endpointLabel: 'Right door close command' },
-    ]
-  },
-  { id: 'cn-aps1-1', connectorCode: 'APS1-CN1', connectorType: 'APS', pinCount: 24, description: 'APS main power connector', equipmentCode: 'APS1', equipmentName: 'Auxiliary Power Supply', carCode: 'TC', systemCode: 'APS', drawingNo: '942-58130',
-    pins: [
-      { pinNo: '1', signalName: 'AUX_ON', wireNo: '1040', endpointLabel: 'Auxiliary on command' },
-      { pinNo: '2', signalName: 'SHUTDOWN', wireNo: '1050', endpointLabel: 'Shutdown command' },
-      { pinNo: '5', signalName: 'AUX_FAULT', wireNo: '1215', endpointLabel: 'Auxiliary fault output' },
-    ]
-  },
-  { id: 'cn-x1-dmc', connectorCode: 'X1', connectorType: 'INTERCAR', pinCount: 74, description: '74-pin inter-car control jumper - all control signals', equipmentCode: 'LTEB1', equipmentName: 'Low Tension Equipment Box', carCode: 'DMC', systemCode: 'TRL', drawingNo: '942-38409',
-    pins: [
-      { pinNo: '17', signalName: 'FORWARD', wireNo: '3003', endpointLabel: 'Forward command' },
-      { pinNo: '18', signalName: 'REVERSE', wireNo: '3004', endpointLabel: 'Reverse command' },
-      { pinNo: '19', signalName: 'POWERING_1', wireNo: '3005', endpointLabel: 'Powering 1 (CROSSED with 20)' },
-      { pinNo: '20', signalName: 'POWERING_2', wireNo: '3006', endpointLabel: 'Powering 2 (CROSSED with 19)' },
-    ]
-  },
-];
-
 const SYSTEM_COLORS: Record<string, { color: string; bg: string }> = {
   TRAC: { color: 'text-orange-400', bg: 'bg-orange-500/20' },
   BRAKE: { color: 'text-red-400', bg: 'bg-red-500/20' },
@@ -122,7 +71,7 @@ export default function ConnectorsPage() {
         if (systemFilter !== 'all') params.set('system_code', systemFilter);
         if (carFilter !== 'all') params.set('car_type', carFilter);
         if (search) params.set('connector_code', search);
-        params.set('limit', '200');
+        params.set('limit', '1000');
 
         const response = await fetch(`/api/connectors?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch');
@@ -155,19 +104,19 @@ export default function ConnectorsPage() {
           _count: c._count,
         }));
         
-        setTotalCount(data.total || data.count || 0);
+        setTotalCount(data.pagination?.total || data.total || data.count || 0);
         
         if (mapped.length > 0) {
           setConnectors(mapped);
           setError(null);
         } else {
-          setConnectors(FALLBACK_CONNECTORS);
-          setError('Database empty - showing sample data. Click "Load VCC Data" on dashboard first.');
+          setConnectors([]);
+          setError('No connectors found in database.');
         }
       } catch (err) {
         console.error('Connector fetch error:', err);
-        setConnectors(FALLBACK_CONNECTORS);
-        setError('Database unavailable - showing sample data. Click "Load VCC Data" on dashboard first.');
+        setConnectors([]);
+        setError('Database unavailable - check connection.');
       } finally {
         setLoading(false);
       }

@@ -80,15 +80,34 @@ function resolveDrawingToPdf(drawingNo: string): { file: string; isPin: boolean 
   // Handle drawing numbers with alphabetic suffixes (e.g., 942-58128D)
   const cleanNo = upper.replace(/[A-Z]+$/, '');
   
-  // PIN drawings: 942-381xx = CAB, 942-382xx = CAB Part 2, 942-383xx = DMC_UF, etc.
-  if (upper.match(/942[-]?381/i)) return { file: 'CAB_PIN DRAWINGS.pdf', isPin: true };
-  if (upper.match(/942[-]?382/i)) return { file: 'CAB_PIN DRAWINGS 2.pdf', isPin: true };
+  // SPECIFIC DRAWING MAPPINGS (checked against actual PDF content)
+  // CAB_PIN DRAWINGS 2.pdf contains: 942-38104, 942-38105, 942-38108, 942-38109, 942-38119
+  if (upper.match(/942[-]?381(04|05|08|09|19)/i)) return { file: 'CAB_PIN DRAWINGS 2.pdf', isPin: true };
+  
+  // CAB_PIN DRAWINGS.pdf contains: 942-38103 (main CAB PIN drawing)
+  if (upper.match(/942[-]?38103/i)) return { file: 'CAB_PIN DRAWINGS.pdf', isPin: true };
+  
+  // MC_UF.pdf contains: 942-38101, 942-38105, 942-38106, 942-38109, 942-38110-942-38116
+  if (upper.match(/942[-]?381(01|06|10|11|12|13|14|15|16)/i)) return { file: 'MC_UF.pdf', isPin: true };
+  
+  // DMC UF_PIN DRAWINGS.pdf contains: 942-38310, 942-38312, 942-38314
   if (upper.match(/942[-]?383/i)) return { file: 'DMC UF_PIN DRAWINGS.pdf', isPin: true };
-  if (upper.match(/942[-]?384/i)) return { file: 'DMC_CEILING.pdf', isPin: true };
+  
+  // DMC_CEILING.pdf contains: 942-38206, 942-38209, 942-38212, 942-38214, 942-38217
+  if (upper.match(/942[-]?382/i)) return { file: 'DMC_CEILING.pdf', isPin: true };
+  
+  // TC _UF PIN DRAWINGS.pdf contains: 942-38506, 942-38518, 942-38519
   if (upper.match(/942[-]?385/i)) return { file: 'TC _UF PIN DRAWINGS.pdf', isPin: true };
-  if (upper.match(/942[-]?386/i)) return { file: 'TC_CEILING PIN DRAWINGS.pdf', isPin: true };
-  if (upper.match(/942[-]?387/i)) return { file: 'MC_CEILING_PIN DRAWINGS.pdf', isPin: true };
-
+  
+  // TC_CEILING PIN DRAWINGS.pdf contains: 942-38408
+  if (upper.match(/942[-]?384/i)) return { file: 'TC_CEILING PIN DRAWINGS.pdf', isPin: true };
+  
+  // MC_CEILING_PIN DRAWINGS.pdf contains: 942-38604, 942-38609, 942-38610
+  if (upper.match(/942[-]?386/i)) return { file: 'MC_CEILING_PIN DRAWINGS.pdf', isPin: true };
+  
+  // Remaining 942-381xx that don't match specific patterns → try CAB_PIN 2 first
+  if (upper.match(/942[-]?381/i)) return { file: 'CAB_PIN DRAWINGS 2.pdf', isPin: true };
+  
   // Schematic drawings: 942-58xxx
   if (upper.match(/942[-]?58/i)) return { file: 'KMRCL VCC Drawings_OCR.pdf', isPin: false };
   if (upper.match(/942[-]?38/i)) return { file: 'KMRCL VCC Drawings_OCR.pdf', isPin: false };
@@ -175,8 +194,14 @@ export async function GET(request: NextRequest) {
     // Resolve PDF source file
     let resolvedSourceFile: string | null = null;
 
-    // 1. Try DB-stored sourceFileId
-    if (drawing.sourceFileId) {
+    // 1. PRIORITY: Use intelligent mapping based on drawing number (verified against actual PDF content)
+    const mapped = resolveDrawingToPdf(drawing.drawingNo);
+    if (mapped) {
+      resolvedSourceFile = mapped.file;
+    }
+
+    // 2. Fall back to DB-stored sourceFileId if mapping didn't work
+    if (!resolvedSourceFile && drawing.sourceFileId) {
       try {
         const sfRecord = await prisma.sourceFile.findUnique({
           where: { id: drawing.sourceFileId },
@@ -185,12 +210,6 @@ export async function GET(request: NextRequest) {
         if (sfRecord?.filename) resolvedSourceFile = sfRecord.filename;
       } catch { /* ignore */ }
       if (!resolvedSourceFile) resolvedSourceFile = drawing.sourceFileId;
-    }
-
-    // 2. Fall back to intelligent mapping based on drawing number
-    if (!resolvedSourceFile || !resolvedSourceFile.endsWith('.pdf')) {
-      const mapped = resolveDrawingToPdf(drawing.drawingNo);
-      if (mapped) resolvedSourceFile = mapped.file;
     }
 
     // 3. Last resort: list actual PDF files in public/DOCUMENTS
@@ -246,7 +265,15 @@ export async function GET(request: NextRequest) {
 
 async function getRelatedWires(drawingId: string, drawingNo: string) {
   try {
-    // Get wire numbers from connector pins
+    // Chain 1: DrawingWire → Wire (direct link)
+    const drawingWires = await prisma.drawingWire.findMany({
+      where: { drawingId },
+      include: { wire: true },
+      take: 200,
+    });
+    const wiresFromDrawingWire = drawingWires.map(dw => dw.wire);
+
+    // Chain 2: ConnectorPin.wireNo → Wire
     const connectorsOnDrawing = await prisma.connector.findMany({
       where: { drawingId },
       include: { pins: { where: { wireNo: { not: null } }, select: { wireNo: true } } }
@@ -255,26 +282,20 @@ async function getRelatedWires(drawingId: string, drawingNo: string) {
       connectorsOnDrawing.flatMap(c => c.pins.map(p => p.wireNo)).filter(Boolean) as string[]
     )];
 
-    // Get wires from endpoints
+    // Chain 3: WireEndpoint → Wire
     const wireEndpoints = await prisma.wireEndpoint.findMany({
       where: { connector: { drawingId } },
       include: { wire: true },
     });
     const wiresFromEndpoints = wireEndpoints.map(we => we.wire);
 
-    // Get wires by wire number prefix from drawing
+    // Chain 4: Wire.remarks/description search
     const baseNumMatch = drawingNo.match(/\d+/);
     const baseNum = baseNumMatch ? baseNumMatch[0].slice(-4) : '';
 
-    // Fetch by PIN wire numbers + search
     const [wiresFromPins, wiresFromSearch] = await Promise.all([
       wireNosFromPins.length > 0 ? prisma.wire.findMany({
-        where: {
-          OR: [
-            { wireNo: { in: wireNosFromPins } },
-            ...wireNosFromPins.slice(0, 10).map(wn => ({ wireNo: { startsWith: wn.replace(/[a-zA-Z]+$/, '') } }))
-          ]
-        },
+        where: { wireNo: { in: wireNosFromPins } },
         take: 100,
       }) : [],
       baseNum ? prisma.wire.findMany({
@@ -288,7 +309,7 @@ async function getRelatedWires(drawingId: string, drawingNo: string) {
       }) : [],
     ]);
 
-    const allWires = [...wiresFromEndpoints, ...wiresFromPins, ...wiresFromSearch];
+    const allWires = [...wiresFromDrawingWire, ...wiresFromEndpoints, ...wiresFromPins, ...wiresFromSearch];
     const unique = Array.from(new Map(allWires.map(w => [w.wireNo, w])).values());
 
     return unique.slice(0, 150).map(w => ({

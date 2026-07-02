@@ -13,6 +13,22 @@ interface GlassButtonProps {
   type?: 'button' | 'submit' | 'reset';
 }
 
+const variantStyles = {
+  primary: 'bg-cyan-600 hover:bg-cyan-500 text-white border border-cyan-500/30 shadow-sm hover:shadow-glow-sm',
+  secondary: 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700',
+  success: 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/30',
+  danger: 'bg-red-600 hover:bg-red-500 text-white border border-red-500/30',
+  warning: 'bg-amber-600 hover:bg-amber-500 text-white border border-amber-500/30',
+  info: 'bg-blue-600 hover:bg-blue-500 text-white border border-blue-500/30',
+  outline: 'bg-transparent border-2 border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10',
+};
+
+const sizeStyles = {
+  sm: 'px-3 py-1.5 text-xs',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-6 py-3 text-base',
+};
+
 export function GlassButton({
   children,
   onClick,
@@ -22,70 +38,25 @@ export function GlassButton({
   className = '',
   type = 'button',
 }: GlassButtonProps) {
-  // Premium 3D Glassmorphism Button Styles
-  const variantStyles = {
-    // Primary: Premium gradient with glow
-    primary: 'btn-premium bg-gradient-accent text-white border border-white/20 shadow-glow-lg hover:shadow-glow-xl focus:shadow-glow-xl transform-gpu',
-    // Secondary: Glass effect with subtle glow
-    secondary: 'glass-card-premium bg-glass-light hover:bg-glass-medium text-white border border-glass-border shadow-depth hover:shadow-depth-lg',
-    // Success: Green gradient with glow
-    success: 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white border border-white/20 shadow-glow-sm hover:shadow-glow',
-    // Danger: Red gradient with glow
-    danger: 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white border border-white/20 shadow-glow-sm hover:shadow-glow',
-    // Warning: Amber gradient with glow
-    warning: 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white border border-white/20 shadow-glow-sm hover:shadow-glow',
-    // Info: Cyan gradient with glow
-    info: 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white border border-white/20 shadow-glow-sm hover:shadow-glow',
-    // Outline: Premium glass outline
-    outline: 'bg-transparent border-2 border-accent-500/60 hover:bg-accent-500/10 text-accent-400 hover:text-accent-300 shadow-inner-glow hover:shadow-glow-sm',
-  };
-
-  const sizeStyles = {
-    sm: 'px-4 py-2 text-sm',
-    md: 'px-6 py-3 text-base',
-    lg: 'px-8 py-4 text-lg',
-  };
-
   return (
     <motion.button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      whileHover={{ 
-        scale: disabled ? 1 : 1.05, 
-        translateY: disabled ? 0 : -3,
-        rotateX: disabled ? 0 : 5,
-      }}
-      whileTap={{ 
-        scale: disabled ? 1 : 0.95,
-        translateY: disabled ? 0 : 0,
-      }}
+      whileHover={disabled ? undefined : { scale: 1.02 }}
+      whileTap={disabled ? undefined : { scale: 0.98 }}
       className={`
         ${variantStyles[variant]}
         ${sizeStyles[size]}
-        rounded-premium font-bold font-mono
-        transition-all duration-300 ease-smooth
-        disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:translateY-0
-        backdrop-blur-4xl
+        rounded-xl font-semibold
+        transition-colors duration-150
+        disabled:opacity-40 disabled:cursor-not-allowed
         cursor-pointer
-        uppercase tracking-wider
-        relative overflow-hidden
-        gpu-accelerated
-        ${disabled ? '' : 'hover:animate-float-gentle'}
+        inline-flex items-center justify-center gap-2
         ${className}
       `}
-      style={{
-        transformStyle: 'preserve-3d',
-        perspective: 1000,
-      }}
     >
-      {/* Premium shimmer effect */}
-      <div className="absolute inset-0 shimmer-enhanced opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      
-      {/* Content */}
-      <span className="relative z-10 flex items-center justify-center gap-2">
-        {children}
-      </span>
+      {children}
     </motion.button>
   );
 }

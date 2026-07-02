@@ -20,6 +20,7 @@ export interface DrawingPageMapping {
   verified: boolean;
   notes?: string;
   sheets?: number;
+  carType?: string;
 }
 
 /**
@@ -58,12 +59,13 @@ export const MAIN_SCHEMATIC_MAPPINGS: DrawingPageMapping[] = [
   { drawingNumber: '942-58121', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 53, verified: false, sheets: 6, notes: 'Braking control logic' },
   
   // *** DOOR SYSTEM - CRITICAL SECTION ***
-  // User verified: 942-58142 is on page 59
+  // ONLY VERIFIED DATA POINT: 942-58142 = page 59 (USER VERIFIED)
+  // Previous mappings had 942-58141 AND 942-58142 both on page 59 — impossible.
   { drawingNumber: '942-58137', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 54, verified: false, notes: 'Door supply voltage' },
-  { drawingNumber: '942-58138', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 55, verified: false, sheets: 2, notes: 'Door operation' },
-  { drawingNumber: '942-58139', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 57, verified: false, sheets: 2, notes: 'Door proving loop' },
-  { drawingNumber: '942-58140', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 58, verified: false, notes: 'Door local interlock' },
-  { drawingNumber: '942-58141', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 59, verified: false, notes: 'Door local control' },
+  { drawingNumber: '942-58138', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 55, verified: false, sheets: 4, notes: 'Left door operation' },
+  { drawingNumber: '942-58139', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 59, verified: false, notes: 'Right door operation' },
+  { drawingNumber: '942-58140', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 57, verified: false, notes: 'Door proving loop' },
+  { drawingNumber: '942-58141', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 58, verified: false, notes: 'Door local interlock' },
   { drawingNumber: '942-58142', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 59, verified: true, notes: 'Door communication with TMS - USER VERIFIED ✓' },
   // *** END DOOR SYSTEM ***
   
@@ -217,16 +219,25 @@ export const MC_CEILING_PIN_MAPPINGS: DrawingPageMapping[] = [
 
 /**
  * REFERENCE DOCUMENTS (VCC DESCRIPTION 13.12.2017.pdf)
+ * Drawing numbers match vcc-drawings.ts VCC_OCR_DRAWINGS
  */
 export const VCC_DESCRIPTION_MAPPINGS: DrawingPageMapping[] = [
-  { drawingNumber: 'VCC-REF-001', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 1, verified: false, notes: 'VCC system overview' },
-  { drawingNumber: 'VCC-REF-002', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 5, verified: false, notes: 'VCC technical specifications' },
-  { drawingNumber: 'VCC-REF-003', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 10, verified: false, notes: 'VCC electrical systems' },
-  { drawingNumber: 'VCC-REF-004', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 20, verified: false, notes: 'VCC mechanical systems' },
+  { drawingNumber: 'VCC-001', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 1, verified: false, notes: 'VCC system description cover page' },
+  { drawingNumber: 'VCC-002', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 3, verified: false, notes: 'Complete trainline number reference 1000-9000' },
+  { drawingNumber: 'VCC-003', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 10, verified: false, notes: 'All connector pin assignments by car' },
+  { drawingNumber: 'VCC-004', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 20, verified: false, notes: 'Equipment layout - DMC' },
+  { drawingNumber: 'VCC-005', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 25, verified: false, notes: 'Equipment layout - TC' },
+  { drawingNumber: 'VCC-006', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 30, verified: false, notes: 'Equipment layout - MC' },
+  { drawingNumber: 'VCC-007', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 35, verified: false, notes: 'Cross-connection details X1, J43-47' },
+  { drawingNumber: 'VCC-008', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 40, verified: false, notes: 'Inter-car jumper pinout X1-X4' },
+  { drawingNumber: 'VCC-009', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 45, verified: false, notes: 'VVVF connector details CN1-CN4' },
+  { drawingNumber: 'VCC-010', pdfFile: 'VCC DESCRIPTION 13.12.2017.pdf', pageNumber: 50, verified: false, notes: 'TCMS RIO point mapping' },
 ];
 
 /**
  * COMBINED MAPPING - All drawings by drawing number for fast lookup
+ * NOTE: Some drawing numbers appear in multiple PDFs (e.g., 942-38409 in CAB_PIN and DMC_CEILING).
+ * ALL_DRAWING_MAPPINGS uses the FIRST mapping found. Use ALL_DRAWING_MAPPINGS_MULTI for full coverage.
  */
 export const ALL_DRAWING_MAPPINGS: Record<string, DrawingPageMapping> = [
   ...MAIN_SCHEMATIC_MAPPINGS,
@@ -239,15 +250,54 @@ export const ALL_DRAWING_MAPPINGS: Record<string, DrawingPageMapping> = [
   ...MC_CEILING_PIN_MAPPINGS,
   ...VCC_DESCRIPTION_MAPPINGS,
 ].reduce((acc, mapping) => {
-  acc[mapping.drawingNumber] = mapping;
+  if (!acc[mapping.drawingNumber]) {
+    acc[mapping.drawingNumber] = mapping;
+  }
   return acc;
 }, {} as Record<string, DrawingPageMapping>);
 
 /**
- * Lookup function
+ * MULTI-ENTRY MAPPING - All drawings including duplicates across PDFs
+ * Key: drawingNumber, Value: array of mappings (one per PDF file)
+ */
+export const ALL_DRAWING_MAPPINGS_MULTI: Record<string, DrawingPageMapping[]> = [
+  ...MAIN_SCHEMATIC_MAPPINGS,
+  ...CAB_PIN_MAPPINGS,
+  ...DMC_UF_PIN_MAPPINGS,
+  ...DMC_CEILING_MAPPINGS,
+  ...TC_UF_PIN_MAPPINGS,
+  ...TC_CEILING_PIN_MAPPINGS,
+  ...MC_UF_MAPPINGS,
+  ...MC_CEILING_PIN_MAPPINGS,
+  ...VCC_DESCRIPTION_MAPPINGS,
+].reduce((acc, mapping) => {
+  if (!acc[mapping.drawingNumber]) {
+    acc[mapping.drawingNumber] = [];
+  }
+  acc[mapping.drawingNumber].push(mapping);
+  return acc;
+}, {} as Record<string, DrawingPageMapping[]>);
+
+/**
+ * Lookup function - returns first mapping for a drawing number
  */
 export function getPageMapping(drawingNumber: string): DrawingPageMapping | null {
   return ALL_DRAWING_MAPPINGS[drawingNumber] || null;
+}
+
+/**
+ * Lookup function - returns ALL mappings for a drawing number (may be in multiple PDFs)
+ */
+export function getPageMappings(drawingNumber: string): DrawingPageMapping[] {
+  return ALL_DRAWING_MAPPINGS_MULTI[drawingNumber] || [];
+}
+
+/**
+ * Lookup function - returns mapping for a specific drawing+PDF combination
+ */
+export function getPageMappingForPdf(drawingNumber: string, pdfFile: string): DrawingPageMapping | null {
+  const mappings = ALL_DRAWING_MAPPINGS_MULTI[drawingNumber] || [];
+  return mappings.find(m => m.pdfFile === pdfFile) || null;
 }
 
 /**
@@ -261,11 +311,21 @@ export function getUnverifiedMappings(): DrawingPageMapping[] {
  * Statistics
  */
 export function getMappingStatistics() {
-  const all = Object.values(ALL_DRAWING_MAPPINGS);
+  const all = Object.values(ALL_DRAWING_MAPPINGS_MULTI).flat();
+  const uniqueDrawings = Object.keys(ALL_DRAWING_MAPPINGS_MULTI).length;
+  const drawingsInMultiplePdfs = Object.entries(ALL_DRAWING_MAPPINGS_MULTI)
+    .filter(([_, mappings]) => mappings.length > 1)
+    .map(([drawingNo, mappings]) => ({
+      drawingNo,
+      pdfs: mappings.map(m => m.pdfFile),
+    }));
+
   return {
-    total: all.length,
+    totalMappings: all.length,
+    uniqueDrawings,
     verified: all.filter(m => m.verified).length,
     unverified: all.filter(m => !m.verified).length,
+    drawingsInMultiplePdfs,
     byPdf: all.reduce((acc, m) => {
       acc[m.pdfFile] = (acc[m.pdfFile] || 0) + 1;
       return acc;

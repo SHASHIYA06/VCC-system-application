@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   try {
     if (searchParams.get('page')) page = Math.max(1, parseInt(searchParams.get('page')!) || 1);
-    if (searchParams.get('limit')) limit = Math.min(parseInt(searchParams.get('limit')!) || 100, 500);
+    if (searchParams.get('limit')) limit = Math.min(parseInt(searchParams.get('limit')!) || 100, 1000);
   } catch (e) {
     page = 1;
     limit = 100;

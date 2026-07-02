@@ -3,55 +3,33 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Card3D, GlassButton, StatCard, GlassPanel } from '@/components/ui';
 import VoiceAssistant from '@/components/voice/VoiceAssistant';
 import GSDPiVisualization from '@/components/gsd/GSDPiVisualization';
 import SystemHealthCard from '@/components/dashboard/SystemHealthCard';
 import DiagnosticsPanel from '@/components/diagnostics/DiagnosticsPanel';
+import WireDistributionChart from '@/components/dashboard/WireDistributionChart';
+import ConnectorBarChart from '@/components/dashboard/ConnectorBarChart';
 import { DrawingDetailsPanel } from '@/components/dashboard/DrawingDetailsPanel';
 import {
   Train, ShieldCheck, ShieldAlert, Zap, Wind, Radio, Battery, Settings, DoorOpen,
-  Activity, Box, Link2, Search, ChevronRight, Layers, Sparkles, Rocket, Cpu, 
-  Cable, FileText, AlertTriangle, Eye, X, Database, Map, TrendingUp, Bot, Brain, 
-  GitBranch, Network, CheckCircle2, Clock, Loader2, BarChart3, Gauge, Wifi,
-  BookOpen, Wrench, Car, ArrowUpRight, RefreshCw, Play, Atom, Lightbulb, 
-  Target, Sliders, Command, Zap as Lightning, Star
+  Activity, Box, Link2, Search, ChevronRight, Layers, Cpu,
+  Cable, FileText, AlertTriangle, X, Database, Map, TrendingUp, Bot, Brain,
+  Network, CheckCircle2, Loader2, BarChart3, MapPin,
+  BookOpen, Wrench, Car, RefreshCw, Lightbulb,
 } from 'lucide-react';
 
-const PdfViewerEnhanced = dynamic(() => import('@/components/pdf/EnhancedPdfViewer'), { 
+const PdfViewerEnhanced = dynamic(() => import('@/components/pdf/EnhancedPdfViewer'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full min-h-[400px] flex items-center justify-center glass-card-premium">
+    <div className="w-full h-full min-h-[400px] flex items-center justify-center bg-slate-900/50 rounded-xl border border-slate-800">
       <div className="text-center">
-        <div className="loading-advanced mx-auto mb-6"></div>
-        <p className="text-white/80 text-sm font-mono uppercase tracking-wider">Initializing Holographic PDF Renderer...</p>
-        <div className="mt-4 h-1 w-32 mx-auto bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-accent rounded-full animate-pulse"></div>
-        </div>
+        <Loader2 className="h-8 w-8 text-cyan-400 animate-spin mx-auto mb-3" />
+        <p className="text-slate-400 text-sm">Loading PDF viewer...</p>
       </div>
     </div>
   )
 });
-
-const GraphViewer = dynamic(() => import('@/components/ui/GraphViewer'), { 
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-[600px] flex items-center justify-center glass-card-premium">
-      <div className="text-center">
-        <div className="loading-advanced mx-auto mb-6"></div>
-        <p className="text-white/80 text-sm font-mono uppercase tracking-wider">Loading Quantum Graph Network...</p>
-        <div className="mt-4 flex justify-center space-x-2">
-          <div className="particle w-2 h-2 bg-accent-500 rounded-full animate-pulse"></div>
-          <div className="particle w-2 h-2 bg-purple-500 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-          <div className="particle w-2 h-2 bg-accent-500 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
-        </div>
-      </div>
-    </div>
-  )
-});
-
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface DashboardStats {
   overview: {
@@ -85,156 +63,37 @@ interface DrawingResult {
 
 interface AISearchResult {
   query: string;
-  primaryResponse: {
-    agent: string;
-    content: string;
-    confidence: number;
-  };
+  primaryResponse: { agent: string; content: string; confidence: number };
   unifiedResponse: string;
   allData: Record<string, unknown>;
   executionTime: number;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const SYSTEM_GROUPS = [
-  {
-    code: 'GEN',
-    name: 'General & Conventions',
-    category: 'Foundation',
-    description: 'Drawing list, classification, wiring numbers, symbols & conventions',
-    icon: Settings,
-    gradient: 'from-slate-600 via-slate-500 to-slate-600',
-    glow: 'shadow-slate-500/20',
-    color: 'blue' as const,
-    borderColor: 'border-slate-500/20',
-  },
-  {
-    code: 'TRL',
-    name: 'Trainlines',
-    category: 'Core Systems',
-    description: 'Train line control, signal, low/high tension power distribution',
-    icon: Train,
-    gradient: 'from-blue-700 via-blue-500 to-cyan-600',
-    glow: 'shadow-blue-500/20',
-    color: 'blue' as const,
-    borderColor: 'border-blue-500/20',
-  },
-  {
-    code: 'CAB',
-    name: 'Cab Control & Status',
-    category: 'Core Systems',
-    description: 'Controlling cab, startup sequence, status indication, MCB trip',
-    icon: Activity,
-    gradient: 'from-violet-700 via-purple-500 to-violet-600',
-    glow: 'shadow-violet-500/20',
-    color: 'purple' as const,
-    borderColor: 'border-purple-500/20',
-  },
-  {
-    code: 'TRAC',
-    name: 'Traction & Propulsion',
-    category: 'Propulsion',
-    description: 'Speed control, VVVF inverter control, traction return current',
-    icon: Zap,
-    gradient: 'from-orange-600 via-amber-500 to-orange-600',
-    glow: 'shadow-orange-500/20',
-    color: 'orange' as const,
-    borderColor: 'border-orange-500/20',
-  },
-  {
-    code: 'BRAKE',
-    name: 'Brake System',
-    category: 'Safety',
-    description: 'Compressor, brake loop, emergency brake, parking brake, horn',
-    icon: ShieldCheck,
-    gradient: 'from-red-700 via-rose-500 to-red-600',
-    glow: 'shadow-red-500/20',
-    color: 'red' as const,
-    borderColor: 'border-red-500/20',
-  },
-  {
-    code: 'APS',
-    name: 'Auxiliary Power Supply',
-    category: 'Power',
-    description: 'APS, shore supply, battery control, auxiliary circuits',
-    icon: Battery,
-    gradient: 'from-green-700 via-emerald-500 to-green-600',
-    glow: 'shadow-green-500/20',
-    color: 'green' as const,
-    borderColor: 'border-green-500/20',
-  },
-  {
-    code: 'DOOR',
-    name: 'Door System',
-    category: 'Core Systems',
-    description: 'Door operation, proving loop, local interlock, TMS interface',
-    icon: DoorOpen,
-    gradient: 'from-amber-600 via-yellow-500 to-amber-600',
-    glow: 'shadow-amber-500/20',
-    color: 'amber' as const,
-    borderColor: 'border-amber-500/20',
-  },
-  {
-    code: 'VAC',
-    name: 'Ventilation & AC',
-    category: 'Comfort',
-    description: 'Cab VAC, saloon VAC power and control, HVAC management',
-    icon: Wind,
-    gradient: 'from-cyan-700 via-teal-500 to-cyan-600',
-    glow: 'shadow-cyan-500/20',
-    color: 'cyan' as const,
-    borderColor: 'border-cyan-500/20',
-  },
-  {
-    code: 'COMMS',
-    name: 'Communications',
-    category: 'Communication',
-    description: 'PIS, PA system, CCTV, Radio communication, CBTC',
-    icon: Radio,
-    gradient: 'from-emerald-700 via-green-500 to-emerald-600',
-    glow: 'shadow-emerald-500/20',
-    color: 'green' as const,
-    borderColor: 'border-emerald-500/20',
-  },
-  {
-    code: 'TMS',
-    name: 'TCMS',
-    category: 'Control',
-    description: 'Train Control Management System, RIO, Terminal Block, diagnostics',
-    icon: Cpu,
-    gradient: 'from-purple-700 via-fuchsia-500 to-purple-600',
-    glow: 'shadow-purple-500/20',
-    color: 'purple' as const,
-    borderColor: 'border-purple-500/20',
-  },
-];
-
-const QUICK_LINKS = [
-  { label: 'Trainlines', icon: Train, href: '/trainlines', color: 'blue' as const, desc: 'All train lines' },
-  { label: 'Cars', icon: Car, href: '/cars', color: 'orange' as const, desc: 'DMC, TC, MC' },
-  { label: 'Documents', icon: FileText, href: '/documents', color: 'cyan' as const, desc: 'PDF library' },
-  { label: 'System Tree', icon: Map, href: '/systems/tree', color: 'purple' as const, desc: 'Hierarchy view' },
-  { label: 'Wire Trace', icon: Cable, href: '/wires/trace', color: 'green' as const, desc: 'Path tracing' },
-  { label: 'AI Assistant', icon: Bot, href: '/ai-assistant', color: 'pink' as const, desc: 'Smart queries' },
+  { code: 'GEN', name: 'General & Conventions', icon: Settings, color: 'text-slate-400', bg: 'bg-slate-500/10' },
+  { code: 'TRL', name: 'Trainlines', icon: Train, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+  { code: 'CAB', name: 'Cab Control', icon: Activity, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+  { code: 'TRAC', name: 'Traction', icon: Zap, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+  { code: 'BRAKE', name: 'Brake System', icon: ShieldCheck, color: 'text-red-400', bg: 'bg-red-500/10' },
+  { code: 'APS', name: 'Aux Power', icon: Battery, color: 'text-green-400', bg: 'bg-green-500/10' },
+  { code: 'DOOR', name: 'Door System', icon: DoorOpen, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+  { code: 'VAC', name: 'Ventilation', icon: Wind, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+  { code: 'COMMS', name: 'Communications', icon: Radio, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+  { code: 'TMS', name: 'TCMS', icon: Cpu, color: 'text-purple-400', bg: 'bg-purple-500/10' },
 ];
 
 const CAR_TYPES = [
-  { type: 'DMC', name: 'Driving Motor Car', color: 'from-blue-600 to-cyan-600', icon: Train, desc: 'Driver cab + traction' },
-  { type: 'TC',  name: 'Trailer Car',        color: 'from-purple-600 to-violet-600', icon: Activity, desc: 'Passenger only' },
-  { type: 'MC',  name: 'Motor Car',          color: 'from-orange-600 to-amber-600', icon: Zap, desc: 'Motor + passenger' },
+  { type: 'DMC', name: 'Driving Motor Car', icon: Train, desc: 'Driver cab + traction' },
+  { type: 'TC', name: 'Trailer Car', icon: Activity, desc: 'Passenger only' },
+  { type: 'MC', name: 'Motor Car', icon: Zap, desc: 'Motor + passenger' },
 ];
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'explorer' | 'gsd' | 'diagnostics'>('explorer');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState<string>('database');
 
-  // Drawing lookup
   const [drawingSearch, setDrawingSearch] = useState('');
   const [drawingResult, setDrawingResult] = useState<DrawingResult | null>(null);
   const [drawingLoading, setDrawingLoading] = useState(false);
@@ -242,35 +101,16 @@ export default function DashboardPage() {
   const [showInlinePdf, setShowInlinePdf] = useState(false);
   const [inlinePdfPage, setInlinePdfPage] = useState(1);
 
-  // AI Search State
   const [aiQuery, setAiQuery] = useState('');
   const [aiResult, setAiResult] = useState<AISearchResult | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  // GSD Data State
-  const [gsdData, setGsdData] = useState<any | null>(null);
-  const [gsdLoading, setGsdLoading] = useState(false);
-
-  // Diagnostics Data State
-  const [analysisData, setAnalysisData] = useState<any | null>(null);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [backfilling, setBackfilling] = useState(false);
-  const [backfillResult, setBackfillResult] = useState<any | null>(null);
-
-  // AI Agent Parameters
-  const [aiModel, setAiModel] = useState('opencode-minimax');
-  const [aiTemperature, setAiTemperature] = useState(0.2);
-  const [aiConfidenceLimit, setAiConfidenceLimit] = useState(0.75);
-
   const fetchStats = useCallback(async () => {
     try {
       const response = await fetch('/api/stats');
       const data = await response.json();
-      if (response.ok && data.overview) {
-        setStats(data);
-        setDataSource(data.overview.dataSource || 'database');
-      }
+      if (response.ok && data.overview) setStats(data);
     } catch {
       setError('Failed to load database stats');
     } finally {
@@ -278,87 +118,35 @@ export default function DashboardPage() {
     }
   }, []);
 
+  useEffect(() => { fetchStats(); }, [fetchStats]);
+
   const fetchGsd = async () => {
-    setGsdLoading(true);
     try {
-      console.log('🎯 Fetching GSD topology data...');
       const res = await fetch('/api/gsd?action=topology');
       const data = await res.json();
-      
-      if (res.ok && data.success) {
-        setGsdData(data.data);
-        console.log(`✅ GSD data loaded: ${data.metadata?.nodeCount || 0} nodes`);
-      } else {
-        console.error('❌ GSD API error:', data.error);
-        throw new Error(data.message || data.error || 'Failed to fetch GSD data');
-      }
+      if (res.ok && data.success) setGsdData(data.data);
     } catch (err) {
-      console.error('❌ Failed to fetch GSD:', err);
-      setGsdData(null);
-      // Show user-friendly error instead of silent failure
-      alert(`GSD Topology Error: ${err instanceof Error ? err.message : 'Network error occurred'}`);
-    } finally {
-      setGsdLoading(false);
+      setError(`GSD Error: ${err instanceof Error ? err.message : 'Network error'}`);
     }
   };
 
   const fetchAnalysis = async () => {
-    setAnalysisLoading(true);
     try {
-      console.log('📊 Fetching wiring analysis data...');
       const res = await fetch('/api/analysis/wiring');
       const data = await res.json();
-      
-      if (res.ok && data.success !== false) {
-        setAnalysisData(data);
-        console.log('✅ Analysis data loaded');
-      } else {
-        console.error('❌ Analysis API error:', data.error);
-        throw new Error(data.message || data.error || 'Failed to fetch analysis data');
-      }
+      if (res.ok && data.success !== false) setAnalysisData(data);
     } catch (err) {
-      console.error('❌ Failed to fetch wiring analysis:', err);
-      setAnalysisData(null);
-      // Show user-friendly error instead of silent failure
-      alert(`Analysis Error: ${err instanceof Error ? err.message : 'Network error occurred'}`);
-    } finally {
-      setAnalysisLoading(false);
+      setError(`Analysis Error: ${err instanceof Error ? err.message : 'Network error'}`);
     }
   };
 
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+  const [gsdData, setGsdData] = useState<any>(null);
+  const [analysisData, setAnalysisData] = useState<any>(null);
 
   useEffect(() => {
-    if (activeTab === 'gsd') {
-      fetchGsd();
-    } else if (activeTab === 'diagnostics') {
-      fetchAnalysis();
-    }
+    if (activeTab === 'gsd') fetchGsd();
+    else if (activeTab === 'diagnostics') fetchAnalysis();
   }, [activeTab]);
-
-  const handleBackfill = async () => {
-    setBackfilling(true);
-    setBackfillResult(null);
-    try {
-      const res = await fetch('/api/fix/backfill-wires', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setBackfillResult(data.summary);
-        // Refresh data
-        fetchAnalysis();
-        fetchStats();
-      } else {
-        alert(data.error || 'Database backfill failed.');
-      }
-    } catch (err) {
-      console.error('Backfill call failed:', err);
-      alert('Failed to connect to backfill API endpoint.');
-    } finally {
-      setBackfilling(false);
-    }
-  };
 
   async function searchDrawing() {
     if (!drawingSearch.trim()) return;
@@ -366,12 +154,9 @@ export default function DashboardPage() {
     setDrawingError(null);
     setDrawingResult(null);
     setShowInlinePdf(false);
-    
     try {
-      console.log(`🔍 Searching for drawing: ${drawingSearch.trim()}`);
       const response = await fetch(`/api/drawings/lookup?drawing_no=${encodeURIComponent(drawingSearch.trim())}`);
       const data = await response.json();
-      
       if (response.ok && data.drawing) {
         const remarksParts = (data.drawing.remarks || '').split('|');
         setDrawingResult({
@@ -383,32 +168,11 @@ export default function DashboardPage() {
           relatedWires: data.relatedWires || [],
           relatedEquipment: data.relatedEquipment || [],
         });
-        
-        console.log(`✅ Drawing found: ${data.drawing.drawingNo}`);
-        
-        // Find mapped page if available
-        if (data.drawing.sourceFile) {
-          const drawingToMap = data.drawing.pageSuffix 
-            ? `${data.drawing.drawingNo}${data.drawing.pageSuffix}` 
-            : data.drawing.drawingNo;
-            
-          const mappingRes = await fetch(`/api/drawings/pdf-mapping?drawing_no=${encodeURIComponent(drawingToMap)}&source_file=${encodeURIComponent(data.drawing.sourceFile)}`);
-          if (mappingRes.ok) {
-            const mappingData = await mappingRes.json();
-            if (mappingData.pdfPageNo) {
-              setInlinePdfPage(mappingData.pdfPageNo);
-            }
-          }
-        }
       } else {
-        const errorMsg = data.error || 'Drawing not found. Check number formatting.';
-        setDrawingError(errorMsg);
-        console.warn(`⚠️ Drawing search failed: ${errorMsg}`);
+        setDrawingError(data.error || 'Drawing not found');
       }
-    } catch (err) {
-      const errorMsg = 'Search failed — check connection';
-      setDrawingError(errorMsg);
-      console.error('❌ Drawing search error:', err);
+    } catch {
+      setDrawingError('Search failed — check connection');
     } finally {
       setDrawingLoading(false);
     }
@@ -419,759 +183,376 @@ export default function DashboardPage() {
     setAiLoading(true);
     setAiError(null);
     setAiResult(null);
-    
     try {
-      console.log(`🤖 Executing AI search: ${aiQuery.trim()}`);
       const response = await fetch('/api/rag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: aiQuery.trim(),
-          taskType: 'unified_search',
-          useMultiAgent: true,
-          useLangChain: true, // Use new LangChain system
-          model: aiModel,
-          temperature: aiTemperature,
-          confidenceThreshold: aiConfidenceLimit
-        }),
+        body: JSON.stringify({ query: aiQuery.trim(), taskType: 'unified_search', useMultiAgent: true, useLangChain: true }),
       });
-      
       const data = await response.json();
-      
-      if (response.ok && data.success !== false) {
-        setAiResult(data);
-        console.log(`✅ AI search completed: ${data.agents?.length || 1} agents responded`);
-      } else {
-        const errorMsg = data.error || data.message || 'AI search failed';
-        setAiError(errorMsg);
-        console.error('❌ AI search error:', errorMsg);
-      }
-    } catch (err) {
-      const errorMsg = 'Failed to connect to AI service';
-      setAiError(errorMsg);
-      console.error('❌ AI search network error:', err);
+      if (response.ok && data.success !== false) setAiResult(data);
+      else setAiError(data.error || data.message || 'AI search failed');
+    } catch {
+      setAiError('Failed to connect to AI service');
     } finally {
       setAiLoading(false);
     }
   }
 
-  function handleQuickQuery(query: string) {
-    setAiQuery(query);
-    setTimeout(() => searchAI(), 100);
-  }
-
-  // Simulated fallback - REMOVED: No more mockup data, show proper empty state
-  const activeDrawing = drawingResult;
-
-  const flowNodes = gsdData?.network?.nodes?.map((n: any, idx: number) => ({
-    id: n.id,
-    type: 'default',
-    position: { x: (idx % 4) * 240 + 50, y: Math.floor(idx / 4) * 160 + 50 },
-    data: { label: `${n.id} (${n.connections})` },
-    style: {
-      background: 'rgba(15, 23, 42, 0.85)',
-      color: '#06b6d4',
-      border: '2px solid rgba(6, 182, 212, 0.4)',
-      borderRadius: '12px',
-      padding: '12px',
-      fontSize: '12px',
-      fontWeight: 'bold',
-      fontFamily: 'monospace',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-      width: 180,
-      textAlign: 'center',
-    }
-  })) || [];
-
-  const flowEdges = gsdData?.network?.edges?.map((e: any, idx: number) => ({
-    id: `e-${idx}`,
-    source: e.from,
-    target: e.to,
-    label: e.label,
-    animated: true,
-    style: { stroke: '#0ea5e9', strokeWidth: 2 },
-    labelStyle: { fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }
-  })) || [];
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-        {/* Premium background effects */}
-        <div className="glow-orb glow-orb-cyan" />
-        <div className="glow-orb glow-orb-purple" />
-        <div className="absolute inset-0 bg-gradient-mesh opacity-[0.03] animate-mesh-rotate" />
-        
-        <div className="text-center glass-card-premium p-12 rounded-5xl border border-glass-border shadow-premium">
-          <div className="loading-advanced mx-auto mb-6" />
-          <motion.p 
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="text-white font-mono font-bold uppercase tracking-widest text-lg"
-          >
-            Initializing Quantum Dashboard...
-          </motion.p>
-          <div className="mt-6 flex justify-center space-x-3">
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="w-3 h-3 bg-accent-500 rounded-full"
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [0.5, 1, 0.5],
-                }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                }}
-              />
-            ))}
-          </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 text-cyan-400 animate-spin mx-auto mb-4" />
+          <p className="text-slate-400 text-sm">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 lg:p-6 space-y-8 relative overflow-x-hidden">
-      
-      {/* Background glow elements */}
-      <div className="glow-orb glow-orb-cyan" />
-      <div className="glow-orb glow-orb-purple" />
-      
-      <div className="absolute inset-0 grid-pattern opacity-[0.03] pointer-events-none mix-blend-screen"></div>
+    <div className="min-h-screen p-6 space-y-6">
+      {/* Error Banner */}
+      {error && (
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-400 shrink-0" />
+          <span className="text-sm text-red-300 flex-1">{error}</span>
+          <button onClick={() => { setError(null); fetchStats(); }} className="px-3 py-1.5 bg-red-500/20 text-red-300 rounded-lg text-xs font-medium hover:bg-red-500/30 transition-colors">
+            Retry
+          </button>
+          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-300"><X className="h-4 w-4" /></button>
+        </div>
+      )}
 
-      {/* Title Header */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20, rotateX: 10 }}
-        animate={{ opacity: 1, y: 0, rotateX: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        style={{ perspective: 1000 }}
-        className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10"
-      >
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-5xl font-extrabold font-mono text-neon tracking-tight uppercase">
-            Dashboard
-          </h1>
-          <p className="text-white/70 mt-2 font-sans flex items-center gap-2">
-            Welcome back to the VCC System!
-            <Sparkles className="h-4 w-4 text-cyan-400 animate-pulse" />
-          </p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
+          <p className="text-slate-400 text-sm mt-1">KMRCL RS(3R) Vehicle Control Circuits — Digital Twin</p>
         </div>
-        <div className="flex items-center gap-3 px-4 py-2 rounded-5xl glass-card-premium border border-glass-border text-sm text-green-400 font-bold shadow-glow-sm">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-          </span>
-          System Synced to Neon PostgreSQL
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 font-medium">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          Database Connected
         </div>
-      </motion.div>
+      </div>
 
-      {/* Tabs Controller */}
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-        className="flex glass-card-premium backdrop-blur-4xl p-2 rounded-5xl border border-glass-border max-w-2xl relative z-10 shadow-premium"
-      >
-        <button
-          onClick={() => setActiveTab('explorer')}
-          className={`flex-1 py-3 px-6 rounded-4xl text-sm font-bold font-mono transition-all flex items-center justify-center gap-3 uppercase tracking-wider ${
-            activeTab === 'explorer' 
-              ? 'bg-gradient-accent text-white shadow-glow-lg border border-white/20 transform scale-105' 
-              : 'text-white/70 hover:text-white hover:bg-white/10'
-          }`}
-        >
-          <Cpu className="h-5 w-5" />
-          System Explorer
-        </button>
-        <button
-          onClick={() => setActiveTab('gsd')}
-          className={`flex-1 py-3 px-6 rounded-4xl text-sm font-bold font-mono transition-all flex items-center justify-center gap-3 uppercase tracking-wider ${
-            activeTab === 'gsd' 
-              ? 'bg-gradient-accent text-white shadow-glow-lg border border-white/20 transform scale-105' 
-              : 'text-white/70 hover:text-white hover:bg-white/10'
-          }`}
-        >
-          <Network className="h-5 w-5" />
-          GSD Topology
-        </button>
-        <button
-          onClick={() => setActiveTab('diagnostics')}
-          className={`flex-1 py-3 px-6 rounded-4xl text-sm font-bold font-mono transition-all flex items-center justify-center gap-3 uppercase tracking-wider ${
-            activeTab === 'diagnostics' 
-              ? 'bg-gradient-accent text-white shadow-glow-lg border border-white/20 transform scale-105' 
-              : 'text-white/70 hover:text-white hover:bg-white/10'
-          }`}
-        >
-          <ShieldAlert className="h-5 w-5" />
-          Diagnostics & AI
-        </button>
-      </motion.div>
-
-      {/* TAB CONTENTS */}
-      <AnimatePresence mode="wait">
-        
-        {/* TAB 1: SYSTEM EXPLORER */}
-        {activeTab === 'explorer' && (
-          <motion.div
-            key="explorer"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.25 }}
-            className="space-y-8 relative z-10"
+      {/* Tab Controller */}
+      <div className="flex bg-slate-900/50 border border-slate-800/60 p-1 rounded-xl max-w-lg">
+        {[
+          { key: 'explorer', label: 'System Explorer', icon: Cpu },
+          { key: 'gsd', label: 'GSD Topology', icon: Network },
+          { key: 'diagnostics', label: 'Diagnostics', icon: ShieldAlert },
+        ].map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key as typeof activeTab)}
+            className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              activeTab === key
+                ? 'bg-cyan-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+            }`}
           >
-            {/* Quick Drawing Lookup (Search Card) */}
-            <div className="w-full">
-              <GlassPanel
-                title="Quick Drawing Lookup"
-                subtitle="Search drawings in PostgreSQL"
-                icon={<Search className="h-5 w-5" />}
-                variant="elevated"
-                glow={false}
-                className="w-full"
-              >
-                <div className="flex flex-col md:flex-row gap-4 items-center w-full">
-                  <div className="relative flex-1 w-full">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-accent-400" />
-                    <input
-                      type="text"
-                      placeholder="Enter Drawing Number, e.g., 942-58120, 942-38301"
-                      value={drawingSearch}
-                      onChange={e => setDrawingSearch(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && searchDrawing()}
-                      className="input-premium w-full pl-12 pr-4 py-4 text-sm bg-glass-light backdrop-blur-xl border border-glass-border focus:border-accent-500 rounded-2xl text-white placeholder-white/50 focus:outline-none transition-all shadow-inner-glow focus:shadow-glow-sm"
-                    />
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* TAB: System Explorer */}
+      {activeTab === 'explorer' && (
+        <div className="space-y-6">
+          {/* Drawing Lookup */}
+          <GlassPanel title="Quick Drawing Lookup" subtitle="Search 524+ drawings in the database" icon={<Search className="h-5 w-5" />}>
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Enter drawing number, e.g. 942-58120"
+                  value={drawingSearch}
+                  onChange={e => setDrawingSearch(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && searchDrawing()}
+                  className="input-premium w-full pl-10 pr-4 py-3"
+                />
+              </div>
+              <GlassButton variant="primary" size="lg" onClick={searchDrawing} disabled={drawingLoading} className="shrink-0">
+                {drawingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+              </GlassButton>
+            </div>
+
+            {drawingError && (
+              <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-300 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {drawingError}
+              </div>
+            )}
+
+            {drawingResult && (
+              <div className="mt-4 p-5 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-white font-mono">{drawingResult.drawingNo}</h3>
+                    <p className="text-sm text-slate-400 mt-1">{drawingResult.title}</p>
                   </div>
-                  <GlassButton
-                    variant="primary"
-                    size="lg"
-                    onClick={searchDrawing}
-                    disabled={drawingLoading}
-                    className="w-full md:w-auto px-8 py-4 shrink-0"
-                  >
-                    {drawingLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Find Drawing'}
-                  </GlassButton>
+                  <span className="px-2 py-1 rounded-md bg-cyan-500/10 text-cyan-400 text-xs font-medium border border-cyan-500/20">
+                    Found in DB
+                  </span>
                 </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-4">
+                  <div><span className="text-slate-500">System</span><p className="text-white font-medium">{drawingResult.systemCode || 'N/A'}</p></div>
+                  <div><span className="text-slate-500">Car Type</span><p className="text-white font-medium">{drawingResult.carType}</p></div>
+                  <div><span className="text-slate-500">Pages</span><p className="text-white font-medium">{drawingResult.pageCount}</p></div>
+                  <div><span className="text-slate-500">Revision</span><p className="text-white font-medium">{drawingResult.revision}</p></div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <GlassButton variant="primary" size="sm" onClick={() => setShowInlinePdf(!showInlinePdf)}>
+                    <FileText className="h-4 w-4" /> {showInlinePdf ? 'Hide PDF' : 'View PDF'}
+                  </GlassButton>
+                  {drawingResult.sourceFile && (
+                    <span className="text-xs text-slate-500 font-mono">Source: {drawingResult.sourceFile}</span>
+                  )}
+                </div>
+                <DrawingDetailsPanel drawingId={drawingResult.id || drawingResult.drawingNo} />
+              </div>
+            )}
+          </GlassPanel>
 
-                {drawingError && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="p-4 rounded-2xl glass-card-premium border border-red-400/30 text-red-300 text-sm flex items-center gap-3 mt-4 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
-                  >
-                    <AlertTriangle className="h-5 w-5 shrink-0 text-red-400" />
-                    <span>{drawingError}</span>
-                  </motion.div>
-                )}
+          {/* Inline PDF */}
+          {showInlinePdf && drawingResult && (
+            <div className="rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+              <div className="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800">
+                <span className="font-medium text-white text-sm">{drawingResult.drawingNo} — PDF Viewer</span>
+                <button onClick={() => setShowInlinePdf(false)} className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="h-[70vh]">
+                <PdfViewerEnhanced
+                  drawingNo={drawingResult.drawingNo}
+                  title={drawingResult.title}
+                  sourceFile={drawingResult.sourceFile || 'KMRCL VCC Drawings_OCR.pdf'}
+                  initialPage={inlinePdfPage}
+                  onClose={() => setShowInlinePdf(false)}
+                  inline={true}
+                />
+              </div>
+            </div>
+          )}
 
-                <AnimatePresence mode="wait">
-                  {activeDrawing && (
-                    <motion.div
-                      key={activeDrawing.drawingNo}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="mt-6"
-                    >
-                      <h4 className="text-xs font-bold text-white/60 mb-4 uppercase tracking-wider flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-accent-400" />
-                        Search Result
-                      </h4>
-                      <div className="relative overflow-hidden rounded-5xl border-2 border-accent-400/60 glass-card-premium p-8 shadow-glow-lg backdrop-blur-4xl">
-                        <div className="absolute top-0 right-0 p-4">
-                          <span className="px-4 py-2 rounded-full bg-gradient-accent text-white text-xs font-bold tracking-wider uppercase shadow-glow-sm">
-                            Database Match
-                          </span>
-                        </div>
-
-                        <h3 className="text-3xl font-extrabold font-mono text-neon tracking-tight mb-6 uppercase">
-                          {activeDrawing.drawingNo}
-                        </h3>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm mb-8 max-w-4xl">
-                          <div className="space-y-4">
-                            <div>
-                              <span className="text-white/60 mr-3 font-mono">Type:</span>
-                              <span className="text-white font-bold">{activeDrawing.drawingType || 'Electrical Schematic'}</span>
-                            </div>
-                            <div>
-                              <span className="text-white/60 mr-3 font-mono">Car Type:</span>
-                              <span className="text-white font-bold">{activeDrawing.carType || 'TC / DMC / MC'}</span>
-                            </div>
-                          </div>
-                          <div className="space-y-4">
-                            <div>
-                              <span className="text-white/60 mr-3 font-mono">Title:</span>
-                              <span className="text-white font-bold">{activeDrawing.title}</span>
-                            </div>
-                            <div>
-                              <span className="text-white/60 mr-3 font-mono">System:</span>
-                              <span className="text-white font-bold">
-                                {activeDrawing.drawingNo === 'CAB_PIN DRAWINGS' ? 'CAB' : (activeDrawing.systemCode || 'General')}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-white/60 mr-3 font-mono">Pages:</span>
-                              <span className="text-white font-bold">{activeDrawing.pageCount}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-6 pt-4">
-                          <GlassButton
-                            variant="primary"
-                            size="lg"
-                            onClick={() => setShowInlinePdf(!showInlinePdf)}
-                          >
-                            <FileText className="h-5 w-5" /> 
-                            {showInlinePdf ? 'Hide PDF Viewer' : 'View PDF'}
-                          </GlassButton>
-                          
-                          {activeDrawing.sourceFile && (
-                            <span className="text-xs text-white/50 font-mono">
-                              Source: {activeDrawing.sourceFile}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Fetch and Display Wire/Connector/Equipment Details */}
-                        <DrawingDetailsPanel drawingId={activeDrawing.id || activeDrawing.drawingNo} />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </GlassPanel>
+          {/* Stats Grid */}
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Database className="h-5 w-5 text-cyan-400" />
+              Vehicle Interface Stats
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <Link href="/systems"><StatCard icon={<Layers className="h-5 w-5" />} label="Systems" value={stats?.overview?.systems ?? 0} color="purple" /></Link>
+              <Link href="/wires"><StatCard icon={<Cable className="h-5 w-5" />} label="Wires" value={stats?.overview?.wires ?? 0} color="cyan" /></Link>
+              <Link href="/drawings"><StatCard icon={<FileText className="h-5 w-5" />} label="Drawings" value={stats?.overview?.drawings ?? 0} color="blue" /></Link>
+              <Link href="/equipment"><StatCard icon={<Settings className="h-5 w-5" />} label="Equipment" value={stats?.overview?.equipment ?? 0} color="indigo" /></Link>
+              <Link href="/connectors"><StatCard icon={<Link2 className="h-5 w-5" />} label="Connectors" value={stats?.overview?.connectors ?? 0} color="pink" /></Link>
+              <Link href="/pins"><StatCard icon={<Box className="h-5 w-5" />} label="Pins" value={stats?.overview?.pins ?? 0} color="green" /></Link>
+            </div>
           </div>
 
-            {/* Inline Drawing PDF Rendering below Search Result */}
-            <AnimatePresence>
-              {showInlinePdf && activeDrawing && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="w-full rounded-2xl overflow-hidden border border-slate-800 bg-slate-950/90 shadow-2xl relative"
-                >
-                  <div className="flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-cyan-400" />
-                      <span className="font-bold text-white text-sm">{activeDrawing.drawingNo} - PDF Viewer</span>
-                    </div>
-                    <button
-                      onClick={() => setShowInlinePdf(false)}
-                      className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-all"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="h-[80vh] relative">
-                    <PdfViewerEnhanced
-                      drawingNo={activeDrawing.drawingNo}
-                      title={activeDrawing.title}
-                      sourceFile={activeDrawing.sourceFile || (() => {
-                        const upper = (activeDrawing.drawingNo || '').toUpperCase();
-                        if (upper.match(/942-?38[1-2]/)) return 'CAB_PIN DRAWINGS.pdf';
-                        if (upper.match(/942-?383/)) return 'DMC UF_PIN DRAWINGS.pdf';
-                        if (upper.match(/942-?384/)) return 'DMC_CEILING.pdf';
-                        if (upper.match(/942-?385/)) return 'TC _UF PIN DRAWINGS.pdf';
-                        if (upper.match(/942-?386/)) return 'TC_CEILING PIN DRAWINGS.pdf';
-                        if (upper.match(/942-?387/)) return 'MC_CEILING_PIN DRAWINGS.pdf';
-                        return 'KMRCL VCC Drawings_OCR.pdf';
-                      })()}
-                      initialPage={inlinePdfPage}
-                      onClose={() => setShowInlinePdf(false)}
-                      inline={true}
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* Distribution Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card3D className="p-6">
+              <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-cyan-400" /> Wire Distribution by System
+              </h3>
+              <WireDistributionChart
+                data={(stats?.systems || []).map(s => ({
+                  name: s.code,
+                  value: s.drawingCount * 100 || 0,
+                })).filter(d => d.value > 0)}
+              />
+            </Card3D>
+            <Card3D className="p-6">
+              <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+                <Cpu className="h-5 w-5 text-purple-400" /> Connectors per System
+              </h3>
+              <ConnectorBarChart
+                data={(stats?.systems || []).map(s => ({
+                  name: s.code,
+                  value: s.deviceCount,
+                })).filter(d => d.value > 0)}
+              />
+            </Card3D>
+          </div>
 
-            {/* Statistics Cards (6 Cards with 3D Spring Tilt) */}
-            <div>
-              <h2 className="text-2xl font-bold font-mono text-neon mb-8 tracking-tight flex items-center gap-3 uppercase">
-                <Database className="h-6 w-6 text-accent-400" />
-                Vehicle Interface Stats
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Link href="/systems" className="block">
-                  <StatCard
-                    icon={<Layers className="h-6 w-6" />}
-                    label="Systems"
-                    value={stats?.overview?.systems || 42}
-                    subtext="All train subsystems"
-                    color="purple"
-                    dataSource={dataSource}
-                  />
-                </Link>
-                <Link href="/wires" className="block">
-                  <StatCard
-                    icon={<Cable className="h-6 w-6" />}
-                    label="Wires"
-                    value={stats?.overview?.wires || 19016}
-                    subtext="Sampled circuit connections"
-                    color="cyan"
-                    dataSource={dataSource}
-                  />
-                </Link>
-                <Link href="/drawings" className="block">
-                  <StatCard
-                    icon={<FileText className="h-6 w-6" />}
-                    label="Drawings"
-                    value={stats?.overview?.drawings || 574}
-                    subtext="Active schematics indexed"
-                    color="blue"
-                    dataSource={dataSource}
-                  />
-                </Link>
-                <Link href="/equipment" className="block">
-                  <StatCard
-                    icon={<Settings className="h-6 w-6" />}
-                    label="Equipment"
-                    value={stats?.overview?.equipment || 210}
-                    subtext="Physical devices classified"
-                    color="indigo"
-                    dataSource={dataSource}
-                  />
-                </Link>
-                <Link href="/connectors" className="block">
-                  <StatCard
-                    icon={<Link2 className="h-6 w-6" />}
-                    label="Connectors"
-                    value={stats?.overview?.connectors || 1430}
-                    subtext="Intercar/device plugs"
-                    color="pink"
-                    dataSource={dataSource}
-                  />
-                </Link>
-                <Link href="/pins" className="block">
-                  <StatCard
-                    icon={<Box className="h-6 w-6" />}
-                    label="Pins"
-                    value={stats?.overview?.pins || 80470}
-                    subtext="Signal allocation points"
-                    color="green"
-                    dataSource={dataSource}
-                  />
-                </Link>
-              </div>
-            </div>
-
-            {/* Car Fleet Overview & Navigation Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Fleet Overview (2/3 width) */}
-              <Card3D interactive={true} glowColor="cyan" className="lg:col-span-2">
-                <div className="p-8">
-                  <div className="flex items-center gap-4 mb-8">
-                    <motion.div 
-                      whileHover={{ rotate: 15, scale: 1.1 }}
-                      className="w-14 h-14 rounded-2xl bg-gradient-accent flex items-center justify-center text-white shadow-glow-sm"
-                    >
-                      <Train className="h-7 w-7" />
-                    </motion.div>
-                    <div>
-                      <h3 className="text-xl font-bold font-mono text-neon uppercase">Car Fleet Overview</h3>
-                      <p className="text-sm text-white/60 font-sans">Classified wiring allocations by car type</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {CAR_TYPES.map(car => {
-                      const count = stats?.byCarType?.[car.type] || (car.type === 'DMC' ? 7800 : car.type === 'TC' ? 5600 : 5616);
-                      return (
-                        <Link key={car.type} href={`/cars/${car.type}`} className="block">
-                          <motion.div 
-                            whileHover={{ scale: 1.05, y: -5, rotateX: 5 }}
-                            className="p-6 rounded-3xl glass-card-premium backdrop-blur-4xl border border-glass-border hover:shadow-glow-sm transition-all flex flex-col justify-between h-full min-h-[140px] group gpu-accelerated"
-                            style={{ transformStyle: 'preserve-3d' }}
-                          >
-                            <div className="flex items-start justify-between">
-                              <car.icon className="h-8 w-8 text-accent-400 group-hover:text-accent-300 transition-colors" />
-                              <div className="text-right">
-                                <span className="text-3xl font-extrabold font-mono text-neon">{count}</span>
-                                <span className="text-xs text-white/60 uppercase tracking-wider block font-mono">wires</span>
-                              </div>
-                            </div>
-                            <div className="mt-6">
-                              <p className="text-lg font-bold font-mono text-white group-hover:text-accent-400 transition-colors uppercase">{car.type}</p>
-                              <p className="text-xs text-white/60 line-clamp-1">{car.desc}</p>
-                            </div>
-                          </motion.div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              </Card3D>
-
-              {/* Data Explorer Quick Navigation (1/3 width) */}
-              <Card3D interactive={true} glowColor="purple">
-                <div className="p-8">
-                  <h3 className="text-xl font-bold font-mono text-neon mb-6 flex items-center gap-3 uppercase">
-                    <Database className="h-6 w-6 text-purple-400" />
-                    Data Explorer
-                  </h3>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {[
-                      { label: 'Drawings', icon: FileText, href: '/drawings', color: 'purple' },
-                      { label: 'Wires', icon: Cable, href: '/wires', color: 'cyan' },
-                      { label: 'Connectors', icon: Link2, href: '/connectors', color: 'green' },
-                      { label: 'Equipment', icon: Box, href: '/equipment', color: 'orange' },
-                      { label: 'Pins', icon: Layers, href: '/pins', color: 'pink' },
-                      { label: 'Trainlines', icon: Train, href: '/trainlines', color: 'blue' },
-                    ].map(item => (
-                      <Link key={item.label} href={item.href} className="block">
-                        <motion.div 
-                          whileHover={{ scale: 1.05, y: -2 }}
-                          className="p-4 rounded-2xl glass-card-premium backdrop-blur-xl border border-glass-border hover:shadow-glow-sm transition-all flex items-center gap-3 group"
-                        >
-                          <item.icon className={`h-5 w-5 text-${item.color}-400 group-hover:scale-110 transition-transform`} />
-                          <span className="text-white font-bold font-mono group-hover:text-accent-300 transition-colors uppercase tracking-wider">{item.label}</span>
-                        </motion.div>
-                      </Link>
-                    ))}
-                  </div>
-                  <Link href="/cars/tree"
-                    className="mt-6 flex items-center justify-center gap-3 py-4 rounded-2xl border border-glass-border hover:border-accent-500/50 glass-card-premium hover:shadow-glow-sm text-white hover:text-accent-300 text-sm font-bold font-mono transition-all uppercase tracking-wider">
-                    <Map className="h-5 w-5" /> View Car Tree
-                  </Link>
-                </div>
-              </Card3D>
-
-            </div>
-
-            {/* System Architecture Grid Section */}
-            <div>
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold font-mono text-neon flex items-center gap-3 tracking-tight uppercase">
-                  <Network className="h-6 w-6 text-accent-400" />
-                  System Architecture
-                </h2>
-                <Link href="/systems" className="flex items-center gap-2 text-sm text-accent-400 hover:text-accent-300 font-bold font-mono transition-colors uppercase tracking-wider">
-                  View All Systems <ChevronRight className="h-4 w-4" />
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {SYSTEM_GROUPS.map((system, index) => {
-                  const dbSystem = stats?.systems?.find(s => s.code === system.code);
-                  const deviceCount = dbSystem?.deviceCount || 0;
-
+          {/* Car Fleet & Quick Navigation */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card3D className="lg:col-span-2 p-6">
+              <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+                <Train className="h-5 w-5 text-cyan-400" /> Car Fleet Overview
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                {CAR_TYPES.map(car => {
+                  const count = stats?.byCarType?.[car.type] ?? 0;
                   return (
-                    <Link key={system.code} href={`/systems/${system.code}`} className="block">
-                      <Card3D glowColor={system.color} variant="default" className="h-full">
-                        <div className="h-full flex flex-col justify-between">
-                          {/* Card header color gradient banner */}
-                          <div className={`bg-gradient-to-r ${system.gradient} p-4 text-white relative flex items-center justify-between`}>
-                            <system.icon className="h-6 w-6 drop-shadow-md text-white" />
-                            <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase">
-                              {system.category}
-                            </span>
-                          </div>
-                          {/* Card Body */}
-                          <div className="p-4 flex-1 flex flex-col justify-between min-h-[140px]">
-                            <div>
-                              <h4 className="font-extrabold text-white text-base font-mono mb-1">{system.code}</h4>
-                              <p className="font-bold text-xs text-slate-200 leading-snug line-clamp-1">{system.name}</p>
-                              <p className="text-[10px] text-slate-400 mt-2 leading-normal line-clamp-2">{system.description}</p>
-                            </div>
-                            <div className="flex items-center justify-between mt-4 pt-2 border-t border-slate-900">
-                              <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
-                                <TrendingUp className="h-3 w-3 text-cyan-400" /> {deviceCount} Devs · {dbSystem?.drawingCount || 0} Drgs
-                              </span>
-                              <span className="text-[10px] text-cyan-400 font-extrabold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
-                                Explore <ChevronRight className="h-3 w-3" />
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </Card3D>
+                    <Link key={car.type} href={`/cars/${car.type}`}>
+                      <div className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-slate-600 transition-colors cursor-pointer group">
+                        <car.icon className="h-6 w-6 text-slate-400 group-hover:text-cyan-400 transition-colors mb-3" />
+                        <div className="text-2xl font-bold text-white font-mono">{count.toLocaleString()}</div>
+                        <div className="text-xs text-slate-400 mt-1">{car.type} — {car.desc}</div>
+                      </div>
                     </Link>
                   );
                 })}
               </div>
-            </div>
+            </Card3D>
 
-            {/* AI Assistant Section */}
-            <GlassPanel
-              title="Multi-Agent AI Search"
-              subtitle="LangChain-powered · 5 parallel agents · RAG retrieval"
-              icon={<Brain className="h-5 w-5" />}
-              variant="elevated"
-              glow={true}
-              glowColor="purple"
-            >
-              <div className="flex gap-3">
-                <div className="relative flex-1">
-                  <Brain className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-purple-400" />
-                  <input
-                    type="text"
-                    placeholder="Ask anything: wire numbers, connectors, drawing details..."
-                    value={aiQuery}
-                    onChange={e => setAiQuery(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && searchAI()}
-                    className="w-full pl-12 pr-4 py-3 bg-slate-950/80 border border-slate-800/85 focus:border-purple-500 rounded-xl text-white placeholder-slate-500 focus:outline-none transition-all"
-                  />
-                </div>
-                <GlassButton 
-                  variant="info" 
-                  size="lg"
-                  onClick={searchAI}
-                  disabled={!aiQuery.trim() || aiLoading}
-                >
-                  {aiLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Atom className="h-5 w-5" />}
-                  Analyze
-                </GlassButton>
-              </div>
-              
-              <div className="flex flex-wrap gap-2 mt-3">
-                {['Wire 3003', 'Connector APS_CN1', 'Drawing MC_UF', 'TRAC System', 'Brake Circuit'].map(q => (
-                  <button
-                    key={q}
-                    onClick={() => handleQuickQuery(q)}
-                    className="px-3 py-1 rounded-lg bg-slate-950/50 hover:bg-slate-900/80 text-slate-400 hover:text-white text-xs border border-slate-800 transition-all cursor-pointer"
-                  >
-                    {q}
-                  </button>
+            <Card3D className="p-6">
+              <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+                <Map className="h-5 w-5 text-purple-400" /> Quick Navigation
+              </h3>
+              <div className="space-y-1.5">
+                {[
+                  { label: 'Drawings', href: '/drawings', icon: FileText },
+                  { label: 'Wires', href: '/wires', icon: Cable },
+                  { label: 'Connectors', href: '/connectors', icon: Link2 },
+                  { label: 'Equipment', href: '/equipment', icon: Box },
+                  { label: 'Pins', href: '/pins', icon: MapPin },
+                  { label: 'Trainlines', href: '/trainlines', icon: Train },
+                ].map(item => (
+                  <Link key={item.label} href={item.href} className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors group text-sm">
+                    <item.icon className="h-4 w-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                    <span className="text-slate-300 group-hover:text-white transition-colors">{item.label}</span>
+                    <ChevronRight className="h-3 w-3 text-slate-600 ml-auto group-hover:text-slate-400 transition-colors" />
+                  </Link>
                 ))}
               </div>
+            </Card3D>
+          </div>
 
-              <AnimatePresence>
-                {aiError && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-sm"
-                  >
-                    <AlertTriangle className="h-5 w-5 text-red-400" />
-                    <span className="text-red-300">{aiError}</span>
-                    <button onClick={() => setAiError(null)} className="ml-auto">
-                      <X className="h-4 w-4 text-red-400" />
-                    </button>
-                  </motion.div>
-                )}
-                {aiResult && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="mt-4 space-y-4"
-                  >
-                    <div className="p-5 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Bot className="h-5 w-5 text-purple-400" />
-                          <span className="text-sm font-semibold text-purple-400">
-                            {aiResult.primaryResponse.agent}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-400 font-mono">
-                            {aiResult.executionTime}ms
-                          </span>
-                          <span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs font-bold">
-                            {Math.round(aiResult.primaryResponse.confidence * 100)}% confidence
-                          </span>
+          {/* System Architecture Grid */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Network className="h-5 w-5 text-cyan-400" /> System Architecture
+              </h2>
+              <Link href="/systems" className="text-sm text-cyan-400 hover:text-cyan-300 font-medium transition-colors">
+                View All →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {SYSTEM_GROUPS.map(sys => {
+                const dbSystem = stats?.systems?.find(s => s.code === sys.code);
+                return (
+                  <Link key={sys.code} href={`/systems/${sys.code}`}>
+                    <Card3D className="p-4 cursor-pointer group" interactive>
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className={`p-2 rounded-lg ${sys.bg}`}>
+                          <sys.icon className={`h-4 w-4 ${sys.color}`} />
                         </div>
                       </div>
-                      <p className="text-slate-100 leading-relaxed text-sm whitespace-pre-wrap font-sans">
-                        {aiResult.unifiedResponse}
-                      </p>
-                    </div>
-
-                    {Object.keys(aiResult.allData).length > 0 && (
-                      <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-900">
-                        <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
-                          <Database className="h-4 w-4 text-cyan-400" />
-                          Retrieved Reference Objects
-                        </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {Object.entries(aiResult.allData).map(([key, value]) => (
-                            <div key={key} className="p-3 bg-slate-900/60 rounded-lg border border-slate-800/60">
-                              <div className="text-xs text-slate-500 mb-1">{key}</div>
-                              <div className="text-lg font-extrabold text-cyan-400 font-mono">
-                                {Array.isArray(value) ? value.length : (value !== null && typeof value === 'object') ? Object.keys(value).length : String(value)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                      <h4 className="font-bold text-white text-sm font-mono">{sys.code}</h4>
+                      <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{sys.name}</p>
+                      <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-500">
+                        <span>{dbSystem?.deviceCount ?? 0} devs</span>
+                        <span>·</span>
+                        <span>{dbSystem?.drawingCount ?? 0} drgs</span>
                       </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </GlassPanel>
-          </motion.div>
-        )}
-
-        {/* TAB 2: GSD TOPOLOGY */}
-        {activeTab === 'gsd' && (
-          <motion.div
-            key="gsd"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.25 }}
-            className="space-y-8 relative z-10"
-          >
-            <GSDPiVisualization />
-          </motion.div>
-        )}
-
-        {/* TAB 3: DIAGNOSTICS & AI SETUP */}
-        {activeTab === 'diagnostics' && (
-          <motion.div
-            key="diagnostics"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.25 }}
-            className="space-y-8 relative z-10"
-          >
-            <DiagnosticsPanel />
-
-            {/* System Health Overview */}
-            <SystemHealthCard />
-
-          </motion.div>
-        )}
-
-      </AnimatePresence>
-
-      {/* Database Connected Status Footer */}
-      {stats && activeTab === 'explorer' && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="glass-card p-4 flex flex-wrap items-center gap-4 relative z-10 border border-slate-800/80"
-        >
-          <div className="flex items-center gap-2 text-green-400">
-            <CheckCircle2 className="h-4 w-4" />
-            <span className="text-sm font-semibold">Database Connected</span>
+                    </Card3D>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-            <span>{stats.overview.drawings} drawings</span>
-            <span>{stats.overview.wires} wires</span>
-            <span>{stats.overview.connectors} connectors</span>
-            <span>{stats.overview.equipment} equipment items</span>
-            <span>{stats.overview.pins} pins indexed</span>
-          </div>
-          <div className="ml-auto">
-            <Link href="/admin"
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-white transition-colors">
-              <Settings className="h-3.5 w-3.5" /> Admin
-            </Link>
-          </div>
-        </motion.div>
+
+          {/* AI Search */}
+          <GlassPanel title="AI Assistant" subtitle="Ask about wires, connectors, systems, or drawings" icon={<Brain className="h-5 w-5" />} glow>
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Brain className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Ask anything about the VCC system..."
+                  value={aiQuery}
+                  onChange={e => setAiQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && searchAI()}
+                  className="input-premium w-full pl-10 pr-4 py-3"
+                />
+              </div>
+              <GlassButton variant="primary" size="lg" onClick={searchAI} disabled={!aiQuery.trim() || aiLoading}>
+                {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+                Ask
+              </GlassButton>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-3">
+              {['Wire 3001', 'Connector APS_CN1', 'TRAC System', 'Brake Circuit'].map(q => (
+                <button key={q} onClick={() => { setAiQuery(q); setTimeout(searchAI, 100); }}
+                  className="px-3 py-1 rounded-lg bg-slate-800/50 text-slate-400 hover:text-white text-xs border border-slate-700/50 transition-colors cursor-pointer">
+                  {q}
+                </button>
+              ))}
+            </div>
+
+            {aiError && (
+              <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-300 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0" /> {aiError}
+              </div>
+            )}
+
+            {aiResult && (
+              <div className="mt-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-cyan-400" />
+                    <span className="text-sm font-medium text-white">{aiResult.primaryResponse.agent}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 font-mono">{aiResult.executionTime}ms</span>
+                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded text-xs font-medium">
+                      {Math.round(aiResult.primaryResponse.confidence * 100)}%
+                    </span>
+                  </div>
+                </div>
+                <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">{aiResult.unifiedResponse}</p>
+              </div>
+            )}
+          </GlassPanel>
+
+          {/* Database Status Footer */}
+          {stats && (
+            <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800/50 flex flex-wrap items-center gap-4 text-sm">
+              <div className="flex items-center gap-2 text-emerald-400">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="font-medium">Database Connected</span>
+              </div>
+              <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+                <span>{stats.overview.drawings} drawings</span>
+                <span>{stats.overview.wires} wires</span>
+                <span>{stats.overview.connectors} connectors</span>
+                <span>{stats.overview.equipment} equipment</span>
+                <span>{stats.overview.pins} pins</span>
+              </div>
+              <Link href="/admin" className="ml-auto text-xs text-slate-500 hover:text-white transition-colors flex items-center gap-1">
+                <Settings className="h-3 w-3" /> Admin
+              </Link>
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Voice Assistant - Premium VibeVoice Integration */}
-      <VoiceAssistant />
+      {/* TAB: GSD Topology */}
+      {activeTab === 'gsd' && (
+        <div className="space-y-6">
+          <GSDPiVisualization />
+        </div>
+      )}
 
+      {/* TAB: Diagnostics */}
+      {activeTab === 'diagnostics' && (
+        <div className="space-y-6">
+          <DiagnosticsPanel />
+          <SystemHealthCard />
+        </div>
+      )}
+
+      <VoiceAssistant />
     </div>
   );
 }

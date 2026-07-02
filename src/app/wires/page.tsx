@@ -6,28 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card3D, GlassButton, GlassPanel } from '@/components/ui';
 import { Cable, Search, ArrowRight, AlertTriangle, ChevronDown, Zap, RefreshCw, Loader2 } from 'lucide-react';
 
-const FALLBACK_WIRES: WireData[] = [
-  { wireNo: '3003', signalName: 'FORWARD_CMD', description: 'Forward propulsion command to VVVF', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'X1', sourcePin: '17', destEq: 'V1', destConnector: 'CN1', destPin: '12' },
-  { wireNo: '3004', signalName: 'REVERSE_CMD', description: 'Reverse propulsion command to VVVF', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'X1', sourcePin: '18', destEq: 'V1', destConnector: 'CN1', destPin: '13' },
-  { wireNo: '3005', signalName: 'POWERING_1', description: 'Powering command level 1 (crossed with 3006)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'X1', sourcePin: '19', destEq: 'V1', destConnector: 'CN1', destPin: '14' },
-  { wireNo: '3006', signalName: 'POWERING_2', description: 'Powering command level 2 (crossed with 3005)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'X1', sourcePin: '20', destEq: 'V1', destConnector: 'CN1', destPin: '15' },
-  { wireNo: '3010', signalName: 'BRAKE_CMD', description: 'Braking command to VVVF', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'X1', sourcePin: '22', destEq: 'V1', destConnector: 'CN1', destPin: '16' },
-  { wireNo: '4024', signalName: 'BRAKE_LOOP_N', description: 'Brake loop normal - through BCU/BECU all cars', wireColor: 'Red', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'BCU1', sourceConnector: 'X1', sourcePin: '24', destEq: 'BCU2', destConnector: 'X1', destPin: '24' },
-  { wireNo: '4062', signalName: 'EM_BRAKE_N', description: 'Emergency brake loop normal - all cars', wireColor: 'Red', wireType: 'Safety', voltageClass: '110VDC', sourceEq: 'EBMV', sourceConnector: 'X1', sourcePin: '42', destEq: 'EBSS', destConnector: 'X1', destPin: '42' },
-  { wireNo: '6009', signalName: 'DOOR_OPEN_L', description: 'Left door open command (crossed with 6046)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'U15', sourcePin: 'J7', destEq: 'DCU1', destConnector: 'CN1', destPin: '3' },
-  { wireNo: '6014', signalName: 'DOOR_CLOSE_L', description: 'Left door close command (crossed with 6051)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'U15', sourcePin: 'J9', destEq: 'DCU1', destConnector: 'CN1', destPin: '5' },
-  { wireNo: '6046', signalName: 'DOOR_OPEN_R', description: 'Right door open command (crossed with 6009)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'U15', sourcePin: 'J8', destEq: 'DCU1', destConnector: 'CN1', destPin: '4' },
-  { wireNo: '6051', signalName: 'DOOR_CLOSE_R', description: 'Right door close command (crossed with 6014)', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO1', sourceConnector: 'U15', sourcePin: 'J10', destEq: 'DCU1', destConnector: 'CN1', destPin: '6' },
-  { wireNo: '6112', signalName: 'ZERO_SPEED', description: 'Zero speed signal - enables door opening', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'V1', sourceConnector: 'CN2', sourcePin: '3', destEq: 'TCMS_RIO1', destConnector: 'U15', destPin: 'L3' },
-  { wireNo: '7001', signalName: 'CAB_VAC_FLT', description: 'Cab VAC fault indication', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'CAB_VAC1', sourceConnector: 'CN1', sourcePin: '5', destEq: 'TCMS_RIO2', destConnector: 'U25', destPin: 'F2' },
-  { wireNo: '7050', signalName: 'VAC1_STATUS', description: 'Saloon VAC 1 status feedback', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'VAC1', sourceConnector: 'CN1', sourcePin: '3', destEq: 'TCMS_RIO1', destConnector: 'U15', destPin: 'F4' },
-  { wireNo: '1207', signalName: 'VVVF_FAULT', description: 'VVVF fault indication', wireColor: 'Blue', wireType: 'Fault', voltageClass: '110VDC', sourceEq: 'V1', sourceConnector: 'CN2', sourcePin: '5', destEq: 'TCMS_RIO1', destConnector: 'U15', destPin: 'M2' },
-  { wireNo: '1209', signalName: 'HSCB_TRIP', description: 'HSCB trip status indication', wireColor: 'Blue', wireType: 'Fault', voltageClass: '110VDC', sourceEq: 'HSCB1', sourceConnector: 'CN1', sourcePin: '3', destEq: 'TCMS_RIO1', destConnector: 'U15', destPin: 'H4' },
-  { wireNo: '5000', signalName: 'SHORE_SUPPLY', description: 'Shore supply contactor command', wireColor: 'Red', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'TCMS_RIO2', sourceConnector: 'U25', sourcePin: 'H5', destEq: 'SSB1', destConnector: 'CN1', destPin: '3' },
-  { wireNo: '5030', signalName: 'SIV_CONTACT1', description: 'SIV contactor 1 status', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'APS1', sourceConnector: 'CN3', sourcePin: '1', destEq: 'TCMS_RIO2', destConnector: 'U25', destPin: 'J6' },
-  { wireNo: '5064', signalName: 'BAT_UNDER_VOLT', description: 'Battery under-voltage warning', wireColor: 'Blue', wireType: 'Control', voltageClass: '110VDC', sourceEq: 'BATT1', sourceConnector: 'CN1', sourcePin: '2', destEq: 'TCMS_RIO2', destConnector: 'U25', destPin: 'G4' },
-];
-
 const SYSTEM_COLORS: Record<string, { color: string; bg: string; label: string }> = {
   TRAC: { color: 'text-orange-400', bg: 'bg-orange-500/20', label: 'Traction' },
   BRAKE: { color: 'text-red-400', bg: 'bg-red-500/20', label: 'Brake' },
@@ -89,7 +67,7 @@ export default function WiresPage() {
   const [offset, setOffset] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [usingFallback, setUsingFallback] = useState(false);
-  const limit = 200;
+  const limit = 1000;
 
   useEffect(() => {
     async function fetchWires() {
@@ -135,9 +113,9 @@ export default function WiresPage() {
         if (offset === 0) {
           // Only use fallback on initial load failure
           console.warn('⚠️ Falling back to offline data');
-          setWires(FALLBACK_WIRES);
-          setTotalCount(FALLBACK_WIRES.length);
-          setError(`Failed to load from database: ${errorMsg}. Showing ${FALLBACK_WIRES.length} offline wires.`);
+          setWires([]);
+          setTotalCount(0);
+          setError(`Failed to load from database: ${errorMsg}.`);
           setUsingFallback(true);
         } else {
           // Don't fall back when loading more
@@ -313,7 +291,7 @@ export default function WiresPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/30">
-              {filtered.map(wire => {
+              {filtered.map((wire, index) => {
                 const isCross = CROSS_CONNECTED.includes(wire.wireNo);
                 const { source, dest } = getSourceDest(wire);
                 const colorClass = COLOR_CODES[wire.wireColor || 'Blue'] || COLOR_CODES['Blue'];
@@ -321,7 +299,7 @@ export default function WiresPage() {
                 const typeColor = TYPE_COLORS[type] || TYPE_COLORS['Control'];
 
                 return (
-                  <tr key={wire.wireNo} className="hover:bg-slate-800/30 transition-colors">
+                  <tr key={wire.wireNo + '-' + index} className="hover:bg-slate-800/30 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className={`font-mono text-lg font-bold ${isCross ? 'text-amber-400' : 'text-cyan-400'}`}>

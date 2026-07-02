@@ -54,6 +54,18 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
+      data: trainlines.map(tl => ({
+        id: tl.id,
+        wireNo: tl.wireNo,
+        itemName: tl.itemName,
+        conductorClass: tl.conductorClass?.description,
+        carType: tl.carType,
+        systemCode: tl.drawing?.system?.code,
+        drawingNo: tl.drawing?.drawingNo,
+        lineGroup: tl.lineGroup,
+        voltageText: tl.conductorClass?.voltageDomain || null,
+        note: tl.note,
+      })),
       trainlines: trainlines.map(tl => ({
         id: tl.id,
         wireNo: tl.wireNo,

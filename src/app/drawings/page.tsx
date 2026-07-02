@@ -55,7 +55,7 @@ function DrawingsContent() {
         setLoading(true);
         const params = new URLSearchParams();
         if (filterSystem) params.append('system_code', filterSystem);
-        params.append('limit', '200');
+        params.append('limit', '1000');
         
         const res = await fetch(`/api/drawings?${params.toString()}`);
         const data = await res.json();

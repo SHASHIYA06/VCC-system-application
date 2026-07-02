@@ -107,7 +107,8 @@ export default function EnhancedPdfViewer({
 
   function onDocumentLoadSuccess({ numPages: n }: { numPages: number }) {
     setNumPages(n);
-    if (mappedPage && mappedPage <= n) {
+    // Always try to navigate to mappedPage after document loads
+    if (mappedPage && mappedPage <= n && mappedPage > 0) {
       setPageNumber(mappedPage);
     }
     setLoading(false);
