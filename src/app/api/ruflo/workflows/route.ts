@@ -1,14 +1,8 @@
-/**
- * Ruflo Workflow API - Execute and Monitor Workflows
- * GET /api/ruflo/workflows - List all workflows and status
- * POST /api/ruflo/workflows - Execute a specific workflow
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { rufloExecutor } from '@/lib/services/ruflo-executor';
-import { getAllWorkflows, validateWorkflowConfig } from '@/config/ruflo.config';
+import { rufloExecutor, TaskResult, WorkflowResult } from '@/lib/services/ruflo-executor';
+import { getAllWorkflows, getWorkflow, validateWorkflowConfig } from '@/config/ruflo.config';
 
-export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
@@ -17,28 +11,14 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: {
-        workflows: workflows.map(w => ({
-          id: w.id,
-          name: w.name,
-          description: w.description,
-          taskCount: w.tasks.length,
-          tasks: w.tasks,
-          parallel: w.parallel || false,
-          status: rufloExecutor.getStatus(w.id),
-        })),
-        validation,
-        engine: {
-          status: 'active',
-          maxConcurrent: 5,
-          availableWorkflows: workflows.length,
-        },
-      },
-      timestamp: new Date().toISOString(),
+      workflows,
+      validation,
+      status: rufloExecutor.listWorkflows()
     });
   } catch (error) {
+    console.error('Ruflo API error:', error);
     return NextResponse.json(
-      { error: 'Failed to list workflows', details: String(error) },
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -46,28 +26,34 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { workflowId, context = {} } = await request.json();
+    const body = await request.json();
+    const { workflowId, context = {} } = body;
 
     if (!workflowId) {
       return NextResponse.json(
-        { error: 'workflowId is required' },
+        { success: false, error: 'Workflow ID is required' },
         { status: 400 }
       );
     }
 
-    console.log(`🚀 API: Executing workflow "${workflowId}"`);
+    const workflow = getWorkflow(workflowId);
+    if (!workflow) {
+      return NextResponse.json(
+        { success: false, error: `Workflow "${workflowId}" not found` },
+        { status: 404 }
+      );
+    }
 
-    const result = await rufloExecutor.executeWorkflow(workflowId, context);
+    const result: WorkflowResult = await rufloExecutor.executeWorkflow(workflowId, context);
 
     return NextResponse.json({
       success: true,
-      data: result,
-      timestamp: new Date().toISOString(),
+      result
     });
   } catch (error) {
-    console.error('Ruflo workflow execution error:', error);
+    console.error('Ruflo execute error:', error);
     return NextResponse.json(
-      { error: 'Workflow execution failed', details: String(error) },
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
