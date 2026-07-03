@@ -412,31 +412,7 @@ export default function DashboardPage() {
     setTimeout(() => searchAI(), 100);
   }
 
-  // Simulated fallback mockup result
-  const mockupDrawingResult: DrawingResult = {
-    id: 'mockup-id',
-    drawingNo: 'CAB_PIN DRAWINGS',
-    title: 'Intercar Jumper & Connector Layout - TC Car',
-    revision: 'Rev. 4',
-    carType: 'TC',
-    subsystem: 'CAB',
-    drawingType: 'SCHEMATIC',
-    pageCount: 14,
-    systemCode: 'CAB',
-    sourceFile: 'CAB_PIN DRAWINGS.pdf',
-    notes: 'Primary connector assignment details for CAB signals.',
-    relatedWires: [
-      { wireNo: '3001', signalName: 'CAB_START', wireColor: 'RD' },
-      { wireNo: '3002', signalName: 'CAB_RUN', wireColor: 'BU' },
-      { wireNo: '3003', signalName: 'CAB_STOP', wireColor: 'BK' },
-    ],
-    relatedEquipment: [
-      { name: 'Cab Controller Main', tag: 'CCU-1', carType: 'DMC' },
-      { name: 'Driver Console Panel', tag: 'DCP-A', carType: 'DMC' },
-    ]
-  };
-
-  const activeDrawing = drawingResult || (drawingSearch === '' ? mockupDrawingResult : null);
+  const activeDrawing = drawingResult || null;
 
   const flowNodes = gsdData?.network?.nodes?.map((n: any, idx: number) => ({
     id: n.id,
@@ -619,7 +595,7 @@ export default function DashboardPage() {
                       <div className="relative overflow-hidden rounded-lg border-2 border-blue-200/80 bg-blue-50/90 p-6 md:p-8 shadow-lg shadow-blue-500/10">
                         <div className="absolute top-0 right-0 p-4">
                           <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold tracking-wider uppercase">
-                            {activeDrawing.drawingNo === 'CAB_PIN DRAWINGS' ? 'Mockup Preview' : 'Database Match'}
+                            {'Drawing Result'}
                           </span>
                         </div>
 
@@ -646,7 +622,7 @@ export default function DashboardPage() {
                             <div>
                               <span className="text-slate-600 mr-2">System:</span>
                               <span className="text-slate-900 font-semibold">
-                                {activeDrawing.drawingNo === 'CAB_PIN DRAWINGS' ? 'CAB' : (activeDrawing.systemCode || 'General')}
+                                {activeDrawing.systemCode || 'General'}
                               </span>
                             </div>
                             <div>
@@ -776,7 +752,7 @@ export default function DashboardPage() {
                   <StatCard
                     icon={<Layers className="h-6 w-6" />}
                     label="Systems"
-                    value={stats?.overview?.systems || 42}
+                    value={stats?.overview?.systems || 0}
                     subtext="All train subsystems"
                     color="purple"
                     dataSource={dataSource}
@@ -786,8 +762,8 @@ export default function DashboardPage() {
                   <StatCard
                     icon={<Cable className="h-6 w-6" />}
                     label="Wires"
-                    value={stats?.overview?.wires || 19016}
-                    subtext="Sampled circuit connections"
+                    value={stats?.overview?.wires || 0}
+                    subtext="Circuit connections"
                     color="cyan"
                     dataSource={dataSource}
                   />
@@ -796,7 +772,7 @@ export default function DashboardPage() {
                   <StatCard
                     icon={<FileText className="h-6 w-6" />}
                     label="Drawings"
-                    value={stats?.overview?.drawings || 574}
+                    value={stats?.overview?.drawings || 0}
                     subtext="Active schematics indexed"
                     color="blue"
                     dataSource={dataSource}
@@ -806,7 +782,7 @@ export default function DashboardPage() {
                   <StatCard
                     icon={<Settings className="h-6 w-6" />}
                     label="Equipment"
-                    value={stats?.overview?.equipment || 210}
+                    value={stats?.overview?.equipment || 0}
                     subtext="Physical devices classified"
                     color="indigo"
                     dataSource={dataSource}
@@ -816,7 +792,7 @@ export default function DashboardPage() {
                   <StatCard
                     icon={<Link2 className="h-6 w-6" />}
                     label="Connectors"
-                    value={stats?.overview?.connectors || 1430}
+                    value={stats?.overview?.connectors || 0}
                     subtext="Intercar/device plugs"
                     color="pink"
                     dataSource={dataSource}
@@ -826,7 +802,7 @@ export default function DashboardPage() {
                   <StatCard
                     icon={<Box className="h-6 w-6" />}
                     label="Pins"
-                    value={stats?.overview?.pins || 80470}
+                    value={stats?.overview?.pins || 0}
                     subtext="Signal allocation points"
                     color="green"
                     dataSource={dataSource}

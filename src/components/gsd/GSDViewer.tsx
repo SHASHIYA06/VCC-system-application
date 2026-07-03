@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import StarBranchVisualizer from './StarBranchVisualizer';
 import { SystemTopology, SystemNode, SystemEdge } from '@/lib/gsd/topology';
+import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface GSDViewerProps {
   system?: string;
@@ -13,56 +14,95 @@ interface GSDViewerProps {
   interactive?: boolean;
 }
 
-// Hardcoded demo topology data
-const demoTopology: SystemTopology & { formattedData?: any } = {
-  nodes: [
-    { id: 'device-demo-1', label: 'Traction Inverter', type: 'device', system: 'TRAC', position: { x: -200, y: 0 }, metadata: { deviceType: 'Inverter', tagNo: 'INV-01' }, color: '#3b82f6', icon: 'Cpu' },
-    { id: 'device-demo-2', label: 'Auxiliary Power', type: 'device', system: 'APS', position: { x: 200, y: 0 }, metadata: { deviceType: 'Power Unit', tagNo: 'APS-01' }, color: '#10b981', icon: 'Zap' },
-    { id: 'conn-demo-1', label: 'CN-101', type: 'connector', system: 'TRAC', position: { x: 0, y: -150 }, metadata: { pinCount: 8 }, color: '#f97316', icon: 'Plug' },
-    { id: 'conn-demo-2', label: 'CN-202', type: 'connector', system: 'APS', position: { x: 0, y: 150 }, metadata: { pinCount: 12 }, color: '#06b6d4', icon: 'Plug' },
-  ],
-  edges: [
-    { id: 'edge-demo-1', source: 'device-demo-1', target: 'conn-demo-1', label: 'Power', type: 'power', metadata: {}, color: '#ef4444', animated: true },
-    { id: 'edge-demo-2', source: 'device-demo-2', target: 'conn-demo-2', label: 'Signal', type: 'signal', metadata: {}, color: '#3b82f6', animated: true },
-  ],
-  systems: [
-    { code: 'TRAC', name: 'Traction System', devices: 15, connections: 40, color: '#3b82f6' },
-    { code: 'APS', name: 'Auxiliary Power', devices: 10, connections: 30, color: '#10b981' },
-  ],
-  statistics: {
-    totalDevices: 2,
-    totalConnections: 2,
-    totalWires: 2,
-    systemCount: 2,
-    connectorCount: 2,
-    devicesBySystem: {},
-    connectionsByType: {},
-  },
-  formattedData: {
-    nodes: [
-      { id: 'device-demo-1', label: 'Traction Inverter', type: 'device', color: '#3b82f6', metadata: { deviceType: 'Inverter', tagNo: 'INV-01' } },
-      { id: 'device-demo-2', label: 'Auxiliary Power', type: 'device', color: '#10b981', metadata: { deviceType: 'Power Unit', tagNo: 'APS-01' } },
-      { id: 'conn-demo-1', label: 'CN-101', type: 'connector', color: '#f97316', metadata: { pinCount: 8 } },
-      { id: 'conn-demo-2', label: 'CN-202', type: 'connector', color: '#06b6d4', metadata: { pinCount: 12 } },
-    ],
-    edges: [
-      { source: 'device-demo-1', target: 'conn-demo-1', label: 'Power', color: '#06b6d480', value: 2 },
-      { source: 'device-demo-2', target: 'conn-demo-2', label: 'Signal', color: '#06b6d480', value: 2 },
-    ],
-  },
-};
-
 export const GSDViewer: React.FC<GSDViewerProps> = ({
   system,
   device,
   wire,
   onNodeClick,
 }) => {
+  const [formattedData, setFormattedData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchTopology = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const params = new URLSearchParams({ action: 'topology' });
+        if (system) params.append('system', system);
+
+        const res = await fetch(`/api/gsd?${params.toString()}`);
+        const data = await res.json();
+
+        if (cancelled) return;
+
+        if (data.success && data.data) {
+          const topo: SystemTopology = data.data;
+          setFormattedData({
+            nodes: topo.nodes.map((n: SystemNode) => ({
+              id: n.id,
+              label: n.label,
+              type: n.type,
+              color: n.color || '#6b7280',
+              metadata: n.metadata,
+            })),
+            edges: topo.edges.map((e: SystemEdge) => ({
+              source: e.source,
+              target: e.target,
+              label: e.label,
+              color: e.color || '#6b7280',
+              value: 1,
+            })),
+          });
+        } else {
+          setError(data.error || 'Failed to load topology');
+        }
+      } catch (err) {
+        if (!cancelled) setError('Failed to connect to topology API');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchTopology();
+    return () => { cancelled = true; };
+  }, [system]);
+
+  if (loading) {
+    return (
+      <div className="w-full h-full min-h-[600px] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
+          <p className="text-slate-400 text-sm">Loading topology data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !formattedData) {
+    return (
+      <div className="w-full h-full min-h-[600px] flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto mb-3" />
+          <p className="text-slate-400 text-sm mb-2">{error || 'No topology data available'}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 mx-auto"
+          >
+            <RefreshCw className="w-3 h-3" /> Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full min-h-[600px] relative" suppressHydrationWarning>
-      <StarBranchVisualizer 
-        data={demoTopology.formattedData} 
-        onNodeClick={onNodeClick} 
+      <StarBranchVisualizer
+        data={formattedData}
+        onNodeClick={onNodeClick}
       />
     </div>
   );

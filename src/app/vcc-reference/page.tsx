@@ -235,6 +235,24 @@ export default function VCCReferencePage() {
                         <p className="text-slate-300 text-sm whitespace-pre-wrap">{systemDetail.vccDescription.safetyFeatures}</p>
                       </div>
                     )}
+                    {systemDetail.vccDescription.maintenanceSchedule && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-2">Maintenance Schedule</h3>
+                        <p className="text-slate-300 text-sm whitespace-pre-wrap">{systemDetail.vccDescription.maintenanceSchedule}</p>
+                      </div>
+                    )}
+                    {systemDetail.vccDescription.frequency && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-2">Frequency</h3>
+                        <p className="text-slate-300 text-sm">{systemDetail.vccDescription.frequency}</p>
+                      </div>
+                    )}
+                    {systemDetail.vccDescription.environmentalConditions && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-2">Environmental Conditions</h3>
+                        <p className="text-slate-300 text-sm whitespace-pre-wrap">{systemDetail.vccDescription.environmentalConditions}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
