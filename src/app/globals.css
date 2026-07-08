@@ -1,6 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* Tailwind v4 does not auto-load tailwind.config.ts — the design-system tokens
+   (accent/glass colors, glow shadows, custom radii, animations) and the
+   forms/typography/aspect-ratio plugins live there, so load it explicitly. */
+@config "../../tailwind.config.ts";
+
 /* ============================================================================
    VCC SYSTEM - Modern Design System
    Clean glassmorphism, professional aesthetics, production-grade UI

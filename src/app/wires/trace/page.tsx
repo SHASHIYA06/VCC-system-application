@@ -342,14 +342,14 @@ function WireTraceContent() {
                   <div className="border-t border-slate-700/50">
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-slate-700/30 bg-slate-800/20">
+                        <tr className="border-b-2 border-slate-600/40 bg-slate-800/20">
                           <th className="px-5 py-2 text-left text-xs font-semibold text-slate-500">Pin</th>
                           <th className="px-5 py-2 text-left text-xs font-semibold text-slate-500">Connector</th>
                           <th className="px-5 py-2 text-left text-xs font-semibold text-slate-500">Signal</th>
                           <th className="px-5 py-2 text-left text-xs font-semibold text-slate-500">Wire</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-700/30">
+                      <tbody className="divide-y-2 divide-slate-600/40">
                         {data.pins.map((pin: any, idx: number) => (
                           <tr key={idx} className="hover:bg-slate-800/20">
                             <td className="px-5 py-2 font-mono font-bold text-cyan-400">{pin.pinNo}</td>

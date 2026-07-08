@@ -32,7 +32,7 @@ export function GlassPanel({
       className={`
         relative overflow-hidden rounded-2xl
         bg-slate-900/70 backdrop-blur-xl
-        border border-slate-800/80
+        border-2 border-slate-700/60
         transition-all duration-200
         ${glow ? 'hover:shadow-glow-cyan hover:border-cyan-500/20' : ''}
         ${className}

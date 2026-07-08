@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VCC Schematic Viewer - Wire Connections & Components</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #00ff00; overflow: auto; }
+  h1 { text-align: center; padding: 20px; font-size: 20px; color: #00ff00; background: #111; border-bottom: 2px solid #333; }
+  .subtitle { text-align: center; color: #666; font-size: 12px; padding: 10px; background: #111; }
+  .controls { display: flex; gap: 10px; padding: 15px; background: #111; border-bottom: 1px solid #333; flex-wrap: wrap; justify-content: center; }
+  .controls select, .controls input { background: #1a1a1a; border: 1px solid #333; color: #00ff00; padding: 8px 12px; border-radius: 4px; font-family: inherit; }
+  .controls button { background: #003300; border: 1px solid #00ff00; color: #00ff00; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-family: inherit; }
+  .controls button:hover { background: #004400; }
+  .schematic { padding: 20px; }
+  .drawing-section { margin-bottom: 30px; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+  .drawing-header { background: #111; padding: 12px 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+  .drawing-title { font-size: 14px; font-weight: bold; color: #00ff00; }
+  .drawing-system { font-size: 11px; color: #666; }
+  .drawing-body { padding: 16px; background: #0a0a0a; }
+  .connector-block { display: inline-block; background: #0d1117; border: 2px solid #30363d; border-radius: 6px; padding: 10px; margin: 8px; min-width: 180px; vertical-align: top; }
+  .connector-name { font-size: 12px; font-weight: bold; color: #58a6ff; margin-bottom: 8px; border-bottom: 1px solid #30363d; padding-bottom: 4px; }
+  .pin-row { display: flex; gap: 8px; font-size: 10px; padding: 2px 0; border-bottom: 1px solid #1a1a1a; }
+  .pin-no { color: #8b949e; min-width: 20px; }
+  .pin-wire { color: #f0883e; min-width: 40px; }
+  .pin-signal { color: #7ee787; flex: 1; }
+  .pin-class { color: #8b949e; min-width: 20px; text-align: right; }
+  .wire-connection { display: flex; align-items: center; gap: 8px; padding: 6px 12px; margin: 4px 0; background: #0d1117; border-left: 3px solid #f0883e; border-radius: 0 4px 4px 0; font-size: 11px; }
+  .wire-no { color: #f0883e; font-weight: bold; min-width: 50px; }
+  .wire-signal { color: #7ee787; flex: 1; }
+  .wire-voltage { color: #d2a8ff; min-width: 60px; }
+  .wire-arrow { color: #8b949e; }
+  .wire-from { color: #58a6ff; }
+  .wire-to { color: #58a6ff; }
+  .component-badge { display: inline-block; background: #1f6feb33; border: 1px solid #1f6feb; color: #58a6ff; padding: 2px 8px; border-radius: 12px; font-size: 10px; margin: 2px; }
+  .power-rail { background: #1a0000; border: 1px solid #ff000033; padding: 8px; margin: 8px 0; border-radius: 4px; }
+  .power-label { color: #ff6666; font-size: 11px; font-weight: bold; margin-bottom: 4px; }
+  .gnd-rail { background: #001a00; border: 1px solid #00ff0033; padding: 8px; margin: 8px 0; border-radius: 4px; }
+  .gnd-label { color: #00ff00; font-size: 11px; font-weight: bold; margin-bottom: 4px; }
+  .signal-rail { background: #00001a; border: 1px solid #0000ff33; padding: 8px; margin: 8px 0; border-radius: 4px; }
+  .signal-label { color: #6666ff; font-size: 11px; font-weight: bold; margin-bottom: 4px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; padding: 15px; background: #111; border-bottom: 1px solid #333; }
+  .stat-card { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; text-align: center; }
+  .stat-value { font-size: 24px; font-weight: bold; color: #00ff00; }
+  .stat-label { font-size: 11px; color: #8b949e; margin-top: 4px; }
+  .legend { display: flex; gap: 16px; padding: 10px 15px; background: #111; border-bottom: 1px solid #333; flex-wrap: wrap; font-size: 11px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-color { width: 12px; height: 12px; border-radius: 2px; border: 1px solid #333; }
+  .hidden { display: none; }
+  .pin-row { display: flex; gap: 8px; font-size: 10px; padding: 2px 0; border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: background 0.2s; }
+  .pin-row:hover { background: #1a2a1a; }
+  .pin-row.highlighted { background: #003300 !important; border: 1px solid #00ff00; border-radius: 3px; }
+  .pin-wire.clickable { color: #ffcc00; font-weight: bold; cursor: pointer; text-decoration: underline; }
+  .pin-wire.clickable:hover { color: #ffff00; }
+  .connector-block.highlighted { border-color: #00ff00 !important; box-shadow: 0 0 15px #00ff0044; }
+  .drawing-section.highlighted { border-color: #00ff00 !important; }
+  .drawing-section.dimmed { opacity: 0.3; }
+  .connector-block.dimmed { opacity: 0.3; }
+  .wire-trace-panel { position: fixed; top: 0; right: 0; width: 400px; height: 100vh; background: #0d1117; border-left: 2px solid #00ff00; z-index: 1000; overflow-y: auto; display: none; }
+  .wire-trace-panel.active { display: block; }
+  .wire-trace-header { background: #111; padding: 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+  .wire-trace-title { font-size: 16px; font-weight: bold; color: #00ff00; }
+  .wire-trace-close { background: none; border: 1px solid #ff6666; color: #ff6666; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: inherit; }
+  .wire-trace-close:hover { background: #ff666622; }
+  .wire-trace-body { padding: 16px; }
+  .trace-step { display: flex; align-items: flex-start; gap: 12px; padding: 10px; margin: 8px 0; background: #1a1a1a; border-radius: 6px; border-left: 3px solid #58a6ff; }
+  .trace-step.source { border-left-color: #f0883e; }
+  .trace-step.destination { border-left-color: #7ee787; }
+  .trace-step.intermediate { border-left-color: #d2a8ff; }
+  .trace-icon { font-size: 20px; min-width: 30px; text-align: center; }
+  .trace-info { flex: 1; }
+  .trace-drawing { font-size: 12px; font-weight: bold; color: #58a6ff; }
+  .trace-connector { font-size: 11px; color: #f0883e; }
+  .trace-pin { font-size: 10px; color: #8b949e; }
+  .trace-wire { font-size: 11px; color: #00ff00; font-weight: bold; }
+  .trace-arrow { color: #666; font-size: 16px; margin: 4px 0; text-align: center; }
+  .wire-search { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #0d1117; border: 2px solid #00ff00; border-radius: 8px; padding: 20px; z-index: 1001; display: none; width: 400px; }
+  .wire-search.active { display: block; }
+  .wire-search input { width: 100%; background: #1a1a1a; border: 1px solid #333; color: #00ff00; padding: 10px; border-radius: 4px; font-family: inherit; font-size: 14px; margin-bottom: 10px; }
+  .wire-search-results { max-height: 300px; overflow-y: auto; }
+  .wire-search-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #333; font-size: 12px; }
+  .wire-search-item:hover { background: #1a2a1a; }
+  .wire-search-item .wire-no { color: #f0883e; font-weight: bold; }
+  .wire-search-item .wire-signal { color: #7ee787; }
+  .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
+  .overlay.active { display: block; }
+  .trace-summary { background: #111; padding: 12px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #333; }
+  .trace-summary-title { font-size: 13px; font-weight: bold; color: #00ff00; margin-bottom: 8px; }
+  .trace-summary-row { display: flex; justify-content: space-between; font-size: 11px; padding: 2px 0; }
+  .trace-summary-label { color: #8b949e; }
+  .trace-summary-value { color: #e6e6e6; }
+</style>
+</head>
+<body>
+<h1>VCC SCHEMATIC VIEWER - Wire Connections & Component Placements</h1>
+<div class="subtitle">KMRCL RS3R Metro Vehicle Control Circuits - Database-Generated Schematic</div>
+
+<div class="stats">
+  <div class="stat-card"><div class="stat-value">86</div><div class="stat-label">Drawings</div></div>
+  <div class="stat-card"><div class="stat-value">60</div><div class="stat-label">Connectors</div></div>
+  <div class="stat-card"><div class="stat-value">428</div><div class="stat-label">Connector Pins</div></div>
+  <div class="stat-card"><div class="stat-value">185</div><div class="stat-label">Wires</div></div>
+  <div class="stat-card"><div class="stat-value">2,162</div><div class="stat-label">Wire Connections</div></div>
+  <div class="stat-card"><div class="stat-value">72</div><div class="stat-label">Component Types</div></div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-color" style="background:#ff6666"></div> Power (110VDC)</div>
+  <div class="legend-item"><div class="legend-color" style="background:#00ff00"></div> Ground</div>
+  <div class="legend-item"><div class="legend-color" style="background:#f0883e"></div> Control Signals</div>
+  <div class="legend-item"><div class="legend-color" style="background:#58a6ff"></div> Connectors</div>
+  <div class="legend-item"><div class="legend-color" style="background:#7ee787"></div> Signal Names</div>
+  <div class="legend-item"><div class="legend-color" style="background:#d2a8ff"></div> Voltage Classes</div>
+</div>
+
+<div class="controls">
+  <select id="systemFilter" onchange="filterBySystem()">
+    <option value="">All Systems</option>
+    <option value="GENERAL">General</option>
+    <option value="TRACTION">Traction</option>
+    <option value="BRAKE">Brake</option>
+    <option value="AUX">Auxiliary</option>
+    <option value="DOOR">Door</option>
+    <option value="AIRCON">Air Conditioning</option>
+    <option value="TIMS">TIMS/TCMS</option>
+    <option value="COMM">Communication</option>
+  </select>
+  <select id="wireFilter" onchange="filterByWire()">
+    <option value="">All Wires</option>
+    <option value="7001">7001 - Battery +110V</option>
+    <option value="7002">7002 - Battery GND</option>
+    <option value="7010">7010 - Train Line +110V</option>
+    <option value="3030">3030 - Battery Voltage</option>
+    <option value="6020">6020 - Door Interlock</option>
+    <option value="6021">6021 - Door Closed</option>
+    <option value="3003">3003 - Emergency Brake</option>
+    <option value="3004">3004 - Service Brake</option>
+  </select>
+  <button onclick="showAll()">Show All</button>
+  <button onclick="showPowerDistribution()">Power Distribution</button>
+  <button onclick="showDoorSystem()">Door System</button>
+  <button onclick="showBrakeSystem()">Brake System</button>
+  <button onclick="showTractionSystem()">Traction System</button>
+</div>
+
+<div class="schematic" id="schematic"></div>
+
+<!-- Wire Trace Panel -->
+<div class="wire-trace-panel" id="wireTracePanel">
+  <div class="wire-trace-header">
+    <span class="wire-trace-title" id="traceTitle">Wire Trace</span>
+    <button class="wire-trace-close" onclick="closeWireTrace()">Close</button>
+  </div>
+  <div class="wire-trace-body" id="traceBody"></div>
+</div>
+
+<!-- Wire Search Overlay -->
+<div class="overlay" id="overlay" onclick="closeWireSearch()"></div>
+<div class="wire-search" id="wireSearch">
+  <input type="text" id="wireSearchInput" placeholder="Type wire number (e.g., 7001, 6020)..." oninput="searchWires(this.value)">
+  <div class="wire-search-results" id="wireSearchResults"></div>
+</div>
+
+<!-- Trace Button -->
+<div style="position:fixed;bottom:20px;right:20px;z-index:100;">
+  <button onclick="openWireSearch()" style="background:#003300;border:2px solid #00ff00;color:#00ff00;padding:12px 20px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:bold;">
+    🔍 Trace Wire
+  </button>
+</div>
+
+<script>
+const drawingData = {
+  "942-58103": {
+    title: "Train Lines, Control",
+    system: "GENERAL",
+    connectors: {
+      "X1": {
+        carType: "ALL",
+        description: "74P Control Signal Jumper",
+        pins: [
+          {no:"1",wire:"3001",signal:"Forward",class:"BA"},
+          {no:"2",wire:"3002",signal:"Reverse",class:"BA"},
+          {no:"3",wire:"3003",signal:"Emergency Brake",class:"BA"},
+          {no:"4",wire:"3004",signal:"Service Brake",class:"BA"},
+          {no:"5",wire:"3010",signal:"Master Controller",class:"BA"},
+          {no:"6",wire:"3011",signal:"Traction Enable",class:"BA"},
+          {no:"7",wire:"3012",signal:"Door Enable",class:"BA"},
+          {no:"8",wire:"3013",signal:"Horn",class:"BA"},
+          {no:"19",wire:"3005",signal:"Fwd/Rev Cross A",class:"BA"},
+          {no:"20",wire:"3006",signal:"Fwd/Rev Cross B",class:"BA"},
+          {no:"43",wire:"6009",signal:"Door Open Left A",class:"BA"},
+          {no:"44",wire:"6046",signal:"Door Open Left B",class:"BA"},
+          {no:"45",wire:"6010",signal:"Door Open Right",class:"BA"},
+          {no:"46",wire:"6014",signal:"Door Close Left A",class:"BA"},
+          {no:"47",wire:"6051",signal:"Door Close Left B",class:"BA"},
+          {no:"48",wire:"6015",signal:"Door Close Right",class:"BA"},
+          {no:"49",wire:"6020",signal:"Door Interlock",class:"BA"},
+          {no:"50",wire:"6021",signal:"Door Closed",class:"BA"},
+          {no:"51",wire:"7001",signal:"Battery +110V",class:"ED"},
+          {no:"52",wire:"7002",signal:"Battery GND",class:"GD"},
+          {no:"53",wire:"7010",signal:"Train Line +110V",class:"ED"},
+          {no:"54",wire:"7011",signal:"Train Line GND",class:"GD"},
+          {no:"55",wire:"8001",signal:"TCMS Data +",class:"S"},
+          {no:"56",wire:"8002",signal:"TCMS Data -",class:"S"},
+          {no:"57",wire:"8003",signal:"ETH TX+",class:"S"},
+          {no:"58",wire:"8004",signal:"ETH TX-",class:"S"},
+          {no:"59",wire:"8005",signal:"ETH RX+",class:"S"},
+          {no:"60",wire:"8006",signal:"ETH RX-",class:"S"}
+        ]
+      }
+    }
+  },
+  "942-58104": {
+    title: "Train Lines, Signal",
+    system: "GENERAL",
+    connectors: {
+      "X2": {
+        carType: "ALL",
+        description: "74PW Signal Jumper",
+        pins: [
+          {no:"1",wire:"9001",signal:"TX+",class:"S"},
+          {no:"2",wire:"9002",signal:"TX-",class:"S"},
+          {no:"3",wire:"9003",signal:"RX+",class:"S"},
+          {no:"4",wire:"9004",signal:"RX-",class:"S"},
+          {no:"5",wire:"9010",signal:"485-A",class:"S"},
+          {no:"6",wire:"9011",signal:"485-B",class:"S"},
+          {no:"29",wire:"92431",signal:"Rear RS422 TX",class:"S"},
+          {no:"31",wire:"92451",signal:"Rear RS422 RX",class:"S"},
+          {no:"30",wire:"92432",signal:"Rear RS422 TX Comp",class:"S"},
+          {no:"32",wire:"92452",signal:"Rear RS422 RX Comp",class:"S"},
+          {no:"33",wire:"92221",signal:"Front RS422 TX",class:"S"},
+          {no:"34",wire:"92231",signal:"Front RS422 RX",class:"S"},
+          {no:"37",wire:"92571",signal:"CBTC TX",class:"S"},
+          {no:"38",wire:"92572",signal:"CBTC RX",class:"S"},
+          {no:"41",wire:"9301",signal:"ETH1 TX+",class:"S"},
+          {no:"42",wire:"9302",signal:"ETH1 TX-",class:"S"},
+          {no:"43",wire:"9303",signal:"ETH1 RX+",class:"S"},
+          {no:"44",wire:"9304",signal:"ETH1 RX-",class:"S"},
+          {no:"49",wire:"9401",signal:"CCTV Video+",class:"S"},
+          {no:"50",wire:"9402",signal:"CCTV Video-",class:"S"},
+          {no:"53",wire:"9501",signal:"+24V Comm",class:"BA"},
+          {no:"54",wire:"9502",signal:"GND Comm",class:"BA"},
+          {no:"70",wire:null,signal:"Shield",class:"PE"},
+          {no:"74",wire:null,signal:"Frame GND",class:"GD"}
+        ]
+      }
+    }
+  },
+  "942-58105": {
+    title: "Train Lines, Low Tension Power",
+    system: "GENERAL",
+    connectors: {
+      "X3-LT": {
+        carType: "ALL",
+        description: "Low Tension Power Connector",
+        pins: [
+          {no:"1",wire:"7001",signal:"Battery +110V",class:"ED"},
+          {no:"2",wire:"7002",signal:"Battery GND",class:"GD"},
+          {no:"3",wire:"7010",signal:"Train Line +110V",class:"ED"},
+          {no:"4",wire:"7011",signal:"Train Line GND",class:"GD"},
+          {no:"5",wire:"3030",signal:"Battery Voltage",class:"BA"},
+          {no:"6",wire:"3031",signal:"Charger Status",class:"BA"},
+          {no:"7",wire:"3035",signal:"Shore Supply",class:"BA"},
+          {no:"8",wire:"3036",signal:"Battery Isolation",class:"BA"}
+        ]
+      }
+    }
+  },
+  "942-58106": {
+    title: "Train Lines, High Tension Power",
+    system: "GENERAL",
+    connectors: {
+      "X4-HT": {
+        carType: "ALL",
+        description: "High Tension Power Connector",
+        pins: [
+          {no:"1",wire:"7020",signal:"APS 750V+",class:"ED"},
+          {no:"2",wire:"7021",signal:"APS 750V-",class:"ED"},
+          {no:"3",wire:"7070",signal:"HSCB Control",class:"ED"},
+          {no:"4",wire:"7071",signal:"HSCB Status",class:"ED"},
+          {no:"5",wire:"7060",signal:"MCB Control",class:"BA"},
+          {no:"6",wire:"7061",signal:"MCB Status",class:"BA"},
+          {no:"7",wire:"3033",signal:"Panto Up",class:"BA"},
+          {no:"8",wire:"3034",signal:"MCB Status",class:"BA"}
+        ]
+      }
+    }
+  },
+  "942-58107": {
+    title: "Controlling Cab",
+    system: "AUX",
+    connectors: {
+      "CAB-CTL": {
+        carType: "DMC",
+        description: "Controlling Cab Connector",
+        pins: [
+          {no:"1",wire:"3018",signal:"Cab Active",class:"BA"},
+          {no:"2",wire:"3017",signal:"Train ID",class:"BA"},
+          {no:"3",wire:"3019",signal:"ATP Enable",class:"BA"},
+          {no:"4",wire:"3020",signal:"ATS Enable",class:"BA"},
+          {no:"5",wire:"3010",signal:"Master Controller",class:"BA"},
+          {no:"6",wire:"3001",signal:"Forward",class:"BA"},
+          {no:"7",wire:"3002",signal:"Reverse",class:"BA"},
+          {no:"8",wire:"3003",signal:"E-Brake",class:"BA"}
+        ]
+      }
+    }
+  },
+  "942-58108": {
+    title: "Start-up Relay",
+    system: "AUX",
+    connectors: {
+      "STARTUP": {
+        carType: "ALL",
+        description: "Start-up Relay Connector",
+        pins: [
+          {no:"1",wire:"3047",signal:"Start-up Relay",class:"BA"},
+          {no:"2",wire:"3048",signal:"Shut-down Relay",class:"BA"},
+          {no:"3",wire:"3030",signal:"Battery Voltage",class:"BA"},
+          {no:"4",wire:"7001",signal:"Battery +110V",class:"ED"},
+          {no:"5",wire:"7002",signal:"Battery GND",class:"GD"}
+        ]
+      }
+    }
+  },
+  "942-58109": {
+    title: "System Status Indication",
+    system: "AUX",
+    connectors: {
+      "STATUS": {
+        carType: "ALL",
+        description: "System Status Connector",
+        pins: [
+          {no:"1",wire:"3018",signal:"Cab Active",class:"BA"},
+          {no:"2",wire:"3033",signal:"Panto Up",class:"BA"},
+          {no:"3",wire:"3034",signal:"MCB Status",class:"BA"},
+          {no:"4",wire:"3035",signal:"Shore Supply",class:"BA"},
+          {no:"5",wire:"3030",signal:"Battery Voltage",class:"BA"},
+          {no:"6",wire:"3031",signal:"Charger Status",class:"BA"}
+        ]
+      }
+    }
+  },
+  "942-58110": {
+    title: "MCB Trip Status Monitoring",
+    system: "AUX",
+    connectors: {
+      "MCB-STAT": {
+        carType: "ALL",
+        description: "MCB Status Monitoring",
+        pins: [
+          {no:"1",wire:"3034",signal:"MCB Status",class:"BA"},
+          {no:"2",wire:"3030",signal:"Battery Voltage",class:"BA"},
+          {no:"3",wire:"7060",signal:"MCB Control",class:"BA"},
+          {no:"4",wire:"7061",signal:"MCB Feedback",class:"BA"},
+          {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},
+          {no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+        ]
+      }
+    }
+  },
+  "942-58111": {
+    title: "DC Train Line Supply Contactor",
+    system: "AUX",
+    connectors: {
+      "DC-SUP": {
+        carType: "ALL",
+        description: "DC Supply Contactor",
+        pins: [
+          {no:"1",wire:"7010",signal:"Train Line +110V",class:"ED"},
+          {no:"2",wire:"7011",signal:"Train Line GND",class:"GD"},
+          {no:"3",wire:"3030",signal:"Battery Voltage",class:"BA"},
+          {no:"4",wire:"3035",signal:"Shore Supply",class:"BA"},
+          {no:"5",wire:"7060",signal:"MCB Control",class:"BA"}
+        ]
+      }
+    }
+  },
+  "942-58112": {
+    title: "Head Cab Main Light",
+    system: "GENERAL",
+    connectors: {
+      "LIGHT-H": {
+        carType: "DMC",
+        description: "Head Light Connector",
+        pins: [
+          {no:"1",wire:"3501",signal:"Head Light +",class:"BA"},
+          {no:"2",wire:"3502",signal:"Head Light -",class:"BA"},
+          {no:"3",wire:"3009",signal:"Headlight Control",class:"BA"},
+          {no:"4",wire:"7001",signal:"Battery +110V",class:"ED"},
+          {no:"5",wire:"7002",signal:"Battery GND",class:"GD"}
+        ]
+      }
+    }
+  },
+  "942-58113": {
+    title: "Tail Light, Flasher Light, Console Light",
+    system: "GENERAL",
+    connectors: {
+      "LIGHT-T": {
+        carType: "DMC",
+        description: "Tail Light Connector",
+        pins: [
+          {no:"1",wire:"3510",signal:"Tail Light +",class:"BA"},
+          {no:"2",wire:"3511",signal:"Tail Light -",class:"BA"},
+          {no:"3",wire:"3520",signal:"Flasher Light",class:"BA"},
+          {no:"4",wire:"3044",signal:"Tail Light Control",class:"BA"},
+          {no:"5",wire:"3045",signal:"Console Light",class:"BA"},
+          {no:"6",wire:"7001",signal:"Battery +110V",class:"ED"}
+        ]
+      }
+    }
+  },
+  "942-58114": {
+    title: "Interior Light",
+    system: "GENERAL",
+    connectors: {
+      "LIGHT-I": {
+        carType: "ALL",
+        description: "Interior Light Connector",
+        pins: [
+          {no:"1",wire:"3530",signal:"Interior Light +",class:"BA"},
+          {no:"2",wire:"3531",signal:"Interior Light -",class:"BA"},
+          {no:"3",wire:"3046",signal:"Interior Light Control",class:"BA"},
+          {no:"4",wire:"7001",signal:"Battery +110V",class:"ED"},
+          {no:"5",wire:"7002",signal:"Battery GND",class:"GD"}
+        ]
+      }
+    }
+  },
+  "942-58116": {
+    title: "Windscreen Wiper",
+    system: "GENERAL",
+    connectors: {
+      "WIPER": {
+        carType: "DMC",
+        description: "Wiper Connector",
+        pins: [
+          {no:"1",wire:"3540",signal:"Wiper Motor +",class:"BA"},
+          {no:"2",wire:"3541",signal:"Wiper Motor -",class:"BA"},
+          {no:"3",wire:"3041",signal:"Wiper On",class:"BA"},
+          {no:"4",wire:"3042",signal:"Wiper Off",class:"BA"},
+          {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},
+          {no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+        ]
+      }
+    }
+  },
+  "942-58117": {
+    title: "Coupling Uncoupling Control",
+    system: "GENERAL",
+    connectors: {
+      "COUPL": {
+        carType: "DMC",
+        description: "Coupling Connector",
+        pins: [
+          {no:"1",wire:"3550",signal:"Coupling Control",class:"BA"},
+          {no:"2",wire:"3043",signal:"Coupling Signal",class:"BA"},
+          {no:"3",wire:"7001",signal:"Battery +110V",class:"ED"},
+          {no:"4",wire:"7002",signal:"Battery GND",class:"GD"}
+        ]
+      }
+    }
+  },
+  "942-58119": {
+    title: "Speed Control",
+    system: "TRACTION",
+    connectors: {
+      "VVVF-IN": {carType:"MC",description:"VVVF Input",pins:[
+        {no:"1",wire:"7020",signal:"APS 750V+",class:"ED"},{no:"2",wire:"7021",signal:"APS 750V-",class:"ED"},
+        {no:"3",wire:"7060",signal:"MCB Control",class:"BA"},{no:"4",wire:"7061",signal:"MCB Status",class:"BA"},
+        {no:"5",wire:"7070",signal:"HSCB Control",class:"ED"},{no:"6",wire:"7071",signal:"HSCB Status",class:"ED"},
+        {no:"7",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"8",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]},
+      "VVVF-OUT": {carType:"MC",description:"VVVF Output",pins:[
+        {no:"1",wire:"7510",signal:"Motor U Phase",class:"ED"},{no:"2",wire:"7511",signal:"Motor V Phase",class:"ED"},
+        {no:"3",wire:"7512",signal:"Motor W Phase",class:"ED"},{no:"4",wire:"7540",signal:"Traction Return",class:"ED"}
+      ]},
+      "HSCB-CNT": {carType:"ALL",description:"HSCB Control",pins:[
+        {no:"1",wire:"7070",signal:"HSCB Control",class:"ED"},{no:"2",wire:"7071",signal:"HSCB Status",class:"ED"},
+        {no:"3",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"4",wire:"7002",signal:"Battery GND",class:"GD"},
+        {no:"5",wire:"3033",signal:"Panto Up",class:"BA"}
+      ]}
+    }
+  },
+  "942-58120": {
+    title: "VVVF Control",
+    system: "TRACTION",
+    connectors: {
+      "VVVF-CTL": {carType:"MC",description:"VVVF Controller",pins:[
+        {no:"1",wire:"7020",signal:"APS 750V+",class:"ED"},{no:"2",wire:"7021",signal:"APS 750V-",class:"ED"},
+        {no:"3",wire:"7060",signal:"MCB Control",class:"BA"},{no:"4",wire:"7061",signal:"MCB Status",class:"BA"},
+        {no:"5",wire:"7520",signal:"VVVF Enable",class:"BA"},{no:"6",wire:"7521",signal:"VVVF Fault",class:"BA"},
+        {no:"7",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"8",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58123": {
+    title: "Compressor Control",
+    system: "BRAKE",
+    connectors: {
+      "COMP": {carType:"TC",description:"Compressor",pins:[
+        {no:"1",wire:"3037",signal:"Compressor Start",class:"BA"},{no:"2",wire:"3038",signal:"Compressor Stop",class:"BA"},
+        {no:"3",wire:"4009",signal:"Compressor Start",class:"BA"},{no:"4",wire:"4010",signal:"Compressor Stop",class:"BA"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58124": {
+    title: "Brake Loop",
+    system: "BRAKE",
+    connectors: {
+      "BRK-LOOP": {carType:"ALL",description:"Brake Loop",pins:[
+        {no:"1",wire:"4001",signal:"Brake Loop",class:"BA"},{no:"2",wire:"4002",signal:"Brake Loop Return",class:"BA"},
+        {no:"3",wire:"3015",signal:"Brake Control",class:"BA"},{no:"4",wire:"3003",signal:"E-Brake Request",class:"BA"},
+        {no:"5",wire:"3004",signal:"Service Brake",class:"BA"},{no:"6",wire:"4005",signal:"Service Brake Apply",class:"BA"},
+        {no:"7",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"8",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58125": {
+    title: "Emergency Brake",
+    system: "BRAKE",
+    connectors: {
+      "EBCU-CTL": {carType:"MC",description:"EBCU Control",pins:[
+        {no:"1",wire:"4003",signal:"E-Brake Apply",class:"BA"},{no:"2",wire:"4004",signal:"E-Brake Release",class:"BA"},
+        {no:"3",wire:"3003",signal:"E-Brake Request",class:"BA"},{no:"4",wire:"4001",signal:"Brake Loop",class:"BA"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]},
+      "EBCU-SEN": {carType:"MC",description:"EBCU Sensor",pins:[
+        {no:"1",wire:"4020",signal:"EBCU Data +",class:"S"},{no:"2",wire:"4021",signal:"EBCU Data -",class:"S"},
+        {no:"3",wire:"4030",signal:"Brake Pressure",class:"S"},{no:"4",wire:"4040",signal:"WSP Valve",class:"BA"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58126": {
+    title: "Parking Brake",
+    system: "BRAKE",
+    connectors: {
+      "PARK-BRK": {carType:"ALL",description:"Parking Brake",pins:[
+        {no:"1",wire:"4007",signal:"Parking Brake",class:"BA"},{no:"2",wire:"3039",signal:"Parking Apply",class:"BA"},
+        {no:"3",wire:"3040",signal:"Parking Release",class:"BA"},{no:"4",wire:"7001",signal:"Battery +110V",class:"ED"},
+        {no:"5",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58127": {
+    title: "Horn",
+    system: "BRAKE",
+    connectors: {
+      "HORN": {carType:"DMC",description:"Horn",pins:[
+        {no:"1",wire:"4008",signal:"Horn Control",class:"BA"},{no:"2",wire:"3008",signal:"Horn Signal",class:"BA"},
+        {no:"3",wire:"3013",signal:"Horn Relay",class:"BA"},{no:"4",wire:"7001",signal:"Battery +110V",class:"ED"},
+        {no:"5",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58128": {
+    title: "Brake Control (DMC, MC)",
+    system: "BRAKE",
+    connectors: {
+      "BRK-CTL": {carType:"DMC",description:"Brake Control",pins:[
+        {no:"1",wire:"4005",signal:"Service Brake Apply",class:"BA"},{no:"2",wire:"4006",signal:"Service Brake Release",class:"BA"},
+        {no:"3",wire:"4003",signal:"E-Brake Apply",class:"BA"},{no:"4",wire:"4004",signal:"E-Brake Release",class:"BA"},
+        {no:"5",wire:"4020",signal:"EBCU Data +",class:"S"},{no:"6",wire:"4021",signal:"EBCU Data -",class:"S"},
+        {no:"7",wire:"4030",signal:"Brake Pressure",class:"S"},{no:"8",wire:"4040",signal:"WSP Valve",class:"BA"},
+        {no:"9",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"10",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58130": {
+    title: "APS",
+    system: "AUX",
+    connectors: {
+      "APS-IN": {carType:"ALL",description:"APS Input",pins:[
+        {no:"1",wire:"7020",signal:"APS 750V+",class:"ED"},{no:"2",wire:"7021",signal:"APS 750V-",class:"ED"},
+        {no:"3",wire:"7070",signal:"HSCB Control",class:"ED"},{no:"4",wire:"7071",signal:"HSCB Status",class:"ED"},
+        {no:"5",wire:"7060",signal:"MCB Control",class:"BA"},{no:"6",wire:"7061",signal:"MCB Status",class:"BA"},
+        {no:"7",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"8",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]},
+      "APS-OUT": {carType:"ALL",description:"APS Output",pins:[
+        {no:"1",wire:"7030",signal:"APS 415V L1",class:"AP"},{no:"2",wire:"7031",signal:"APS 415V L2",class:"AP"},
+        {no:"3",wire:"7032",signal:"APS 415V L3",class:"AP"},{no:"4",wire:"7033",signal:"APS 415V N",class:"AP"},
+        {no:"5",wire:"8510",signal:"Saloon AC L1",class:"AP"},{no:"6",wire:"8511",signal:"Saloon AC L2",class:"AP"},
+        {no:"7",wire:"8512",signal:"Saloon AC L3",class:"AP"},{no:"8",wire:"7001",signal:"Battery +110V",class:"ED"}
+      ]}
+    }
+  },
+  "942-58131": {
+    title: "AC 415V Shore Supply Circuit",
+    system: "AUX",
+    connectors: {
+      "SHORE": {carType:"ALL",description:"Shore Supply",pins:[
+        {no:"1",wire:"7040",signal:"Shore L1",class:"AP"},{no:"2",wire:"7041",signal:"Shore L2",class:"AP"},
+        {no:"3",wire:"7042",signal:"Shore L3",class:"AP"},{no:"4",wire:"7043",signal:"Shore N",class:"AP"},
+        {no:"5",wire:"3035",signal:"Shore Available",class:"BA"},{no:"6",wire:"3030",signal:"Battery Voltage",class:"BA"}
+      ]}
+    }
+  },
+  "942-58132": {
+    title: "Battery Control",
+    system: "AUX",
+    connectors: {
+      "BATT": {carType:"ALL",description:"Battery",pins:[
+        {no:"1",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"2",wire:"7002",signal:"Battery GND",class:"GD"},
+        {no:"3",wire:"7050",signal:"Charger +",class:"BA"},{no:"4",wire:"7051",signal:"Charger -",class:"BA"},
+        {no:"5",wire:"3030",signal:"Battery Voltage",class:"BA"},{no:"6",wire:"3036",signal:"Battery Isolation",class:"BA"},
+        {no:"7",wire:"3031",signal:"Charger Status",class:"BA"},{no:"8",wire:"7010",signal:"Train Line +110V",class:"ED"}
+      ]}
+    }
+  },
+  "942-58136": {
+    title: "Door Operation Left",
+    system: "DOOR",
+    connectors: {
+      "DOOR-L1": {carType:"DMC",description:"Left Door 1",pins:[
+        {no:"1",wire:"6021",signal:"Open Command",class:"BA"},{no:"2",wire:"6022",signal:"Close Command",class:"BA"},
+        {no:"3",wire:"6030",signal:"Proving",class:"BA"},{no:"4",wire:"6020",signal:"Interlock",class:"BA"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"},
+        {no:"7",wire:"6040",signal:"Saloon Door Supply",class:"BA"},{no:"8",wire:"6041",signal:"Saloon Door Return",class:"GD"}
+      ]},
+      "DOOR-R1": {carType:"DMC",description:"Right Door 1",pins:[
+        {no:"1",wire:"6023",signal:"Open Command",class:"BA"},{no:"2",wire:"6024",signal:"Close Command",class:"BA"},
+        {no:"3",wire:"6030",signal:"Proving",class:"BA"},{no:"4",wire:"6020",signal:"Interlock",class:"BA"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58137": {
+    title: "Saloon Door Supply Voltage",
+    system: "DOOR",
+    connectors: {
+      "DOOR-SUP": {carType:"ALL",description:"Door Supply",pins:[
+        {no:"1",wire:"6040",signal:"Saloon Door Supply",class:"BA"},{no:"2",wire:"6041",signal:"Saloon Door Return",class:"GD"},
+        {no:"3",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"4",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58140": {
+    title: "Door Proving Loop",
+    system: "DOOR",
+    connectors: {
+      "DOOR-PRV": {carType:"ALL",description:"Door Proving",pins:[
+        {no:"1",wire:"6030",signal:"Door Proving",class:"BA"},{no:"2",wire:"6020",signal:"Door Interlock",class:"BA"},
+        {no:"3",wire:"6021",signal:"Door Closed",class:"BA"},{no:"4",wire:"3025",signal:"Door Lock Status",class:"BA"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58141": {
+    title: "Local Door Interlock",
+    system: "DOOR",
+    connectors: {
+      "DOOR-ILK": {carType:"ALL",description:"Door Interlock",pins:[
+        {no:"1",wire:"6020",signal:"Door Interlock",class:"BA"},{no:"2",wire:"6021",signal:"Door Closed",class:"BA"},
+        {no:"3",wire:"3025",signal:"Door Lock Status",class:"BA"},{no:"4",wire:"3007",signal:"Door Enable",class:"BA"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58142": {
+    title: "Door Communication With IMS",
+    system: "DOOR",
+    connectors: {
+      "DOOR-IMS": {carType:"ALL",description:"Door IMS",pins:[
+        {no:"1",wire:"6031",signal:"Door IMS Comm",class:"BA"},{no:"2",wire:"3027",signal:"TCMS Data",class:"BA"},
+        {no:"3",wire:"9001",signal:"TCMS Data +",class:"S"},{no:"4",wire:"9002",signal:"TCMS Data -",class:"S"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58143": {
+    title: "Cab VAC",
+    system: "AIRCON",
+    connectors: {
+      "CAB-AC": {carType:"DMC",description:"Cab AC",pins:[
+        {no:"1",wire:"8501",signal:"Cab AC L1",class:"AP"},{no:"2",wire:"8502",signal:"Cab AC L2",class:"AP"},
+        {no:"3",wire:"8503",signal:"Cab AC L3",class:"AP"},{no:"4",wire:"8520",signal:"AC Control",class:"BA"},
+        {no:"5",wire:"8521",signal:"AC Fault",class:"BA"},{no:"6",wire:"8530",signal:"Temperature",class:"S"},
+        {no:"7",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"8",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58144": {
+    title: "Saloon VAC Power",
+    system: "AIRCON",
+    connectors: {
+      "SAL-PWR": {carType:"ALL",description:"Saloon AC Power",pins:[
+        {no:"1",wire:"8510",signal:"Saloon AC L1",class:"AP"},{no:"2",wire:"8511",signal:"Saloon AC L2",class:"AP"},
+        {no:"3",wire:"8512",signal:"Saloon AC L3",class:"AP"},{no:"4",wire:"7033",signal:"APS 415V N",class:"AP"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]},
+      "SAL-CTL": {carType:"ALL",description:"Saloon AC Control",pins:[
+        {no:"1",wire:"8520",signal:"AC Control",class:"BA"},{no:"2",wire:"8521",signal:"AC Fault",class:"BA"},
+        {no:"3",wire:"8530",signal:"Temperature Sensor",class:"S"},{no:"4",wire:"7001",signal:"Battery +110V",class:"ED"},
+        {no:"5",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58145": {
+    title: "Saloon VAC Control",
+    system: "AIRCON",
+    connectors: {
+      "VAC-CTL": {carType:"ALL",description:"VAC Control",pins:[
+        {no:"1",wire:"8520",signal:"AC Control",class:"BA"},{no:"2",wire:"8521",signal:"AC Fault",class:"BA"},
+        {no:"3",wire:"8530",signal:"Temperature Sensor",class:"S"},{no:"4",wire:"7001",signal:"Battery +110V",class:"ED"},
+        {no:"5",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58146": {
+    title: "TCMS Communication",
+    system: "TIMS",
+    connectors: {
+      "CN1-ETH": {carType:"ALL",description:"CN1 Ethernet",pins:[
+        {no:"1",wire:"9010",signal:"CN1 ETH TX+",class:"S"},{no:"2",wire:"9011",signal:"CN1 ETH TX-",class:"S"},
+        {no:"3",wire:"9012",signal:"CN1 ETH RX+",class:"S"},{no:"4",wire:"9013",signal:"CN1 ETH RX-",class:"S"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]},
+      "CN2-ETH": {carType:"ALL",description:"CN2 Ethernet",pins:[
+        {no:"1",wire:"9020",signal:"CN2 ETH TX+",class:"S"},{no:"2",wire:"9021",signal:"CN2 ETH TX-",class:"S"},
+        {no:"3",wire:"9022",signal:"CN2 ETH RX+",class:"S"},{no:"4",wire:"9023",signal:"CN2 ETH RX-",class:"S"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]},
+      "CCU-CAN": {carType:"DMC",description:"CCU CAN Bus",pins:[
+        {no:"1",wire:"9030",signal:"CAN High",class:"S"},{no:"2",wire:"9031",signal:"CAN Low",class:"S"},
+        {no:"3",wire:"7002",signal:"Battery GND",class:"GD"},{no:"4",wire:"7001",signal:"Battery +110V",class:"ED"}
+      ]},
+      "RIO-IO1": {carType:"ALL",description:"RIO IO Unit 1",pins:[
+        {no:"1",wire:"9601",signal:"RIO DI 1",class:"BA"},{no:"2",wire:"9602",signal:"RIO DO 1",class:"BA"},
+        {no:"3",wire:"9603",signal:"RIO DI 2",class:"BA"},{no:"4",wire:"9604",signal:"RIO DO 2",class:"BA"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]},
+      "RIO-IO2": {carType:"ALL",description:"RIO IO Unit 2",pins:[
+        {no:"1",wire:"9605",signal:"RIO DI 3",class:"BA"},{no:"2",wire:"9606",signal:"RIO DO 3",class:"BA"},
+        {no:"3",wire:"9607",signal:"RIO DI 4",class:"BA"},{no:"4",wire:"9608",signal:"RIO DO 4",class:"BA"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]},
+      "L3-SW": {carType:"ALL",description:"L3 Ethernet Switch",pins:[
+        {no:"1",wire:"9010",signal:"ETH1 TX+",class:"S"},{no:"2",wire:"9011",signal:"ETH1 TX-",class:"S"},
+        {no:"3",wire:"9012",signal:"ETH1 RX+",class:"S"},{no:"4",wire:"9013",signal:"ETH1 RX-",class:"S"},
+        {no:"5",wire:"9020",signal:"ETH2 TX+",class:"S"},{no:"6",wire:"9021",signal:"ETH2 TX-",class:"S"},
+        {no:"7",wire:"9022",signal:"ETH2 RX+",class:"S"},{no:"8",wire:"9023",signal:"ETH2 RX-",class:"S"},
+        {no:"9",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"10",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58149": {
+    title: "CCU, PAPIS CCTV System DMC",
+    system: "COMM",
+    connectors: {
+      "CCU-PAPIS": {carType:"DMC",description:"CCU PAPIS",pins:[
+        {no:"1",wire:"9801",signal:"PAPIS Data",class:"S"},{no:"2",wire:"9001",signal:"TCMS Data +",class:"S"},
+        {no:"3",wire:"9002",signal:"TCMS Data -",class:"S"},{no:"4",wire:"9030",signal:"CAN High",class:"S"},
+        {no:"5",wire:"9031",signal:"CAN Low",class:"S"},{no:"6",wire:"7001",signal:"Battery +110V",class:"ED"},
+        {no:"7",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]},
+      "CCTV-CU": {carType:"DMC",description:"CCTV Control Unit",pins:[
+        {no:"1",wire:"9301",signal:"CCTV Video +",class:"S"},{no:"2",wire:"9302",signal:"CCTV Video -",class:"S"},
+        {no:"3",wire:"9303",signal:"CCTV Audio +",class:"S"},{no:"4",wire:"9304",signal:"CCTV Audio -",class:"S"},
+        {no:"5",wire:"9701",signal:"CCTV Power +",class:"BA"},{no:"6",wire:"9702",signal:"CCTV GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58150": {
+    title: "PA Amplifier DMC, MC",
+    system: "COMM",
+    connectors: {
+      "PA-AMP1": {carType:"DMC",description:"PA Amplifier DMC",pins:[
+        {no:"1",wire:"9201",signal:"PA Audio L",class:"S"},{no:"2",wire:"9202",signal:"PA Audio R",class:"S"},
+        {no:"3",wire:"9210",signal:"PA Speaker +",class:"AP"},{no:"4",wire:"9211",signal:"PA Speaker -",class:"AP"},
+        {no:"5",wire:"7030",signal:"415V L1",class:"AP"},{no:"6",wire:"7031",signal:"415V L2",class:"AP"},
+        {no:"7",wire:"7032",signal:"415V L3",class:"AP"},{no:"8",wire:"7033",signal:"415V N",class:"AP"}
+      ]},
+      "PA-AMP2": {carType:"MC",description:"PA Amplifier MC",pins:[
+        {no:"1",wire:"9201",signal:"PA Audio L",class:"S"},{no:"2",wire:"9202",signal:"PA Audio R",class:"S"},
+        {no:"3",wire:"9210",signal:"PA Speaker +",class:"AP"},{no:"4",wire:"9211",signal:"PA Speaker -",class:"AP"},
+        {no:"5",wire:"7030",signal:"415V L1",class:"AP"},{no:"6",wire:"7031",signal:"415V L2",class:"AP"},
+        {no:"7",wire:"7032",signal:"415V L3",class:"AP"},{no:"8",wire:"7033",signal:"415V N",class:"AP"}
+      ]}
+    }
+  },
+  "942-58151": {
+    title: "PA Amplifier TC",
+    system: "COMM",
+    connectors: {
+      "PA-TC": {carType:"TC",description:"PA TC",pins:[
+        {no:"1",wire:"9201",signal:"PA Audio L",class:"S"},{no:"2",wire:"9202",signal:"PA Audio R",class:"S"},
+        {no:"3",wire:"9210",signal:"PA Speaker +",class:"AP"},{no:"4",wire:"9211",signal:"PA Speaker -",class:"AP"},
+        {no:"5",wire:"7030",signal:"415V L1",class:"AP"},{no:"6",wire:"7031",signal:"415V L2",class:"AP"},
+        {no:"7",wire:"7032",signal:"415V L3",class:"AP"},{no:"8",wire:"7033",signal:"415V N",class:"AP"}
+      ]}
+    }
+  },
+  "942-58152": {
+    title: "CBTC",
+    system: "COMM",
+    connectors: {
+      "CBTC-TX": {carType:"DMC",description:"CBTC Transmit",pins:[
+        {no:"1",wire:"9101",signal:"CBTC TX+",class:"S"},{no:"2",wire:"9102",signal:"CBTC TX-",class:"S"},
+        {no:"3",wire:"7001",signal:"Battery +110V",class:"ED"}
+      ]},
+      "CBTC-RX": {carType:"DMC",description:"CBTC Receive",pins:[
+        {no:"1",wire:"9103",signal:"CBTC RX+",class:"S"},{no:"2",wire:"9104",signal:"CBTC RX-",class:"S"},
+        {no:"3",wire:"7001",signal:"Battery +110V",class:"ED"}
+      ]},
+      "CBTC-ETH": {carType:"DMC",description:"CBTC Ethernet",pins:[
+        {no:"1",wire:"9010",signal:"ETH TX+",class:"S"},{no:"2",wire:"9011",signal:"ETH TX-",class:"S"},
+        {no:"3",wire:"9012",signal:"ETH RX+",class:"S"},{no:"4",wire:"9013",signal:"ETH RX-",class:"S"},
+        {no:"5",wire:"7001",signal:"Battery +110V",class:"ED"},{no:"6",wire:"7002",signal:"Battery GND",class:"GD"}
+      ]}
+    }
+  },
+  "942-58153": {
+    title: "Train Radio Interface",
+    system: "COMM",
+    connectors: {
+      "RADIO": {carType:"DMC",description:"Train Radio",pins:[
+        {no:"1",wire:"9401",signal:"Radio TX",class:"S"},{no:"2",wire:"9402",signal:"Radio RX",class:"S"},
+        {no:"3",wire:"9810",signal:"Radio Power +",class:"BA"},{no:"4",wire:"9811",signal:"Radio Power -",class:"GD"},
+        {no:"5",wire:"9001",signal:"TCMS Data +",class:"S"},{no:"6",wire:"9002",signal:"TCMS Data -",class:"S"}
+      ]}
+    }
+  },
+  "942-58154": {
+    title: "CCTV",
+    system: "COMM",
+    connectors: {
+      "CCTV-CAM": {carType:"ALL",description:"CCTV Camera",pins:[
+        {no:"1",wire:"9301",signal:"CCTV Video +",class:"S"},{no:"2",wire:"9302",signal:"CCTV Video -",class:"S"},
+        {no:"3",wire:"9303",signal:"CCTV Audio +",class:"S"},{no:"4",wire:"9304",signal:"CCTV Audio -",class:"S"},
+        {no:"5",wire:"9701",signal:"CCTV Power +",class:"BA"},{no:"6",wire:"9702",signal:"CCTV GND",class:"GD"}
+      ]}
+    }
+  }
+};
+
+function renderDrawing(drawingNo, data) {
+  let html = `<div class="drawing-section" data-system="${data.system}" data-drawing="${drawingNo}">`;
+  html += `<div class="drawing-header"><div><span class="drawing-title">${drawingNo} - ${data.title}</span><span class="drawing-system"> [${data.system}]</span></div></div>`;
+  html += `<div class="drawing-body">`;
+  
+  for (const [connCode, conn] of Object.entries(data.connectors)) {
+    html += `<div class="connector-block" data-connector="${connCode}">`;
+    html += `<div class="connector-name">${connCode} (${conn.carType})</div>`;
+    html += `<div style="font-size:9px;color:#666;margin-bottom:6px">${conn.description}</div>`;
+    for (const pin of conn.pins) {
+      const wireClass = pin.wire && wireMap[pin.wire] ? 'clickable' : '';
+      html += `<div class="pin-row" data-wire="${pin.wire || ''}" data-pin="${pin.no}">`;
+      html += `<span class="pin-no">${pin.no}</span>`;
+      html += `<span class="pin-wire ${wireClass}" ${pin.wire ? `onclick="event.stopPropagation(); traceWire('${pin.wire}')"` : ''}>${pin.wire || '---'}</span>`;
+      html += `<span class="pin-signal">${pin.signal}</span>`;
+      html += `<span class="pin-class">${pin.class}</span>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+function renderSchematic() {
+  const container = document.getElementById('schematic');
+  let html = '';
+  for (const [drawingNo, data] of Object.entries(drawingData)) {
+    html += renderDrawing(drawingNo, data);
+  }
+  container.innerHTML = html;
+}
+
+function filterBySystem() {
+  const system = document.getElementById('systemFilter').value;
+  document.querySelectorAll('.drawing-section').forEach(el => {
+    el.style.display = !system || el.dataset.system === system ? '' : 'none';
+  });
+}
+
+function filterByWire() {
+  const wireNo = document.getElementById('wireFilter').value;
+  if (!wireNo) { filterBySystem(); return; }
+  document.querySelectorAll('.drawing-section').forEach(el => {
+    let hasWire = false;
+    el.querySelectorAll('.pin-wire').forEach(pin => {
+      if (pin.textContent === wireNo) hasWire = true;
+    });
+    el.style.display = hasWire ? '' : 'none';
+  });
+}
+
+function showAll() {
+  document.getElementById('systemFilter').value = '';
+  document.getElementById('wireFilter').value = '';
+  document.querySelectorAll('.drawing-section').forEach(el => el.style.display = '');
+}
+
+function showPowerDistribution() {
+  document.querySelectorAll('.drawing-section').forEach(el => {
+    const text = el.textContent;
+    el.style.display = (text.includes('7001') || text.includes('7002') || text.includes('Battery') || text.includes('Power')) ? '' : 'none';
+  });
+}
+
+function showDoorSystem() {
+  document.querySelectorAll('.drawing-section').forEach(el => {
+    el.style.display = el.dataset.system === 'DOOR' ? '' : 'none';
+  });
+}
+
+function showBrakeSystem() {
+  document.querySelectorAll('.drawing-section').forEach(el => {
+    el.style.display = el.dataset.system === 'BRAKE' ? '' : 'none';
+  });
+}
+
+function showTractionSystem() {
+  document.querySelectorAll('.drawing-section').forEach(el => {
+    el.style.display = el.dataset.system === 'TRACTION' ? '' : 'none';
+  });
+}
+
+renderSchematic();
+
+// ============================================
+// INTERACTIVE WIRE TRACING
+// ============================================
+
+// Build wire connection map from drawing data
+const wireMap = {};
+for (const [drawingNo, data] of Object.entries(drawingData)) {
+  for (const [connCode, conn] of Object.entries(data.connectors)) {
+    for (const pin of conn.pins) {
+      if (pin.wire) {
+        if (!wireMap[pin.wire]) wireMap[pin.wire] = [];
+        wireMap[pin.wire].push({
+          drawingNo,
+          drawingTitle: data.title,
+          system: data.system,
+          connectorCode: connCode,
+          carType: conn.carType,
+          pinNo: pin.no,
+          signal: pin.signal,
+          conductorClass: pin.class
+        });
+      }
+    }
+  }
+}
+
+let currentHighlightedWire = null;
+
+// Make wire numbers clickable
+function makeWiresClickable() {
+  document.querySelectorAll('.pin-wire').forEach(el => {
+    const wireNo = el.textContent.trim();
+    if (wireNo && wireNo !== '---' && wireMap[wireNo]) {
+      el.classList.add('clickable');
+      el.onclick = (e) => {
+        e.stopPropagation();
+        traceWire(wireNo);
+      };
+    }
+  });
+}
+
+// Trace a wire and highlight all connected components
+function traceWire(wireNo) {
+  currentHighlightedWire = wireNo;
+  const connections = wireMap[wireNo];
+  if (!connections || connections.length === 0) return;
+
+  // Dim all sections
+  document.querySelectorAll('.drawing-section').forEach(el => el.classList.add('dimmed'));
+  document.querySelectorAll('.connector-block').forEach(el => el.classList.add('dimmed'));
+  document.querySelectorAll('.pin-row').forEach(el => el.classList.remove('highlighted'));
+
+  // Highlight connected sections and connectors
+  const highlightedDrawings = new Set();
+  const highlightedConnectors = new Set();
+
+  connections.forEach(conn => {
+    highlightedDrawings.add(conn.drawingNo);
+    highlightedConnectors.add(`${conn.drawingNo}-${conn.connectorCode}`);
+  });
+
+  document.querySelectorAll('.drawing-section').forEach(el => {
+    const drawingNo = el.querySelector('.drawing-title')?.textContent?.split(' - ')[0];
+    if (highlightedDrawings.has(drawingNo)) {
+      el.classList.remove('dimmed');
+      el.classList.add('highlighted');
+    }
+  });
+
+  document.querySelectorAll('.connector-block').forEach(el => {
+    const connectorName = el.querySelector('.connector-name')?.textContent?.split(' (')[0];
+    const drawingSection = el.closest('.drawing-section');
+    const drawingNo = drawingSection?.querySelector('.drawing-title')?.textContent?.split(' - ')[0];
+    if (highlightedConnectors.has(`${drawingNo}-${connectorName}`)) {
+      el.classList.remove('dimmed');
+      el.classList.add('highlighted');
+    }
+  });
+
+  // Highlight specific pins
+  connections.forEach(conn => {
+    const selector = `.drawing-section[data-system]`;
+    document.querySelectorAll('.drawing-section').forEach(section => {
+      const sectionDrawingNo = section.querySelector('.drawing-title')?.textContent?.split(' - ')[0];
+      if (sectionDrawingNo === conn.drawingNo) {
+        section.querySelectorAll('.pin-row').forEach(pinRow => {
+          const pinWire = pinRow.querySelector('.pin-wire')?.textContent?.trim();
+          const pinNo = pinRow.querySelector('.pin-no')?.textContent?.trim();
+          if (pinWire === wireNo && pinNo === conn.pinNo) {
+            pinRow.classList.add('highlighted');
+          }
+        });
+      }
+    });
+  });
+
+  // Show trace panel
+  showWireTrace(wireNo, connections);
+}
+
+// Show wire trace panel
+function showWireTrace(wireNo, connections) {
+  const panel = document.getElementById('wireTracePanel');
+  const title = document.getElementById('traceTitle');
+  const body = document.getElementById('traceBody');
+
+  title.textContent = `Wire ${wireNo} Trace`;
+
+  // Get wire info from first connection
+  const firstConn = connections[0];
+  const wireInfo = getWireInfo(wireNo);
+
+  let html = `<div class="trace-summary">
+    <div class="trace-summary-title">Wire Information</div>
+    <div class="trace-summary-row"><span class="trace-summary-label">Wire Number:</span><span class="trace-summary-value" style="color:#f0883e">${wireNo}</span></div>
+    <div class="trace-summary-row"><span class="trace-summary-label">Signal Name:</span><span class="trace-summary-value">${firstConn.signal}</span></div>
+    <div class="trace-summary-row"><span class="trace-summary-label">Voltage Class:</span><span class="trace-summary-value">${firstConn.conductorClass}</span></div>
+    <div class="trace-summary-row"><span class="trace-summary-label">Connected To:</span><span class="trace-summary-value">${connections.length} points</span></div>
+  </div>`;
+
+  html += `<div style="font-size:12px;font-weight:bold;color:#58a6ff;margin-bottom:8px;">Connection Path:</div>`;
+
+  connections.forEach((conn, idx) => {
+    const isSource = idx === 0;
+    const isDest = idx === connections.length - 1;
+    const stepClass = isSource ? 'source' : (isDest ? 'destination' : 'intermediate');
+    const icon = isSource ? '📤' : (isDest ? '📥' : '🔄');
+
+    html += `<div class="trace-step ${stepClass}">
+      <div class="trace-icon">${icon}</div>
+      <div class="trace-info">
+        <div class="trace-drawing">${conn.drawingNo} - ${conn.drawingTitle}</div>
+        <div class="trace-connector">${conn.connectorCode} (${conn.carType})</div>
+        <div class="trace-pin">Pin ${conn.pinNo}: ${conn.signal}</div>
+      </div>
+    </div>`;
+
+    if (idx < connections.length - 1) {
+      html += `<div class="trace-arrow">│<br>▼<br>│</div>`;
+    }
+  });
+
+  // Show cross-drawing connections
+  const uniqueDrawings = [...new Set(connections.map(c => c.drawingNo))];
+  if (uniqueDrawings.length > 1) {
+    html += `<div style="margin-top:16px;padding:12px;background:#111;border-radius:6px;border:1px solid #333;">
+      <div style="font-size:12px;font-weight:bold;color:#d2a8ff;margin-bottom:8px;">Cross-Drawing Connections:</div>`;
+    uniqueDrawings.forEach(drawingNo => {
+      const conns = connections.filter(c => c.drawingNo === drawingNo);
+      html += `<div style="font-size:11px;color:#8b949e;margin:4px 0;">
+        <span style="color:#58a6ff">${drawingNo}</span>: ${conns.map(c => `${c.connectorCode} Pin ${c.pinNo}`).join(', ')}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  body.innerHTML = html;
+  panel.classList.add('active');
+}
+
+// Get wire info from connections
+function getWireInfo(wireNo) {
+  const connections = wireMap[wireNo];
+  if (!connections || connections.length === 0) return null;
+  return {
+    wireNo,
+    signal: connections[0].signal,
+    voltage: connections[0].conductorClass,
+    connectionCount: connections.length
+  };
+}
+
+// Close wire trace panel
+function closeWireTrace() {
+  document.getElementById('wireTracePanel').classList.remove('active');
+  clearHighlights();
+  currentHighlightedWire = null;
+}
+
+// Clear all highlights
+function clearHighlights() {
+  document.querySelectorAll('.drawing-section').forEach(el => {
+    el.classList.remove('dimmed', 'highlighted');
+  });
+  document.querySelectorAll('.connector-block').forEach(el => {
+    el.classList.remove('dimmed', 'highlighted');
+  });
+  document.querySelectorAll('.pin-row').forEach(el => {
+    el.classList.remove('highlighted');
+  });
+}
+
+// Wire search
+function openWireSearch() {
+  document.getElementById('wireSearch').classList.add('active');
+  document.getElementById('overlay').classList.add('active');
+  document.getElementById('wireSearchInput').focus();
+}
+
+function closeWireSearch() {
+  document.getElementById('wireSearch').classList.remove('active');
+  document.getElementById('overlay').classList.remove('active');
+  document.getElementById('wireSearchInput').value = '';
+  document.getElementById('wireSearchResults').innerHTML = '';
+}
+
+function searchWires(query) {
+  const results = document.getElementById('wireSearchResults');
+  if (!query || query.length < 1) {
+    results.innerHTML = '';
+    return;
+  }
+
+  const matches = Object.keys(wireMap).filter(wn => wn.startsWith(query)).sort();
+  let html = '';
+  matches.forEach(wireNo => {
+    const connections = wireMap[wireNo];
+    const firstConn = connections[0];
+    html += `<div class="wire-search-item" onclick="closeWireSearch(); traceWire('${wireNo}')">
+      <span class="wire-no">${wireNo}</span> - <span class="wire-signal">${firstConn.signal}</span>
+      <span style="color:#8b949e;margin-left:8px">${connections.length} points</span>
+    </div>`;
+  });
+  results.innerHTML = html;
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeWireTrace();
+    closeWireSearch();
+  }
+  if (e.key === 'f' && e.ctrlKey) {
+    e.preventDefault();
+    openWireSearch();
+  }
+});
+</script>
+</body>
+</html>

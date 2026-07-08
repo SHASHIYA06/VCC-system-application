@@ -131,7 +131,7 @@ export default function TwinExplorerPage() {
       <AnimatePresence mode="wait">
         {trace && (
           <motion.div
-            key={trace.wire.wireNo}
+            key={trace.wire.wireNo + '-' + Date.now()}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}

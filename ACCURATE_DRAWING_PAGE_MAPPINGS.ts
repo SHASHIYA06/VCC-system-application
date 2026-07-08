@@ -94,7 +94,7 @@ export const MAIN_SCHEMATIC_MAPPINGS: DrawingPageMapping[] = [
   // COMMS (Communications)
   { drawingNumber: '942-58147', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 79, verified: false, notes: 'Communications - PA system' },
   { drawingNumber: '942-58148', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 80, verified: false, notes: 'Communications - Data network' },
-  { drawingNumber: '942-58149', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 81, verified: false, notes: 'Communications - CCTV' },
+  { drawingNumber: '942-58149', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 70, verified: true, notes: 'Communications - DVAU, CCU, PAPIS, CCTV' },
   { drawingNumber: '942-58150', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 82, verified: false, notes: 'Communications - Emergency systems' },
   { drawingNumber: '942-58151', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 83, verified: false, notes: 'Communications - Fire detection' },
   { drawingNumber: '942-58152', pdfFile: 'KMRCL VCC Drawings_OCR.pdf', pageNumber: 84, verified: false, notes: 'Communications - Intercom' },

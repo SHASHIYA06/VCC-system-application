@@ -229,7 +229,7 @@ export default function TrainlinesPage() {
 
           return (
             <div key={systemCode} className="glass-card overflow-hidden">
-              <div className={`px-6 py-4 border-b border-slate-700/50 flex items-center justify-between ${sysInfo.bg}`}>
+              <div className={`px-6 py-4 border-b-2 border-slate-600/50 flex items-center justify-between ${sysInfo.bg}`}>
                 <div className="flex items-center gap-3">
                   <Zap className={`h-5 w-5 ${sysInfo.color}`} />
                   <span className={`font-bold text-lg ${sysInfo.color}`}>{systemCode}</span>
@@ -241,7 +241,7 @@ export default function TrainlinesPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-slate-700/50">
+                    <tr className="border-b-2 border-slate-600/40">
                       <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">#</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</th>
@@ -250,7 +250,7 @@ export default function TrainlinesPage() {
                       <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-700/30">
+                    <tbody className="divide-y-2 divide-slate-600/40">
                     {tlList.map(tl => {
                       const vColor = VOLTAGE_COLORS[tl.voltage_domain] || VOLTAGE_COLORS['110VDC'];
                       const isCross = CROSS_CONNECTED_TRAINLINES.includes(parseInt(tl.trainline_no));

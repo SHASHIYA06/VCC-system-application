@@ -119,7 +119,7 @@ INSERT INTO "CircuitEndpoint" ("id", "circuitId", "wireNo", "connectorFrom", "pi
 SELECT DISTINCT ON (ce."circuitId", ce."wireNo")
   gen_random_uuid()::text, ce."circuitId", ce."wireNo", ce."connectorFrom", ce."pinFrom", ce."connectorTo", ce."pinTo"
 FROM (
-  SELECT DISTINCT ON (c.id, we."wireNo")
+  SELECT DISTINCT ON (c.id, w."wireNo")
     c.id as "circuitId",
     w."wireNo",
     cFrom."connectorCode" as "connectorFrom",
@@ -135,7 +135,7 @@ FROM (
   LEFT JOIN "WireEndpoint" weTo ON weTo."wireId" = w.id AND weTo."endpointRole" = 'destination'
   LEFT JOIN "Connector" cTo ON cTo.id = weTo."connectorId"
   LEFT JOIN "ConnectorPin" cpTo ON cpTo.id = weTo."pinId"
-  WHERE we."wireNo" IS NOT NULL
+  WHERE w."wireNo" IS NOT NULL
 ) ce
 ON CONFLICT DO NOTHING;
 

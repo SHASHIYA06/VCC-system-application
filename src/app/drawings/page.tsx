@@ -140,7 +140,7 @@ function DrawingsContent() {
             
             return (
               <GlassPanel key={systemCode} className="overflow-hidden p-0 mb-6 border-0">
-                <div className={`px-6 py-4 border-b border-slate-700/50 flex items-center justify-between ${sysInfo.bg}`}>
+                <div className={`px-6 py-4 border-b-2 border-slate-600/50 flex items-center justify-between ${sysInfo.bg}`}>
                   <div className="flex items-center gap-3">
                     <Cpu className={`h-5 w-5 ${sysInfo.color}`} />
                     <span className={`font-bold text-lg ${sysInfo.color}`}>{systemCode}</span>

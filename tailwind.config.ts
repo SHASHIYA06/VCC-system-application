@@ -8,9 +8,10 @@ const config: Config = {
     extend: {
       fontFamily: {
         // Professional Dashboard Typography Stack (Design System)
-        sans: ['"Fira Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"Fira Code"', 'monospace'],
-        display: ['"Fira Code"', 'monospace'],
+        // Fonts are imported in src/app/globals.css; keep these in sync with that import.
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         // Premium Dark Theme Color System

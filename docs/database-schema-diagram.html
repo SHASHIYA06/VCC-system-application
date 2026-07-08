@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VCC Database Schema Diagram</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; overflow: auto; }
+  h1 { text-align: center; padding: 20px; font-size: 24px; color: #22d3ee; background: #1e293b; border-bottom: 2px solid #334155; }
+  .subtitle { text-align: center; color: #94a3b8; font-size: 14px; padding-bottom: 16px; background: #1e293b; }
+  .legend { display: flex; gap: 24px; justify-content: center; padding: 12px; background: #1e293b; border-bottom: 1px solid #334155; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #94a3b8; }
+  .legend-color { width: 14px; height: 14px; border-radius: 3px; border: 1px solid #475569; }
+  .schema { padding: 30px; display: flex; flex-direction: column; gap: 40px; }
+  .tier { display: flex; flex-direction: column; gap: 16px; }
+  .tier-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #64748b; font-weight: 700; padding-left: 4px; }
+  .tier-row { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .model { background: #1e293b; border: 2px solid #334155; border-radius: 8px; min-width: 200px; max-width: 280px; overflow: hidden; }
+  .model-header { padding: 10px 14px; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .model-header .icon { font-size: 16px; }
+  .model-body { padding: 0 14px 10px; }
+  .field { font-size: 11px; padding: 2px 0; display: flex; gap: 6px; color: #cbd5e1; }
+  .field .key { color: #fbbf24; font-weight: 600; }
+  .field .type { color: #64748b; margin-left: auto; font-family: monospace; font-size: 10px; }
+  .field .fk { color: #818cf8; }
+  .field .pk { color: #fbbf24; }
+  .field .rel { color: #34d399; }
+  .divider { border-top: 1px solid #334155; margin: 4px 0; }
+  .relations { margin-top: 12px; padding: 12px; background: #0f172a; border-radius: 6px; border: 1px solid #1e293b; }
+  .relations h3 { font-size: 13px; color: #22d3ee; margin-bottom: 8px; }
+  .rel-list { font-size: 11px; color: #94a3b8; line-height: 1.8; }
+  .rel-list .arrow { color: #34d399; }
+  .rel-list .model-ref { color: #818cf8; font-weight: 600; }
+  /* Colors */
+  .c-core { border-color: #22d3ee; } .c-core .model-header { background: #164e63; color: #22d3ee; }
+  .c-system { border-color: #a78bfa; } .c-system .model-header { background: #3b2d7a; color: #a78bfa; }
+  .c-drawing { border-color: #34d399; } .c-drawing .model-header { background: #134e3a; color: #34d399; }
+  .c-wiring { border-color: #fb923c; } .c-wiring .model-header { background: #7c3a12; color: #fb923c; }
+  .c-connector { border-color: #f472b6; } .c-connector .model-header { background: #831843; color: #f472b6; }
+  .c-signal { border-color: #facc15; } .c-signal .model-header { background: #713f12; color: #facc15; }
+  .c-meta { border-color: #64748b; } .c-meta .model-header { background: #334155; color: #94a3b8; }
+  .c-user { border-color: #818cf8; } .c-user .model-header { background: #312e81; color: #818cf8; }
+  .c-ocr { border-color: #2dd4bf; } .c-ocr .model-header { background: #134e4a; color: #2dd4bf; }
+  .full-width { max-width: 100%; }
+  .counts { font-size: 10px; color: #64748b; font-weight: 400; margin-left: auto; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; }
+  .enum-box { background: #1e293b; border: 1px dashed #475569; border-radius: 6px; padding: 10px 14px; min-width: 140px; }
+  .enum-box h4 { font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
+  .enum-val { font-size: 10px; color: #64748b; font-family: monospace; }
+</style>
+</head>
+<body>
+<h1>VCC Enterprise Engineering Digital Twin - Database Schema</h1>
+<div class="subtitle">Prisma PostgreSQL Schema &mdash; 40 Models &bull; 30+ Relationships &bull; KMRCL RS3R Metro</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-color" style="background:#164e63"></div>Core / Project</div>
+  <div class="legend-item"><div class="legend-color" style="background:#3b2d7a"></div>System Hierarchy</div>
+  <div class="legend-item"><div class="legend-color" style="background:#134e3a"></div>Drawings</div>
+  <div class="legend-item"><div class="legend-color" style="background:#831843"></div>Connectors / Pins</div>
+  <div class="legend-item"><div class="legend-color" style="background:#7c3a12"></div>Wiring</div>
+  <div class="legend-item"><div class="legend-color" style="background:#713f12"></div>Signals / Circuits</div>
+  <div class="legend-item"><div class="legend-color" style="background:#334155"></div>Metadata / OCR</div>
+  <div class="legend-item"><div class="legend-color" style="background:#312e81"></div>Users / Auth</div>
+</div>
+
+<div class="schema">
+
+<!-- TIER 1: CORE -->
+<div class="tier">
+  <div class="tier-label">Tier 1 &mdash; Core Project</div>
+  <div class="tier-row">
+    <div class="model c-core">
+      <div class="model-header"><span class="icon">&#128218;</span> Project <span class="counts">1</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field">projectCode <span class="type">String UQ</span></div>
+        <div class="field">projectName <span class="type">String</span></div>
+        <div class="field">description <span class="type">String?</span></div>
+        <div class="divider"></div>
+        <div class="field"><span class="rel">formations</span> Formation[]</div>
+        <div class="field"><span class="rel">drawings</span> Drawing[]</div>
+        <div class="field"><span class="rel">referenceDrawings</span> ReferenceDrawing[]</div>
+        <div class="field"><span class="rel">sourceFiles</span> SourceFile[]</div>
+      </div>
+    </div>
+
+    <div class="model c-core">
+      <div class="model-header"><span class="icon">&#128646;</span> Formation <span class="counts">1</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">projectId</span> <span class="type">String FK</span></div>
+        <div class="field">formationCode <span class="type">String</span></div>
+        <div class="field">formationName <span class="type">String</span></div>
+        <div class="field">carCount <span class="type">Int</span></div>
+        <div class="divider"></div>
+        <div class="field"><span class="rel">cars</span> Car[]</div>
+      </div>
+    </div>
+
+    <div class="model c-core">
+      <div class="model-header"><span class="icon">&#128663;</span> Car <span class="counts">6</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">formationId</span> <span class="type">String FK</span></div>
+        <div class="field">carPosition <span class="type">Int</span></div>
+        <div class="field">carCode <span class="type">String</span></div>
+        <div class="field">carType <span class="type">String</span> (DMC/TC/MC)</div>
+        <div class="field">carLabel <span class="type">String?</span></div>
+        <div class="divider"></div>
+        <div class="field"><span class="rel">carSystems</span> CarSystem[]</div>
+      </div>
+    </div>
+
+    <div class="model c-core">
+      <div class="model-header"><span class="icon">&#128279;</span> CarSystem <span class="counts">48</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">carId</span> <span class="type">String FK</span></div>
+        <div class="field"><span class="fk">systemId</span> <span class="type">String FK</span></div>
+        <div class="divider"></div>
+        <div style="font-size:10px;color:#64748b;margin-top:4px">Junction: Car &#8594; System</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 2: SYSTEM HIERARCHY -->
+<div class="tier">
+  <div class="tier-label">Tier 2 &mdash; System Hierarchy</div>
+  <div class="tier-row">
+    <div class="model c-system">
+      <div class="model-header"><span class="icon">&#9881;</span> System <span class="counts">8</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field">code <span class="type">String UQ</span></div>
+        <div class="field">name <span class="type">String</span></div>
+        <div class="field">category <span class="type">String?</span></div>
+        <div class="field">sortOrder <span class="type">Int</span></div>
+        <div class="field">isActive <span class="type">Boolean</span></div>
+        <div class="divider"></div>
+        <div class="field"><span class="rel">subsystems</span> Subsystem[]</div>
+        <div class="field"><span class="rel">drawings</span> Drawing[]</div>
+        <div class="field"><span class="rel">devices</span> Device[]</div>
+        <div class="field"><span class="rel">carSystems</span> CarSystem[]</div>
+        <div class="field"><span class="rel">vccDescription</span> VCCDescription?</div>
+        <div class="field"><span class="rel">metadata</span> SystemMetadata?</div>
+      </div>
+    </div>
+
+    <div class="model c-system">
+      <div class="model-header"><span class="icon">&#128193;</span> Subsystem <span class="counts">38</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">systemId</span> <span class="type">String FK</span></div>
+        <div class="field">code <span class="type">String</span></div>
+        <div class="field">name <span class="type">String</span></div>
+        <div class="field">sortOrder <span class="type">Int</span></div>
+        <div class="divider"></div>
+        <div class="field"><span class="rel">devices</span> Device[]</div>
+      </div>
+    </div>
+
+    <div class="model c-system">
+      <div class="model-header"><span class="icon">&#128196;</span> VCCDescription <span class="counts">8</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">systemCode</span> <span class="type">String FK/UQ</span></div>
+        <div class="field">description <span class="type">String?</span></div>
+        <div class="field">technicalSpecs <span class="type">String?</span></div>
+        <div class="field">voltage <span class="type">String?</span></div>
+        <div class="field">powerRequirements <span class="type">String?</span></div>
+      </div>
+    </div>
+
+    <div class="model c-system">
+      <div class="model-header"><span class="icon">&#128200;</span> SystemMetadata <span class="counts">8</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">systemCode</span> <span class="type">String FK/UQ</span></div>
+        <div class="field">dataCompleteness <span class="type">Float</span></div>
+        <div class="field">totalDrawings <span class="type">Int</span></div>
+        <div class="field">totalDevices <span class="type">Int</span></div>
+        <div class="field">totalWires <span class="type">Int</span></div>
+        <div class="field">syncStatus <span class="type">String</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 3: DRAWINGS -->
+<div class="tier">
+  <div class="tier-label">Tier 3 &mdash; Drawings (Central Hub)</div>
+  <div class="tier-row">
+    <div class="model c-drawing full-width" style="max-width:320px">
+      <div class="model-header"><span class="icon">&#128444;</span> Drawing <span class="counts">51</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">projectId</span> <span class="type">String FK</span></div>
+        <div class="field"><span class="fk">systemId</span> <span class="type">String FK?</span></div>
+        <div class="field">drawingNo <span class="type">String</span></div>
+        <div class="field">revision <span class="type">String</span></div>
+        <div class="field">title <span class="type">String</span></div>
+        <div class="field">totalSheets <span class="type">Int</span></div>
+        <div class="field">status <span class="type">DrawingStatus</span></div>
+        <div class="divider"></div>
+        <div class="field"><span class="rel">connectors</span> Connector[]</div>
+        <div class="field"><span class="rel">devices</span> Device[]</div>
+        <div class="field"><span class="rel">wires</span> DrawingWire[]</div>
+        <div class="field"><span class="rel">circuits</span> Circuit[]</div>
+        <div class="field"><span class="rel">signals</span> Signal[]</div>
+        <div class="field"><span class="rel">trainLines</span> TrainLine[]</div>
+        <div class="field"><span class="rel">sheets</span> DrawingSheet[]</div>
+        <div class="field"><span class="rel">revisions</span> DrawingRevision[]</div>
+        <div class="field"><span class="rel">pageMappings</span> DrawingPageMapping[]</div>
+        <div class="field"><span class="rel">crossConnections</span> CrossConnection[]</div>
+        <div class="field"><span class="rel">crossConnectionRules</span> CrossConnectionRule[]</div>
+        <div class="field"><span class="rel">notes</span> DrawingNote[]</div>
+        <div class="field"><span class="rel">noteEntities</span> Note[]</div>
+        <div class="field"><span class="rel">applicability</span> DrawingApplicability[]</div>
+        <div class="field"><span class="rel">references</span> DrawingReference[]</div>
+        <div class="field"><span class="rel">verificationStatus</span> VerificationStatus?</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="model c-drawing">
+        <div class="model-header"><span class="icon">&#128195;</span> DrawingSheet <span class="counts">35</span></div>
+        <div class="model-body">
+          <div class="field"><span class="pk">id</span> <span class="fk">drawingId FK</span></div>
+          <div class="field">sheetNo <span class="type">Int</span></div>
+          <div class="field">sheetLabel <span class="type">String?</span></div>
+          <div class="field"><span class="rel">connectors</span> Connector[]</div>
+          <div class="field"><span class="rel">noteEntities</span> Note[]</div>
+        </div>
+      </div>
+      <div class="model c-drawing">
+        <div class="model-header"><span class="icon">&#128197;</span> DrawingRevision <span class="counts">18</span></div>
+        <div class="model-body">
+          <div class="field"><span class="pk">id</span> <span class="fk">drawingId FK</span></div>
+          <div class="field"><span class="fk">parentDrawingId FK?</span></div>
+          <div class="field">revisionLabel <span class="type">String</span></div>
+          <div class="field">isCurrent <span class="type">Boolean</span></div>
+        </div>
+      </div>
+      <div class="model c-drawing">
+        <div class="model-header"><span class="icon">&#128196;</span> DrawingPageMapping <span class="counts">40</span></div>
+        <div class="model-body">
+          <div class="field"><span class="pk">id</span> <span class="fk">drawingId FK</span></div>
+          <div class="field">sourceFileName <span class="type">String</span></div>
+          <div class="field">pdfPageNo <span class="type">Int</span></div>
+          <div class="field">verified <span class="type">Boolean</span></div>
+        </div>
+      </div>
+      <div class="model c-drawing">
+        <div class="model-header"><span class="icon">&#10003;</span> DrawingApplicability <span class="counts">32</span></div>
+        <div class="model-body">
+          <div class="field"><span class="pk">id</span> <span class="fk">drawingId FK</span></div>
+          <div class="field">carType <span class="type">String</span></div>
+          <div class="field">applicable <span class="type">Boolean</span></div>
+        </div>
+      </div>
+      <div class="model c-drawing">
+        <div class="model-header"><span class="icon">&#128221;</span> DrawingNote <span class="counts">6</span></div>
+        <div class="model-body">
+          <div class="field"><span class="pk">id</span> <span class="fk">drawingId FK</span></div>
+          <div class="field">noteType <span class="type">String</span></div>
+          <div class="field">noteText <span class="type">String</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="model c-drawing">
+        <div class="model-header"><span class="icon">&#128194;</span> ReferenceDrawing <span class="counts">9</span></div>
+        <div class="model-body">
+          <div class="field"><span class="pk">id</span> <span class="fk">projectId FK</span></div>
+          <div class="field">refNo <span class="type">String UQ</span></div>
+          <div class="field">title <span class="type">String</span></div>
+          <div class="field">sourceOrg <span class="type">String?</span></div>
+        </div>
+      </div>
+      <div class="model c-drawing">
+        <div class="model-header"><span class="icon">&#128279;</span> DrawingReference</div>
+        <div class="model-body">
+          <div class="field"><span class="pk">id</span></div>
+          <div class="field"><span class="fk">drawingId FK</span></div>
+          <div class="field"><span class="fk">referenceId FK</span></div>
+          <div class="field">relationType <span class="type">String</span></div>
+        </div>
+      </div>
+      <div class="model c-drawing">
+        <div class="model-header"><span class="icon">&#9989;</span> DrawingVerificationStatus</div>
+        <div class="model-body">
+          <div class="field"><span class="pk">id</span> <span class="fk">drawingId FK UQ</span></div>
+          <div class="field">status <span class="type">String</span></div>
+          <div class="field">confidence <span class="type">Float</span></div>
+          <div class="field">pagesVerified <span class="type">Int</span></div>
+        </div>
+      </div>
+      <div class="model c-drawing">
+        <div class="model-header"><span class="icon">&#128204;</span> CrossConnection <span class="counts">5</span></div>
+        <div class="model-body">
+          <div class="field"><span class="pk">id</span> <span class="fk">drawingId FK</span></div>
+          <div class="field">connectorCode, pinA, pinB</div>
+          <div class="field">wireA, wireB <span class="type">String?</span></div>
+        </div>
+      </div>
+      <div class="model c-drawing">
+        <div class="model-header"><span class="icon">&#128220;</span> Note <span class="counts">9</span></div>
+        <div class="model-body">
+          <div class="field"><span class="pk">id</span> <span class="fk">drawingId FK</span></div>
+          <div class="field"><span class="fk">sheetId FK?</span></div>
+          <div class="field">noteCode, noteText</div>
+          <div class="field"><span class="rel">crossConnectionRules</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 4: CONNECTORS & DEVICES -->
+<div class="tier">
+  <div class="tier-label">Tier 4 &mdash; Connectors, Devices & Equipment</div>
+  <div class="tier-row">
+    <div class="model c-connector">
+      <div class="model-header"><span class="icon">&#128268;</span> Connector <span class="counts">31</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">drawingId</span> <span class="type">String FK</span></div>
+        <div class="field"><span class="fk">connectorTypeCode</span> <span class="type">String FK?</span></div>
+        <div class="field"><span class="fk">sheetId</span> <span class="type">String FK?</span></div>
+        <div class="field">connectorCode <span class="type">String</span></div>
+        <div class="field">carType <span class="type">String?</span></div>
+        <div class="field">pinCount <span class="type">Int?</span></div>
+        <div class="field">scope <span class="type">ConnectorScope?</span></div>
+        <div class="divider"></div>
+        <div class="field"><span class="rel">pins</span> ConnectorPin[]</div>
+        <div class="field"><span class="rel">wireEndpoints</span> WireEndpoint[]</div>
+      </div>
+    </div>
+
+    <div class="model c-connector">
+      <div class="model-header"><span class="icon">&#128207;</span> ConnectorPin <span class="counts">177</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">connectorId</span> <span class="type">String FK</span> CASCADE</div>
+        <div class="field"><span class="fk">conductorClassCode</span> <span class="type">String FK?</span></div>
+        <div class="field">pinNo <span class="type">String</span></div>
+        <div class="field">wireNo <span class="type">String?</span></div>
+        <div class="field">signalName <span class="type">String?</span></div>
+        <div class="divider"></div>
+        <div class="field"><span class="rel">wireEndpoints</span> WireEndpoint[]</div>
+      </div>
+    </div>
+
+    <div class="model c-connector">
+      <div class="model-header"><span class="icon">&#128230;</span> ConnectorType <span class="counts">16</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">code</span> <span class="type">String PK</span></div>
+        <div class="field">nominalPins <span class="type">Int?</span></div>
+        <div class="field">description <span class="type">String</span></div>
+        <div class="field">voltageClass <span class="type">String?</span></div>
+        <div class="field"><span class="rel">connectors</span> Connector[]</div>
+      </div>
+    </div>
+
+    <div class="model c-system">
+      <div class="model-header"><span class="icon">&#9889;</span> Device <span class="counts">145</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">drawingId</span> <span class="type">String FK</span></div>
+        <div class="field"><span class="fk">systemId</span> <span class="type">String FK?</span></div>
+        <div class="field"><span class="fk">subsystemId</span> <span class="type">String FK?</span></div>
+        <div class="field">tagNo, deviceName, deviceType</div>
+        <div class="field"><span class="rel">specifications</span> DeviceSpec[]</div>
+        <div class="field"><span class="rel">wireEndpoints</span> WireEndpoint[]</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 5: WIRING -->
+<div class="tier">
+  <div class="tier-label">Tier 5 &mdash; Wiring Intelligence</div>
+  <div class="tier-row">
+    <div class="model c-wiring">
+      <div class="model-header"><span class="icon">&#128268;</span> Wire <span class="counts">185</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">conductorClassCode</span> <span class="type">String FK?</span></div>
+        <div class="field">wireNo <span class="type">String UQ</span></div>
+        <div class="field">signalName <span class="type">String?</span></div>
+        <div class="field">wireSize, wireColor, voltageClass</div>
+        <div class="field">wireStatus <span class="type">WireStatus</span></div>
+        <div class="field">wireAlias <span class="type">String? UQ</span></div>
+        <div class="divider"></div>
+        <div class="field"><span class="rel">drawings</span> DrawingWire[]</div>
+        <div class="field"><span class="rel">endpoints</span> WireEndpoint[]</div>
+      </div>
+    </div>
+
+    <div class="model c-wiring">
+      <div class="model-header"><span class="icon">&#128279;</span> DrawingWire <span class="counts">116</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">drawingId</span> <span class="type">String FK</span> CASCADE</div>
+        <div class="field"><span class="fk">wireId</span> <span class="type">String FK</span> CASCADE</div>
+        <div class="field">pageNo, sheetNo, context</div>
+        <div class="divider"></div>
+        <div style="font-size:10px;color:#64748b;margin-top:4px">Junction: Drawing &#8594; Wire</div>
+      </div>
+    </div>
+
+    <div class="model c-wiring">
+      <div class="model-header"><span class="icon">&#128204;</span> WireEndpoint <span class="counts">56</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">wireId</span> <span class="type">String FK</span> CASCADE</div>
+        <div class="field"><span class="fk">connectorId</span> <span class="type">String FK?</span></div>
+        <div class="field"><span class="fk">pinId</span> <span class="type">String FK?</span></div>
+        <div class="field"><span class="fk">deviceId</span> <span class="type">String FK?</span></div>
+        <div class="field">endpointRole, endpointLabel</div>
+        <div class="divider"></div>
+        <div style="font-size:10px;color:#64748b;margin-top:4px">Chain: Wire &#8594; Connector &#8594; Pin &#8594; Drawing</div>
+      </div>
+    </div>
+
+    <div class="model c-system">
+      <div class="model-header"><span class="icon">&#127912;</span> ConductorClass <span class="counts">7</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">code</span> <span class="type">String PK</span></div>
+        <div class="field">description <span class="type">String</span></div>
+        <div class="field">voltageDomain <span class="type">String?</span></div>
+        <div class="field"><span class="rel">connectorPins</span> ConnectorPin[]</div>
+        <div class="field"><span class="rel">trainLines</span> TrainLine[]</div>
+        <div class="field"><span class="rel">circuitEndpoints</span> CircuitEndpoint[]</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 6: SIGNALS & CIRCUITS -->
+<div class="tier">
+  <div class="tier-label">Tier 6 &mdash; Signals, Circuits & TrainLines</div>
+  <div class="tier-row">
+    <div class="model c-signal">
+      <div class="model-header"><span class="icon">&#9889;</span> Signal <span class="counts">612</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">drawingId</span> <span class="type">String FK?</span></div>
+        <div class="field">signalName, signalCode</div>
+        <div class="field">protocol, voltageText</div>
+        <div class="field">direction, medium</div>
+      </div>
+    </div>
+
+    <div class="model c-signal">
+      <div class="model-header"><span class="icon">&#9889;</span> Circuit <span class="counts">588</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">drawingId</span> <span class="type">String FK</span></div>
+        <div class="field">circuitCode, circuitName</div>
+        <div class="field">category, voltageText</div>
+        <div class="field">protocolText, carScope</div>
+        <div class="divider"></div>
+        <div class="field"><span class="rel">endpoints</span> CircuitEndpoint[]</div>
+      </div>
+    </div>
+
+    <div class="model c-signal">
+      <div class="model-header"><span class="icon">&#128279;</span> CircuitEndpoint <span class="counts">2280</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">circuitId</span> <span class="type">String FK</span></div>
+        <div class="field"><span class="fk">conductorClassCode</span> <span class="type">String FK?</span></div>
+        <div class="field">wireNo, connectorFrom/To</div>
+        <div class="field">pinFrom/To</div>
+      </div>
+    </div>
+
+    <div class="model c-signal">
+      <div class="model-header"><span class="icon">&#128225;</span> TrainLine <span class="counts">101</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">drawingId</span> <span class="type">String FK</span></div>
+        <div class="field"><span class="fk">conductorClassCode</span> <span class="type">String FK?</span></div>
+        <div class="field">lineGroup, itemName</div>
+        <div class="field">wireNo, connectorCode</div>
+        <div class="field">pinNo, carType</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 7: CROSS CONNECTIONS -->
+<div class="tier">
+  <div class="tier-label">Tier 7 &mdash; Cross Connections</div>
+  <div class="tier-row">
+    <div class="model c-drawing">
+      <div class="model-header"><span class="icon">&#128256;</span> CrossConnectionRule <span class="counts">5</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field"><span class="fk">drawingId</span> <span class="type">String FK</span></div>
+        <div class="field"><span class="fk">sheetId</span> <span class="type">String FK?</span></div>
+        <div class="field"><span class="fk">noteId</span> <span class="type">String FK?</span></div>
+        <div class="field">connectorCode, ruleType</div>
+        <div class="field">pinA, pinB, wireA, wireB</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 8: OCR / SOURCE -->
+<div class="tier">
+  <div class="tier-label">Tier 8 &mdash; OCR, Source Files & Document Processing</div>
+  <div class="tier-row">
+    <div class="model c-ocr">
+      <div class="model-header"><span class="icon">&#128196;</span> SourceFile <span class="counts">0</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="fk">projectId FK</span></div>
+        <div class="field">filename, fileType, mimeType</div>
+        <div class="field"><span class="rel">pages</span> SourcePage[]</div>
+      </div>
+    </div>
+    <div class="model c-ocr">
+      <div class="model-header"><span class="icon">&#128195;</span> SourcePage</div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="fk">sourceFileId FK</span></div>
+        <div class="field">pageNo, drawingNo, rawText</div>
+      </div>
+    </div>
+    <div class="model c-ocr">
+      <div class="model-header"><span class="icon">&#128065;</span> OcrPage</div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="fk">sourceFileId</span></div>
+        <div class="field">pageNo, rawText, cleanedText</div>
+        <div class="field"><span class="rel">rows</span> OcrRow[]</div>
+      </div>
+    </div>
+    <div class="model c-ocr">
+      <div class="model-header"><span class="icon">&#128196;</span> OcrRow</div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="fk">ocrPageId FK</span></div>
+        <div class="field">rowType, rowText</div>
+        <div class="field">extractedJson <span class="type">Json</span></div>
+      </div>
+    </div>
+    <div class="model c-ocr">
+      <div class="model-header"><span class="icon">&#128161;</span> DocumentChunk</div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="fk">sourceFileId</span></div>
+        <div class="field">chunkType, content</div>
+        <div class="field">embedding <span class="type">vector</span></div>
+        <div class="field">systemCode, drawingNo</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIER 9: USERS & AUDIT -->
+<div class="tier">
+  <div class="tier-label">Tier 9 &mdash; Users, Auth & Audit</div>
+  <div class="tier-row">
+    <div class="model c-user">
+      <div class="model-header"><span class="icon">&#128100;</span> User <span class="counts">0</span></div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="type">String PK</span></div>
+        <div class="field">email <span class="type">String UQ</span></div>
+        <div class="field">name, passwordHash</div>
+        <div class="field">role <span class="type">UserRole</span></div>
+        <div class="divider"></div>
+        <div class="field"><span class="rel">apiKeys</span> ApiKey[]</div>
+        <div class="field"><span class="rel">auditLogs</span> AuditLog[]</div>
+      </div>
+    </div>
+    <div class="model c-user">
+      <div class="model-header"><span class="icon">&#128273;</span> ApiKey</div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="fk">userId FK</span></div>
+        <div class="field">keyHash <span class="type">String UQ</span></div>
+        <div class="field">name, scopes[], isActive</div>
+      </div>
+    </div>
+    <div class="model c-user">
+      <div class="model-header"><span class="icon">&#128221;</span> AuditLog</div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span> <span class="fk">userId FK?</span></div>
+        <div class="field">action <span class="type">AuditAction</span></div>
+        <div class="field">entityType, entityId</div>
+        <div class="field">changes <span class="type">Json?</span></div>
+      </div>
+    </div>
+    <div class="model c-meta">
+      <div class="model-header"><span class="icon">&#128200;</span> QueryPerformance</div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span></div>
+        <div class="field">queryType, executionTime</div>
+        <div class="field">queryHash, cacheHit</div>
+      </div>
+    </div>
+    <div class="model c-meta">
+      <div class="model-header"><span class="icon">&#9888;</span> ValidationIssue</div>
+      <div class="model-body">
+        <div class="field"><span class="pk">id</span></div>
+        <div class="field">severity, issueType</div>
+        <div class="field">sourceTable, sourceId</div>
+        <div class="field">resolved <span class="type">Boolean</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ENUMS -->
+<div class="tier">
+  <div class="tier-label">Enums</div>
+  <div class="tier-row">
+    <div class="enum-box"><h4>DrawingStatus</h4><div class="enum-val">ACTIVE | ARCHIVED | DRAFT | DEPRECATED</div></div>
+    <div class="enum-box"><h4>WireStatus</h4><div class="enum-val">VERIFIED | SYNTHETIC | UNVERIFIED | DEPRECATED</div></div>
+    <div class="enum-box"><h4>ConnectorScope</h4><div class="enum-val">INTERCAR | POWER | COMMUNICATION | DEVICE | DIAGNOSTIC</div></div>
+    <div class="enum-box"><h4>UserRole</h4><div class="enum-val">ADMIN | ANALYST | VIEWER | GUEST</div></div>
+    <div class="enum-box"><h4>AuditAction</h4><div class="enum-val">CREATE | UPDATE | DELETE | READ | EXPORT | SYNC | VALIDATE | ANALYZE</div></div>
+  </div>
+</div>
+
+<!-- KEY RELATIONSHIPS -->
+<div class="tier">
+  <div class="tier-label">Key Relationship Chains</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;">
+    <div class="relations">
+      <h3>Train Hierarchy</h3>
+      <div class="rel-list">
+        <span class="model-ref">Project</span> <span class="arrow">1:N</span> <span class="model-ref">Formation</span> <span class="arrow">1:N</span> <span class="model-ref">Car</span> <span class="arrow">N:M</span> <span class="model-ref">System</span> (via CarSystem)
+      </div>
+    </div>
+    <div class="relations">
+      <h3>Drawing Structure</h3>
+      <div class="rel-list">
+        <span class="model-ref">Drawing</span> <span class="arrow">1:N</span> <span class="model-ref">DrawingSheet</span> <span class="arrow">1:N</span> <span class="model-ref">Connector</span> <span class="arrow">1:N</span> <span class="model-ref">ConnectorPin</span>
+      </div>
+    </div>
+    <div class="relations">
+      <h3>Wire Trace Chain</h3>
+      <div class="rel-list">
+        <span class="model-ref">Wire</span> <span class="arrow">1:N</span> <span class="model-ref">WireEndpoint</span> <span class="arrow">N:1</span> <span class="model-ref">Connector</span> <span class="arrow">N:1</span> <span class="model-ref">Drawing</span>
+      </div>
+    </div>
+    <div class="relations">
+      <h3>Drawing ↔ Wire Link</h3>
+      <div class="rel-list">
+        <span class="model-ref">Drawing</span> <span class="arrow">1:N</span> <span class="model-ref">DrawingWire</span> <span class="arrow">N:1</span> <span class="model-ref">Wire</span>
+      </div>
+    </div>
+    <div class="relations">
+      <h3>Circuit Path</h3>
+      <div class="rel-list">
+        <span class="model-ref">Drawing</span> <span class="arrow">1:N</span> <span class="model-ref">Circuit</span> <span class="arrow">1:N</span> <span class="model-ref">CircuitEndpoint</span> <span class="arrow">wireNo</span> &#8594; <span class="model-ref">Wire</span>
+      </div>
+    </div>
+    <div class="relations">
+      <h3>System Metadata</h3>
+      <div class="rel-list">
+        <span class="model-ref">System</span> <span class="arrow">1:1</span> <span class="model-ref">VCCDescription</span> + <span class="model-ref">SystemMetadata</span>
+      </div>
+    </div>
+    <div class="relations">
+      <h3>Device Hierarchy</h3>
+      <div class="rel-list">
+        <span class="model-ref">Drawing</span> <span class="arrow">1:N</span> <span class="model-ref">Device</span> <span class="arrow">N:1</span> <span class="model-ref">System</span> + <span class="model-ref">Subsystem</span>
+      </div>
+    </div>
+    <div class="relations">
+      <h3>Cross Connections</h3>
+      <div class="rel-list">
+        <span class="model-ref">Drawing</span> <span class="arrow">1:N</span> <span class="model-ref">CrossConnectionRule</span> <span class="arrow">wireA/B</span> &#8594; <span class="model-ref">Wire</span> pairs
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
