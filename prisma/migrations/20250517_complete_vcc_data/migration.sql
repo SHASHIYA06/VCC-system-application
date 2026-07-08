@@ -5,10 +5,9 @@
 -- ALTER TABLE "Signal" ADD COLUMN IF NOT EXISTS "medium" TEXT;
 
 -- Add missing indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_circuit_wire_no ON "Circuit"(wireNo);
-CREATE INDEX IF NOT EXISTS idx_circuit_system ON "Circuit"(systemCode);
-CREATE INDEX IF NOT EXISTS idx_circuit_car_type ON "Circuit"(carType);
-CREATE INDEX IF NOT EXISTS idx_circuit_drawing ON "Circuit"(drawingId);
+CREATE INDEX IF NOT EXISTS idx_circuit_endpoint_wire_no ON "CircuitEndpoint"("wireNo");
+CREATE INDEX IF NOT EXISTS idx_circuit_endpoint_circuit_id ON "CircuitEndpoint"("circuitId");
+CREATE INDEX IF NOT EXISTS idx_circuit_drawing ON "Circuit"("drawingId");
 
 CREATE INDEX IF NOT EXISTS idx_wire_wire_no ON "Wire"(wireNo);
 CREATE INDEX IF NOT EXISTS idx_wire_signal ON "Wire"(signalName);

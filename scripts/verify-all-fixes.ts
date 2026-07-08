@@ -52,7 +52,7 @@ async function verifyAllFixes() {
   for (const test of testDrawings) {
     try {
       const drawing = await prisma.drawing.findFirst({
-        where: { drawingNo: { contains: test.no } },
+        where: { drawingNo: test.no },
         include: { pages: true },
       });
       
@@ -62,7 +62,7 @@ async function verifyAllFixes() {
         continue;
       }
       
-      const page = drawing.pages[0];
+      const page = drawing.pages.find(p => p.pageNo === 1) || drawing.pages[0];
       const extra = page?.extra as any;
       const actualFile = extra?.sourceFile || extra?.pdfFile;
       
