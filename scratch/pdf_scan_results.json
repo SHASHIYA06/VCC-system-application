@@ -1,0 +1,1222 @@
+[
+  {
+    "page": 1,
+    "drawings": [],
+    "title": "itil!lll!iifVEHICLE CONTROL CIRCUITS (VCC)",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "itil!lll!iifVEHICLE CONTROL CIRCUITS (VCC) | \" 111111           KMRCL RS(3R) PROJECT | • ••                 6-CAR FORMATION | DMCCAR   TC CAR         "
+  },
+  {
+    "page": 2,
+    "drawings": [
+      "942-58099",
+      "942-58118",
+      "942-58100",
+      "942-58119",
+      "942-58144",
+      "942-58101",
+      "942-58145",
+      "942-58102",
+      "942-58121",
+      "942-58122",
+      "942-58103",
+      "942-58104",
+      "942-58123",
+      "942-58124",
+      "942-58125",
+      "942-58126",
+      "942-58128",
+      "942-58105",
+      "942-58129",
+      "942-58106",
+      "942-58130",
+      "942-58107",
+      "942-58131",
+      "942-58108",
+      "942-58132",
+      "942-58109",
+      "942-58133",
+      "942-58134",
+      "942-58110",
+      "942-58135",
+      "942-58136",
+      "942-58111",
+      "942-58137",
+      "942-58138",
+      "942-58139",
+      "942-58112",
+      "942-58113",
+      "942-58114",
+      "942-58115",
+      "942-58141",
+      "942-58116",
+      "942-58142"
+    ],
+    "title": "~( A D VEHICLEINTERFACE",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                           I                           4                                                         3                   "
+  },
+  {
+    "page": 3,
+    "drawings": [
+      "942-58100"
+    ],
+    "title": "D VEHICLE INTERFACE CIRCUIT ----~F,, DRWN",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5   I          4           I         3                         I                                         2                              I | MACHINING "
+  },
+  {
+    "page": 4,
+    "drawings": [
+      "942-58101"
+    ],
+    "title": "- -· \\1:-'\".::i ,'!!!!. =.! ,__........,.........,.A",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                           4                       I                     3                              I                            "
+  },
+  {
+    "page": 5,
+    "drawings": [
+      "942-58102"
+    ],
+    "title": "- -· \\1:-'\".::i,'!!!!. =.!",
+    "system": "GEN",
+    "sheetInfo": "Sheet 11 of 4",
+    "textSample": "5                                  I                         4                           I                             3                              "
+  },
+  {
+    "page": 6,
+    "drawings": [
+      "942-58102"
+    ],
+    "title": "- -· \\1:-'\".::i,'!!!!. =.!",
+    "system": "APS",
+    "sheetInfo": "Sheet 12 of 4",
+    "textSample": "5                             I                        4                                                                   3                          "
+  },
+  {
+    "page": 7,
+    "drawings": [
+      "942-58102"
+    ],
+    "title": "z~ N (",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 3 of 4",
+    "textSample": "5                                                 I                         4                                   I                               3     "
+  },
+  {
+    "page": 8,
+    "drawings": [
+      "942-58102"
+    ],
+    "title": "r1 - tti~u~ ..",
+    "system": "LIGHT",
+    "sheetInfo": "Sheet 14 of 4",
+    "textSample": "5                                 I              4                  I             3                             I                                     "
+  },
+  {
+    "page": 9,
+    "drawings": [
+      "942-58107",
+      "942-58108",
+      "942-58109",
+      "942-58113",
+      "942-58103"
+    ],
+    "title": "- \"- - - 7 ,,,,..r '-\" D ~",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                    I                   4                         I                          3                                       I               "
+  },
+  {
+    "page": 10,
+    "drawings": [
+      "942-58111",
+      "942-58113",
+      "942-58119",
+      "942-58124",
+      "942-58103"
+    ],
+    "title": "j. , .. ,. \"I ...-1 11.12.2017 1-----+---~-------------<A",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 2 of 4",
+    "textSample": "5                                                 4                                                                               3                   "
+  },
+  {
+    "page": 11,
+    "drawings": [
+      "942-58125",
+      "942-58126",
+      "942-58128",
+      "942-58145",
+      "942-58130",
+      "942-58132",
+      "942-58138",
+      "942-58139",
+      "942-58140",
+      "942-58103"
+    ],
+    "title": "11.12.2017 i---+----~~·-· ~~~--+-----t A VEHICLE INTERFACE CIRCUIT DRWN",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 3 of 4",
+    "textSample": "5                                            4                                                                         3                              "
+  },
+  {
+    "page": 12,
+    "drawings": [
+      "942-58145",
+      "942-58131",
+      "942-58152",
+      "942-58111",
+      "942-58120",
+      "942-58113",
+      "942-58103"
+    ],
+    "title": "CHKD ·• 'r • ., 1. .1 11.12.2017 !----+----'•~·~• ~~~·'~--+--------< A VEHICLEINTERFACE",
+    "system": "APS",
+    "sheetInfo": "Sheet 4 of 4",
+    "textSample": "5                                     4                                                     3                                                         "
+  },
+  {
+    "page": 13,
+    "drawings": [
+      "942-58119",
+      "942-58104"
+    ],
+    "title": "Jll.;1:' ·U 1ftl \".Jl - - A",
+    "system": "GEN",
+    "sheetInfo": "Sheet 11 of 8",
+    "textSample": "5                   I                                   4                                                  I                                          "
+  },
+  {
+    "page": 14,
+    "drawings": [
+      "942-58150",
+      "942-58151",
+      "942-58153",
+      "942-58104"
+    ],
+    "title": ".•.·t \\-'' 1- ~\"' .,.,. J'",
+    "system": "COMMS",
+    "sheetInfo": "Sheet 8 of 0",
+    "textSample": "5                          I                                                4                                                 I                       "
+  },
+  {
+    "page": 15,
+    "drawings": [
+      "942-58153",
+      "942-58152"
+    ],
+    "title": "* NOTE VEHI[LE INTER __ 11_.12._20---111",
+    "system": "COMMS",
+    "sheetInfo": "Sheet 3 of 8",
+    "textSample": "5                                              4                                             3                                                        "
+  },
+  {
+    "page": 16,
+    "drawings": [
+      "942-58104"
+    ],
+    "title": "~,;:r' '\"•~~.Ii~ 11.12.2017 ,______,,>---------1------< A",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                                           4                                      I                                  "
+  },
+  {
+    "page": 17,
+    "drawings": [
+      "942-58146",
+      "942-58104"
+    ],
+    "title": "11.12.2017 ci z ....J",
+    "system": "TMS",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                     4                                                                                               "
+  },
+  {
+    "page": 18,
+    "drawings": [
+      "942-58146",
+      "942-58128",
+      "942-58129",
+      "942-58104"
+    ],
+    "title": "~ 11.12.2017 A 2• •1",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                                               4                                                                     "
+  },
+  {
+    "page": 19,
+    "drawings": [
+      "942-58152",
+      "942-58104"
+    ],
+    "title": "z~ \"' ( A",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                        I                      4                                                   I        3                         I              "
+  },
+  {
+    "page": 20,
+    "drawings": [
+      "942-58152"
+    ],
+    "title": "t---+-----------+------1A I~ 11.12.2011 pair 2",
+    "system": "GEN",
+    "sheetInfo": "Sheet 8 of 8",
+    "textSample": "5                                                                                4                                                                    "
+  },
+  {
+    "page": 21,
+    "drawings": [
+      "942-58130",
+      "942-58132",
+      "942-58105"
+    ],
+    "title": "\"l,fJ ._ 11_.1 11.12.2017",
+    "system": "APS",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                               I                                4                                              I                                 3   "
+  },
+  {
+    "page": 22,
+    "drawings": [
+      "942-58130",
+      "942-58121",
+      "942-58106"
+    ],
+    "title": "1:-e:•- ... z~ N",
+    "system": "APS",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                         I                             4                                       I                                  3                  "
+  },
+  {
+    "page": 23,
+    "drawings": [
+      "942-58101"
+    ],
+    "title": "VEHICLEINTERFACE CONTROLLINGCAB DRWN -~:,-·:: -",
+    "system": "APS",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5                                                                                                     4                                               "
+  },
+  {
+    "page": 24,
+    "drawings": [],
+    "title": "z~ ( A",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                                        I                                                4                                           "
+  },
+  {
+    "page": 25,
+    "drawings": [],
+    "title": "CHKD ., 'l \\:/)V_,~~-,",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 2 of 0",
+    "textSample": "5                                    I                                                          4                                                   I "
+  },
+  {
+    "page": 26,
+    "drawings": [
+      "942-58109"
+    ],
+    "title": "A 1. MCCARDOESN'THAVE\"APSFR\"",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 2 of 2",
+    "textSample": "5                                  I                                4                                  I                         3                    "
+  },
+  {
+    "page": 27,
+    "drawings": [
+      "942-58110"
+    ],
+    "title": "REV □ 1 ,,1;",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 11 of 2",
+    "textSample": "5                                                I                                      4                                                 I           "
+  },
+  {
+    "page": 28,
+    "drawings": [
+      "942-58110"
+    ],
+    "title": "LDLCB LDRCB LDICB",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 2 of 2",
+    "textSample": "5                                                           I                                        4                                                "
+  },
+  {
+    "page": 29,
+    "drawings": [
+      "942-58111"
+    ],
+    "title": "CHKD ~ ,)->~_..._K 11.12.2011 .,-..",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                       I                                           4                                             I   "
+  },
+  {
+    "page": 30,
+    "drawings": [
+      "942-58112"
+    ],
+    "title": "CHK □ ,...,~r 1",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5                                               I                                           4                                               I         "
+  },
+  {
+    "page": 31,
+    "drawings": [
+      "942-58113"
+    ],
+    "title": "A COLPBCAU.-ONLIGHT",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                                       I                                                        4                                    "
+  },
+  {
+    "page": 32,
+    "drawings": [
+      "942-58114"
+    ],
+    "title": "D I",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                                                                                                  4                  "
+  },
+  {
+    "page": 33,
+    "drawings": [
+      "942-58115"
+    ],
+    "title": "L _________________________________ 1-~~ L ________________________________________",
+    "system": "LIGHT",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5                                                                                          4                                                          "
+  },
+  {
+    "page": 34,
+    "drawings": [
+      "942-58116"
+    ],
+    "title": "A PIN6 31b SELFPARKREVERSALFEED D VEHICLEINTERFACE",
+    "system": "LIGHT",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                             I                             4               I                3                                 I      "
+  },
+  {
+    "page": 35,
+    "drawings": [
+      "942-58111"
+    ],
+    "title": "'.~::,i'' . 11.12.2017",
+    "system": "TMS",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                          I                                        4                                I                3               "
+  },
+  {
+    "page": 36,
+    "drawings": [
+      "942-58119"
+    ],
+    "title": "I                                                   7                                       DPR     ",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 1",
+    "textSample": "8                                    I                                           7                                                    I               "
+  },
+  {
+    "page": 37,
+    "drawings": [],
+    "title": "1 1::-_,, □ __ .....,.'',IJ·",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 2 of 2",
+    "textSample": "5                                                              I                                             4                                        "
+  },
+  {
+    "page": 38,
+    "drawings": [
+      "942-58120"
+    ],
+    "title": "VEHICLEINTERFACE CIRCUIT CHKD A",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5                                                            I                        4                                              I                "
+  },
+  {
+    "page": 39,
+    "drawings": [
+      "942-58121"
+    ],
+    "title": "CIRCUIT VEHICLEINTERFACE DRWN CHKD II 1f t",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                                   I                                              4                                I "
+  },
+  {
+    "page": 40,
+    "drawings": [
+      "942-58123"
+    ],
+    "title": "VEHICLEINTERFACE CIRCUIT BECU",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5                                                                                             4                                                       "
+  },
+  {
+    "page": 41,
+    "drawings": [],
+    "title": ",.,,~ , 11.12.2011 BLPR BRAKELOOPPROVING",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5                                 I                                     4                                   I                        3                "
+  },
+  {
+    "page": 42,
+    "drawings": [],
+    "title": "HCR HOOCONIROlREIAY                                                                                 ",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                             I                                            4                                                          "
+  },
+  {
+    "page": 43,
+    "drawings": [
+      "942-58125"
+    ],
+    "title": "EMERGENCY CIRCUIT",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 2 of 2",
+    "textSample": "5                                                            I                                                          4                             "
+  },
+  {
+    "page": 44,
+    "drawings": [
+      "942-58126"
+    ],
+    "title": "- -- D TCR TAILCONTROL",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                       I                                            4                                                           I    "
+  },
+  {
+    "page": 45,
+    "drawings": [
+      "942-58121"
+    ],
+    "title": "- ·- - ~I ''~ ~ : ,__........,.........,.A ~~(",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                              I                               4                      I                           3                   "
+  },
+  {
+    "page": 46,
+    "drawings": [
+      "942-58128"
+    ],
+    "title": "[HK □ )tl, ':ii. Ail :._ 11.12.2011 ~~,;!;,; 11.12.2017",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "8                                     7                                                          8                                                    "
+  },
+  {
+    "page": 47,
+    "drawings": [],
+    "title": "VEHICLEINTERFACE CIRCUITDRWN CHKD",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 1 of 0",
+    "textSample": "8                                7                                    6                                                            5                  "
+  },
+  {
+    "page": 48,
+    "drawings": [
+      "942-58130"
+    ],
+    "title": "~() 61 I 62 ( ) 73 {--n°( )",
+    "system": "APS",
+    "sheetInfo": "Sheet 11 of 2",
+    "textSample": "5                                                                                                                               4                     "
+  },
+  {
+    "page": 49,
+    "drawings": [
+      "942-58130"
+    ],
+    "title": "z~ ( N A",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 12 of 2",
+    "textSample": "5                                                     I                            4                                                 I                "
+  },
+  {
+    "page": 50,
+    "drawings": [
+      "942-58131"
+    ],
+    "title": "- -· z~ ( N A HVACSSHVACSELECTIONSWITCH",
+    "system": "APS",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                                    I                                          4                                                     "
+  },
+  {
+    "page": 51,
+    "drawings": [
+      "942-58132"
+    ],
+    "title": ", - - - - - ~1~11;tr f~F£!~! ~ I I 3 VEHICLEINTERFACE",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5                                                                                                4                                                    "
+  },
+  {
+    "page": 52,
+    "drawings": [
+      "942-58131"
+    ],
+    "title": "CHKD ~- Jl.;_r....-C., 11.12.2011 3. DOORLAYOUT(KEY PLAN) 4. DOORISOLATION",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5                                                                                                    4                                                "
+  },
+  {
+    "page": 53,
+    "drawings": [],
+    "title": "CIRCUIT",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                                                                              4                                      "
+  },
+  {
+    "page": 54,
+    "drawings": [],
+    "title": ".. ...,..,. ~ r:.,.._ ~ D VEHICLEINTERFACE",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                      I                                    4                   I                      3              "
+  },
+  {
+    "page": 55,
+    "drawings": [
+      "942-58139"
+    ],
+    "title": "0 ~ REGARDING ATP ROS I",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1 of 2",
+    "textSample": "5                                                                            4                                                                        "
+  },
+  {
+    "page": 56,
+    "drawings": [
+      "942-58139"
+    ],
+    "title": "I/ \\.~ A D VEHICLEINTERFACE CIRCUIT CHKD I~~-;",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 12 of 2",
+    "textSample": "5                          I                        4                       I                     3                                  I                "
+  },
+  {
+    "page": 57,
+    "drawings": [
+      "942-58140"
+    ],
+    "title": "DRWN la,J;.-~ 11.12.2011",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5                                                                                         4                                                 I         "
+  },
+  {
+    "page": 58,
+    "drawings": [
+      "942-58141"
+    ],
+    "title": ",;~·-V,\"'·;: & PABR& PABOR",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5                                                                                              4                                                      "
+  },
+  {
+    "page": 59,
+    "drawings": [],
+    "title": "CHKD 11.12.2017 L2 0 1 0 0 1--1--11--1 A",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                                                      4                                     I                        "
+  },
+  {
+    "page": 60,
+    "drawings": [
+      "942-58143"
+    ],
+    "title": "- -· CHKD l ..'r ~~ ..., 1 11.12.2017 \\1:-'\".::i,'!!!!. =.! VEHICLEINTERFACECIRCUIT",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                     I                                4                               I                                           3  "
+  },
+  {
+    "page": 61,
+    "drawings": [
+      "942-58144"
+    ],
+    "title": "z~ N (",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                                                    I                                          4                                    I"
+  },
+  {
+    "page": 62,
+    "drawings": [],
+    "title": "UNKNOWN",
+    "system": "APS",
+    "sheetInfo": "Sheet 1",
+    "textSample": ":0       (/1 | 0 | C: | ,, GRADENo. | C:"
+  },
+  {
+    "page": 63,
+    "drawings": [],
+    "title": "UNKNOWN",
+    "system": "APS",
+    "sheetInfo": "Sheet 1",
+    "textSample": "::0          (/) | 0 | C           ::0 GRADENo, | C | ,,                                                                                              "
+  },
+  {
+    "page": 64,
+    "drawings": [
+      "942-58146"
+    ],
+    "title": "CN1 TCMS COMMUNICATIONNODE1",
+    "system": "TMS",
+    "sheetInfo": "Sheet 11 of 4",
+    "textSample": "5                                                                      I                                             4                                "
+  },
+  {
+    "page": 65,
+    "drawings": [],
+    "title": "UNKNOWN",
+    "system": "TMS",
+    "sheetInfo": "Sheet 1",
+    "textSample": ";;a        (/1 | 0 | ,, | C           GRADENo.                                                                                                        "
+  },
+  {
+    "page": 66,
+    "drawings": [],
+    "title": "UNKNOWN",
+    "system": "TMS",
+    "sheetInfo": "Sheet 1",
+    "textSample": ":0      (/1 | 0 | C: | ,, GRADENo. | C:"
+  },
+  {
+    "page": 67,
+    "drawings": [],
+    "title": "UNKNOWN",
+    "system": "TMS",
+    "sheetInfo": "Sheet 1",
+    "textSample": ":0 | 0 | C: | (/1 | C:"
+  },
+  {
+    "page": 68,
+    "drawings": [
+      "942-58141"
+    ],
+    "title": "~ \";Ii. rn",
+    "system": "COMMS",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                                I                                    4                                                      I        "
+  },
+  {
+    "page": 69,
+    "drawings": [
+      "942-58148"
+    ],
+    "title": "CIRCUIT,__CH_K□--~;;l,:~~ VEHICLEINTERFACE TFT DRWN : '.;1,,..i:, •",
+    "system": "COMMS",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                      I                                              4                                         I     "
+  },
+  {
+    "page": 70,
+    "drawings": [
+      "942-58149"
+    ],
+    "title": "YEHICLE _cu, PAPIS INTERFACE",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                          I                                       4                              I                    3              "
+  },
+  {
+    "page": 71,
+    "drawings": [
+      "942-58150"
+    ],
+    "title": "- -· \"*\" : MARKED ,__-+---+----1 ~~(",
+    "system": "COMMS",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                                                                                                 4                                   "
+  },
+  {
+    "page": 72,
+    "drawings": [
+      "942-58151"
+    ],
+    "title": "-- - ., ,__-+---+----1 ~~( A",
+    "system": "GEN",
+    "sheetInfo": "Sheet 11 of 1",
+    "textSample": "5                                                                               4                                               I                     "
+  },
+  {
+    "page": 73,
+    "drawings": [
+      "942-58152"
+    ],
+    "title": "~ ~( A MM~",
+    "system": "COMMS",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                         I                                               4                                           "
+  },
+  {
+    "page": 74,
+    "drawings": [
+      "942-58139"
+    ],
+    "title": "15 new relays,TB's, Cables& its accessoriesadded& the same incorporatedin this circuit.",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1",
+    "textSample": "8   7                                          6                                                                     5                                "
+  },
+  {
+    "page": 75,
+    "drawings": [
+      "942-58152"
+    ],
+    "title": "-                                                                                                   ",
+    "system": "COMMS",
+    "sheetInfo": "Sheet 3 of 5",
+    "textSample": "5                                         I                                     4                                                                     "
+  },
+  {
+    "page": 76,
+    "drawings": [],
+    "title": "CHKD r~:i; ,_,•.JC 11.12.2011 DRAWING UPDATED RF CABLE RF CABLE",
+    "system": "COMMS",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                                        I                                                     4                      "
+  },
+  {
+    "page": 77,
+    "drawings": [
+      "942-58152"
+    ],
+    "title": "CHKD r~:i; ,_,•.JC 11.12.2011 VEHICLEINTERFACE CIRCUIT---\" 00 ~",
+    "system": "COMMS",
+    "sheetInfo": "Sheet 1",
+    "textSample": "5                                                                                         4                                                I          "
+  },
+  {
+    "page": 78,
+    "drawings": [],
+    "title": "UNKNOWN",
+    "system": "COMMS",
+    "sheetInfo": "Sheet 1",
+    "textSample": ":0      (/1 | §! ~                 GRADENo.                                                                                                           "
+  },
+  {
+    "page": 79,
+    "drawings": [
+      "942-58154"
+    ],
+    "title": "oCAM3                              CAM1 o                                                           ",
+    "system": "COMMS",
+    "sheetInfo": "Sheet 1 of 1",
+    "textSample": "5                                                                                                        4                                            "
+  },
+  {
+    "page": 80,
+    "drawings": [],
+    "title": "AMITSUBISHI ELECTRIC CORPORATION KMRC H:llm5t -$--E3- ~t;f Y.Taketomi",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 1",
+    "textSample": "81-9717-23-A | 1                                            2                               3                              4                          "
+  },
+  {
+    "page": 81,
+    "drawings": [
+      "H12E2791"
+    ],
+    "title": "Y.Taketomi VVFINVERTER",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 1",
+    "textSample": "B!-971?-13-A | 1                                                 2                                                     3                              "
+  },
+  {
+    "page": 82,
+    "drawings": [],
+    "title": "<( APS",
+    "system": "APS",
+    "sheetInfo": "Sheet 1",
+    "textSample": "81-9717-23-A | 1                      2                                                  3                        4                                   "
+  },
+  {
+    "page": 83,
+    "drawings": [],
+    "title": "KOLKATA APS",
+    "system": "APS",
+    "sheetInfo": "Sheet 1",
+    "textSample": "81-9717-33-A                                                                                                                                          "
+  },
+  {
+    "page": 84,
+    "drawings": [],
+    "title": "KOLKATA APS <(",
+    "system": "APS",
+    "sheetInfo": "Sheet 1",
+    "textSample": "81-9717-23-A                                                                                                                                          "
+  },
+  {
+    "page": 85,
+    "drawings": [],
+    "title": "circuit diagram",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                                                           2                                                    3                                    "
+  },
+  {
+    "page": 86,
+    "drawings": [],
+    "title": "limit switch emergency device          limit switch door out of service                             ",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                                                                           2                                                                 3       "
+  },
+  {
+    "page": 87,
+    "drawings": [],
+    "title": "circuit diagram",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                                                      2                                                                       3                      "
+  },
+  {
+    "page": 88,
+    "drawings": [],
+    "title": "circuit diagram",
+    "system": "DOOR",
+    "sheetInfo": "Sheet 1",
+    "textSample": "F | B | A | E | D"
+  },
+  {
+    "page": 89,
+    "drawings": [],
+    "title": "UNKNOWN",
+    "system": "TRAC",
+    "sheetInfo": "Sheet 1",
+    "textSample": ",-~--~---~-~~~--~---~,-~-~--~---~---~--~--~~---~--~---~--~---.._._---~--~---~.~--~---=\"----~---~,.~--~---,,~--~~--                                    "
+  },
+  {
+    "page": 90,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "F | E | B | D | A"
+  },
+  {
+    "page": 91,
+    "drawings": [],
+    "title": "C                                                                                                   ",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                               2                          3                        4                               5                6                "
+  },
+  {
+    "page": 92,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "F | E | B | D | A"
+  },
+  {
+    "page": 93,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "F | E | B | D | A"
+  },
+  {
+    "page": 94,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "F | E | B | D | A"
+  },
+  {
+    "page": 95,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "F | E | B | D | A"
+  },
+  {
+    "page": 96,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "F | E | B | D | A"
+  },
+  {
+    "page": 97,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "F | E | B | D | A"
+  },
+  {
+    "page": 98,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                          4                                    5                    6                    "
+  },
+  {
+    "page": 99,
+    "drawings": [],
+    "title": "X03 - RS485 Connection",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                              2                      3                       4                                 5                6                   7"
+  },
+  {
+    "page": 100,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                                 3                                     4                                          5          "
+  },
+  {
+    "page": 101,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "TMS",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                           2                         3                            4                            5                           6         "
+  },
+  {
+    "page": 102,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 103,
+    "drawings": [],
+    "title": "Added separate pins RS48 in & out connection",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                             2                            3                       4                          5                 6                   7 "
+  },
+  {
+    "page": 104,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                             3                      4                         5                          6                   "
+  },
+  {
+    "page": 105,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                            2                      3                     4                      5                         6                          "
+  },
+  {
+    "page": 106,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                        2                     3                  4                                 5                         6                       "
+  },
+  {
+    "page": 107,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                         2                       3                              4                         5                   6                   7  "
+  },
+  {
+    "page": 108,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 109,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 110,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 111,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                                 3                  4                                 5                 6                   7"
+  },
+  {
+    "page": 112,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 113,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 114,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "F | E | D | B | C"
+  },
+  {
+    "page": 115,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 116,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 117,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 118,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 119,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 120,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 121,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                       2                   3                  4                         5                 6                   7                      "
+  },
+  {
+    "page": 122,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                        2                   3                  4                                 5                    6                              "
+  },
+  {
+    "page": 123,
+    "drawings": [],
+    "title": "TB01-E 415V AC GROUND CONNECTION (3-wired TB)",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                              2                      3                   4                                5                        6                 "
+  },
+  {
+    "page": 124,
+    "drawings": [],
+    "title": "1     No Connection                                           -                                     ",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                        2                                           3                                   4                                            "
+  },
+  {
+    "page": 125,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "BRAKE",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                             2                              3                             4                                       5                  "
+  },
+  {
+    "page": 126,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                               2                              3                         4                               5                     6      "
+  },
+  {
+    "page": 127,
+    "drawings": [],
+    "title": "ELECTRICAL SCHEMATIC DIAGRAM",
+    "system": "GEN",
+    "sheetInfo": "Sheet 1",
+    "textSample": "1                              2                        3                          4                                   5                      6       "
+  }
+]
