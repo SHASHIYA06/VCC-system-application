@@ -184,6 +184,7 @@ export interface MultiAgentResponse {
 async function drawingExpertAgent(query: string): Promise<AgentResponse> {
   const agentId = 'DrawingExpert';
   const startTime = Date.now();
+  let drawings: any[] = [];
 
   try {
     if (!checkCircuitBreaker(agentId)) {
@@ -193,7 +194,6 @@ async function drawingExpertAgent(query: string): Promise<AgentResponse> {
     const openai = await getOpenAIClient();
 
     // Search relevant drawings
-    let drawings: any[] = [];
     try {
       drawings = await prisma.drawing.findMany({
         where: {
@@ -277,6 +277,8 @@ async function drawingExpertAgent(query: string): Promise<AgentResponse> {
 async function wireExpertAgent(query: string): Promise<AgentResponse> {
   const agentId = 'WireExpert';
   const startTime = Date.now();
+  let wires: any[] = [];
+  let context = '';
 
   try {
     if (!checkCircuitBreaker(agentId)) {
@@ -286,7 +288,7 @@ async function wireExpertAgent(query: string): Promise<AgentResponse> {
     const openai = await getOpenAIClient();
 
     // Search relevant wires
-    const wires = await prisma.wire.findMany({
+    wires = await prisma.wire.findMany({
       where: {
         OR: [
           { wireNo: { contains: query, mode: 'insensitive' } },
@@ -298,7 +300,7 @@ async function wireExpertAgent(query: string): Promise<AgentResponse> {
 
     });
 
-    const context = wires
+    context = wires
       .map(w => `Wire ${w.wireNo}: ${w.signalName || 'No signal'} (Endpoints: ${w.endpoints.length})`)
       .join('\n');
 
@@ -366,6 +368,8 @@ async function wireExpertAgent(query: string): Promise<AgentResponse> {
 async function systemExpertAgent(query: string): Promise<AgentResponse> {
   const agentId = 'SystemExpert';
   const startTime = Date.now();
+  let systems: any[] = [];
+  let context = '';
 
   try {
     if (!checkCircuitBreaker(agentId)) {
@@ -375,7 +379,7 @@ async function systemExpertAgent(query: string): Promise<AgentResponse> {
     const openai = await getOpenAIClient();
 
     // Get system information
-    const systems = await prisma.system.findMany({
+    systems = await prisma.system.findMany({
       where: {
         OR: [
           { code: { contains: query, mode: 'insensitive' } },
@@ -387,7 +391,7 @@ async function systemExpertAgent(query: string): Promise<AgentResponse> {
 
     });
 
-    const context = systems
+    context = systems
       .map(s => `System ${s.code} (${s.name}): ${s.devices.length} devices, ${s.drawings.length} drawings`)
       .join('\n');
 
