@@ -67,17 +67,95 @@ let openaiClient: any = null;
 
 async function getOpenAIClient(): Promise<any> {
   if (!openaiClient) {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY environment variable is not set');
+    // Check for OpenRouter API key first (preferred)
+    const openRouterKey = process.env.OPENROUTER_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+
+    if (!openRouterKey && !openaiKey) {
+      throw new Error('Either OPENROUTER_API_KEY or OPENAI_API_KEY environment variable must be set');
     }
+
     // Import OpenAI only when needed at runtime
     const { OpenAI } = await import('openai');
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      timeout: CIRCUIT_BREAKER_TIMEOUT,
-    });
+
+    // Use OpenRouter if available (preferred), otherwise fall back to OpenAI
+    if (openRouterKey) {
+      openaiClient = new OpenAI({
+        apiKey: openRouterKey,
+        baseURL: 'https://openrouter.ai/api/v1',
+        timeout: CIRCUIT_BREAKER_TIMEOUT,
+        defaultHeaders: {
+          'HTTP-Referer': 'https://vcc-system.app',
+          'X-Title': 'VCC System'
+        }
+      });
+    } else {
+      openaiClient = new OpenAI({
+        apiKey: openaiKey,
+        timeout: CIRCUIT_BREAKER_TIMEOUT,
+      });
+    }
   }
   return openaiClient;
+}
+
+/**
+ * Fallback response generator when AI services are unavailable due to credit/token limits
+ */
+async function generateFallbackResponse(query: string, context: string): Promise<string> {
+  // Simple template-based response when AI is unavailable
+  return `I understand you're asking about: "${query}"
+  
+Based on the available data context:
+${context}
+
+Note: The AI service is currently limited due to token/credit constraints.
+For a more detailed analysis, please consider upgrading the OpenRouter account
+or using a different AI provider with sufficient credits.`;
+}
+
+/**
+ * Generate simple context-based response when AI is unavailable
+ */
+function generateSimpleResponse(query: string, data: any[], dataType: string): string {
+  if (data.length === 0) {
+    return `I couldn't find any ${dataType} matching your query: "${query}".`;
+  }
+
+  const itemCount = data.length;
+  const sampleItems = data.slice(0, 3);
+
+  let response = `I found ${itemCount} ${dataType} matching your query: "${query}".\n\n`;
+
+  if (dataType === 'drawings') {
+    response += sampleItems.map((d: any) =>
+      `• Drawing ${d.drawingNo}: ${d.title} (System: ${d.system?.code || 'N/A'})`
+    ).join('\n');
+  } else if (dataType === 'wires') {
+    response += sampleItems.map((w: any) =>
+      `• Wire ${w.wireNo}: ${w.signalName || 'No signal'} (${w.endpoints?.length || 0} endpoints)`
+    ).join('\n');
+  } else if (dataType === 'systems') {
+    response += sampleItems.map((s: any) =>
+      `• System ${s.code}: ${s.name} (${s.devices?.length || 0} devices, ${s.drawings?.length || 0} drawings)`
+    ).join('\n');
+  } else if (dataType === 'devices') {
+    response += sampleItems.map((d: any) =>
+      `• Device ${d.tagNo || d.deviceName}: ${d.deviceName} (System: ${d.system?.code || 'N/A'})`
+    ).join('\n');
+  } else if (dataType === 'connectors') {
+    response += sampleItems.map((c: any) =>
+      `• Connector ${c.connectorCode}: ${c.pins?.length || 0} pins`
+    ).join('\n');
+  }
+
+  if (itemCount > 3) {
+    response += `\n\n... and ${itemCount - 3} more ${dataType}.`;
+  }
+
+  response += `\n\nNote: This is a simplified response due to AI service limitations. For detailed analysis, please upgrade the OpenRouter account.`;
+
+  return response;
 }
 
 export interface AgentResponse {
@@ -115,23 +193,28 @@ async function drawingExpertAgent(query: string): Promise<AgentResponse> {
     const openai = await getOpenAIClient();
 
     // Search relevant drawings
-    const drawings = await prisma.drawing.findMany({
-      where: {
-        OR: [
-          { drawingNo: { contains: query, mode: 'insensitive' } },
-          { title: { contains: query, mode: 'insensitive' } },
-        ],
-      },
-      include: { system: true, connectors: { take: 5 }, wires: { take: 5 } },
-      take: 5,
-    });
+    let drawings: any[] = [];
+    try {
+      drawings = await prisma.drawing.findMany({
+        where: {
+          OR: [
+            { drawingNo: { contains: query, mode: 'insensitive' } },
+            { title: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        include: { system: true, connectors: { take: 5 }, wires: { take: 5 } },
+        take: 5,
+      });
+    } catch (dbError) {
+      console.warn('Database query failed:', dbError);
+    }
 
     const context = drawings
       .map(d => `Drawing ${d.drawingNo}: ${d.title} (System: ${d.system?.code})`)
       .join('\n');
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo',
+      model: 'openai/gpt-4-turbo',
       messages: [
         {
           role: 'system',
@@ -142,7 +225,7 @@ async function drawingExpertAgent(query: string): Promise<AgentResponse> {
           content: `Context of drawings:\n${context}\n\nQuery: ${query}`,
         },
       ],
-      max_tokens: 500,
+      max_tokens: 30,
       temperature: 0.7,
       timeout: CIRCUIT_BREAKER_TIMEOUT,
     });
@@ -161,6 +244,19 @@ async function drawingExpertAgent(query: string): Promise<AgentResponse> {
     recordFailure(agentId);
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     console.error(`Drawing Expert Agent Error: ${errorMsg}`);
+
+    // Check if it's a credit/token limit error and provide fallback response
+    if (errorMsg.includes('402') || errorMsg.includes('credits') || errorMsg.includes('tokens')) {
+      const simpleResponse = generateSimpleResponse(query, drawings, 'drawings');
+      return {
+        agent: agentId,
+        query,
+        response: simpleResponse,
+        confidence: 0.3, // Lower confidence for fallback
+        sources: drawings.map((d: any) => d.drawingNo),
+        executionTime: Date.now() - startTime,
+      };
+    }
 
     return {
       agent: agentId,
@@ -207,7 +303,7 @@ async function wireExpertAgent(query: string): Promise<AgentResponse> {
       .join('\n');
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo',
+      model: 'openai/gpt-4-turbo',
       messages: [
         {
           role: 'system',
@@ -218,7 +314,7 @@ async function wireExpertAgent(query: string): Promise<AgentResponse> {
           content: `Context of wires:\n${context}\n\nQuery: ${query}`,
         },
       ],
-      max_tokens: 500,
+      max_tokens: 30,
       temperature: 0.7,
       timeout: CIRCUIT_BREAKER_TIMEOUT,
     });
@@ -237,6 +333,19 @@ async function wireExpertAgent(query: string): Promise<AgentResponse> {
     recordFailure(agentId);
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     console.error(`Wire Expert Agent Error: ${errorMsg}`);
+
+    // Check if it's a credit/token limit error and provide fallback response
+    if (errorMsg.includes('402') || errorMsg.includes('credits') || errorMsg.includes('tokens')) {
+      const fallbackResponse = await generateFallbackResponse(query, context);
+      return {
+        agent: agentId,
+        query,
+        response: fallbackResponse,
+        confidence: 0.3, // Lower confidence for fallback
+        sources: wires.map(w => w.wireNo),
+        executionTime: Date.now() - startTime,
+      };
+    }
 
     return {
       agent: agentId,
@@ -283,7 +392,7 @@ async function systemExpertAgent(query: string): Promise<AgentResponse> {
       .join('\n');
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo',
+      model: 'openai/gpt-4-turbo',
       messages: [
         {
           role: 'system',
@@ -294,7 +403,7 @@ async function systemExpertAgent(query: string): Promise<AgentResponse> {
           content: `Context of systems:\n${context}\n\nQuery: ${query}`,
         },
       ],
-      max_tokens: 500,
+      max_tokens: 30,
       temperature: 0.7,
       timeout: CIRCUIT_BREAKER_TIMEOUT,
     });
@@ -313,6 +422,19 @@ async function systemExpertAgent(query: string): Promise<AgentResponse> {
     recordFailure(agentId);
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     console.error(`System Expert Agent Error: ${errorMsg}`);
+
+    // Check if it's a credit/token limit error and provide fallback response
+    if (errorMsg.includes('402') || errorMsg.includes('credits') || errorMsg.includes('tokens')) {
+      const fallbackResponse = await generateFallbackResponse(query, context);
+      return {
+        agent: agentId,
+        query,
+        response: fallbackResponse,
+        confidence: 0.3, // Lower confidence for fallback
+        sources: systems.map(s => s.code),
+        executionTime: Date.now() - startTime,
+      };
+    }
 
     return {
       agent: agentId,
@@ -367,7 +489,7 @@ async function deviceExpertAgent(query: string): Promise<AgentResponse> {
     ].join('\n');
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo',
+      model: 'openai/gpt-4-turbo',
       messages: [
         {
           role: 'system',
@@ -378,7 +500,7 @@ async function deviceExpertAgent(query: string): Promise<AgentResponse> {
           content: `Context of devices:\n${context}\n\nQuery: ${query}`,
         },
       ],
-      max_tokens: 500,
+      max_tokens: 30,
       temperature: 0.7,
       timeout: CIRCUIT_BREAKER_TIMEOUT,
     });
@@ -445,7 +567,7 @@ async function diagnosticExpertAgent(query: string): Promise<AgentResponse> {
     ].join('\n');
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo',
+      model: 'openai/gpt-4-turbo',
       messages: [
         {
           role: 'system',
@@ -456,7 +578,7 @@ async function diagnosticExpertAgent(query: string): Promise<AgentResponse> {
           content: `System diagnostics:\n${context}\n\nQuery: ${query}`,
         },
       ],
-      max_tokens: 500,
+      max_tokens: 30,
       temperature: 0.7,
       timeout: CIRCUIT_BREAKER_TIMEOUT,
     });
@@ -514,15 +636,15 @@ Query: ${query}
 
 Expert Responses:
 ${validResponses
-  .map(
-    (r) => `
+        .map(
+          (r) => `
 ${r.agent} (Confidence: ${r.confidence}):
 ${r.response}
 
 Sources: ${r.sources.join(', ')}
 `
-  )
-  .join('\n')}
+        )
+        .join('\n')}
 
 Provide a unified, coherent response that:
 1. Integrates insights from available experts
@@ -532,7 +654,7 @@ Provide a unified, coherent response that:
 `;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo',
+      model: 'openai/gpt-4-turbo',
       messages: [
         {
           role: 'system',
@@ -544,7 +666,7 @@ Provide a unified, coherent response that:
           content: synthesisPrompt,
         },
       ],
-      max_tokens: 1000,
+      max_tokens: 30,
       temperature: 0.7,
       timeout,
     });

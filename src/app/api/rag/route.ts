@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     if (action === 'status') {
       // Lazy load prisma client
       const prisma = await getPrismaClient();
-      
+
       const [systemCount, deviceCount, wireCount, drawingCount, circuitCount, trainlineCount, connectorCount, pinCount] = await Promise.all([
         prisma.system.count(),
         prisma.device.count(),
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
     if (action === 'query' && query) {
       // Lazy load multi-agent RAG
       const multiAgentRAG = await getMultiAgentRAG();
-      
+
       const task = {
         taskId: `rag-${Date.now()}`,
         taskType: 'semantic_search' as const,
@@ -212,7 +212,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   let requestBody: any = {};
-  
+
   try {
     requestBody = await request.json();
     const { action, query, wireNo, systemCode, taskType, context, useMultiAgent, useLangChain } = requestBody;
@@ -232,65 +232,35 @@ export async function POST(request: NextRequest) {
 
       if (shouldUseLangChain) {
         console.log('🦜 Using Enhanced LangChain RAG System');
-        
+
         try {
-          // Lazy load the new LangChain system
-          const { executeLangChainMultiAgent, executeLangChainAgent } = await import('@/lib/ai/langchain-rag');
-          
-          if (useMultiAgent) {
-            console.log('🤖 Executing Multi-Agent LangChain query...');
-            const result = await executeLangChainMultiAgent(query);
-            console.log('✅ Multi-Agent LangChain completed:', {
-              success: result.success,
-              executionTime: result.executionTime,
-              agentCount: result.agents?.length
-            });
-            
-            return NextResponse.json({
-              query: result.query,
-              primaryResponse: {
-                agent: 'LangChainCoordinator',
-                content: result.unifiedResponse,
-                confidence: result.success ? 0.95 : 0.1,
-              },
-              unifiedResponse: result.unifiedResponse,
-              allData: {
-                agents: result.agents,
-                langchain: true,
-                system: 'enhanced',
-                tools_used: result.agents.flatMap(a => a.tools_used || []),
-              },
-              executionTime: result.executionTime,
-              success: result.success,
-            });
-          } else {
-            // Determine best agent for single query
-            const agentType = determineAgentType(query);
-            console.log(`🎯 Using ${agentType} agent for single query`);
-            const result = await executeLangChainAgent(agentType, query);
-            console.log('✅ Single-Agent LangChain completed:', {
-              agent: result.agent,
+          // Lazy load the new simple RAG system
+          const { executeSimpleRAG } = await import('@/lib/ai/simple-rag');
+
+          console.log('🚀 Using Simple RAG System');
+          const result = await executeSimpleRAG(query);
+          console.log('✅ Simple RAG completed:', {
+            confidence: result.confidence,
+            executionTime: result.executionTime,
+            fallbackUsed: result.fallbackUsed
+          });
+
+          return NextResponse.json({
+            query: result.query,
+            primaryResponse: {
+              agent: 'SimpleRAG',
+              content: result.response,
               confidence: result.confidence,
-              executionTime: result.executionTime
-            });
-            
-            return NextResponse.json({
-              query: result.query,
-              primaryResponse: {
-                agent: result.agent,
-                content: result.response,
-                confidence: result.confidence,
-              },
-              unifiedResponse: result.response,
-              allData: {
-                agent: result,
-                langchain: true,
-                tools_used: result.tools_used,
-                reasoning: result.reasoning,
-              },
-              executionTime: result.executionTime,
-            });
-          }
+            },
+            unifiedResponse: result.response,
+            allData: {
+              sources: result.sources,
+              fallbackUsed: result.fallbackUsed,
+              error: result.error,
+            },
+            executionTime: result.executionTime,
+            success: result.confidence > 0,
+          });
         } catch (langchainError) {
           console.error('❌ LangChain system error, falling back:', {
             error: langchainError instanceof Error ? langchainError.message : String(langchainError),
@@ -411,27 +381,29 @@ export async function POST(request: NextRequest) {
 
     // ── Legacy format: { action, query } ─────────────────────────────────
     if (action === 'query' && query) {
-      const multiAgentRAG = await getMultiAgentRAG();
-      const task = {
-        taskId: `rag-${Date.now()}`,
-        taskType: taskType || 'semantic_search',
-        query,
-        context: context || {},
-      };
-      const result = await multiAgentRAG.executeTask(task);
-      return NextResponse.json(result);
+      const { executeSimpleRAG } = await import('@/lib/ai/simple-rag');
+      const result = await executeSimpleRAG(query);
+      return NextResponse.json({
+        query: result.query,
+        content: result.response,
+        confidence: result.confidence,
+        sources: result.sources,
+        executionTime: result.executionTime,
+        fallbackUsed: result.fallbackUsed,
+      });
     }
 
     if (action === 'multiagent' && query) {
-      const multiAgentRAG = await getMultiAgentRAG();
-      const task = {
-        taskId: `multi-${Date.now()}`,
-        taskType: taskType || 'unified_search',
-        query,
-        context: context || {},
-      };
-      const result = await multiAgentRAG.executeMultiAgent(task);
-      return NextResponse.json(result);
+      const { executeSimpleRAG } = await import('@/lib/ai/simple-rag');
+      const result = await executeSimpleRAG(query);
+      return NextResponse.json({
+        query: result.query,
+        content: result.response,
+        confidence: result.confidence,
+        sources: result.sources,
+        executionTime: result.executionTime,
+        fallbackUsed: result.fallbackUsed,
+      });
     }
 
     if (action === 'langchain' && query) {
@@ -459,11 +431,11 @@ export async function POST(request: NextRequest) {
       query: requestBody?.query || 'unknown',
       executionTime
     });
-    
+
     // Determine error type and provide helpful message
     let errorMessage = 'System error occurred';
     let errorDetails = String(error);
-    
+
     if (error instanceof Error) {
       if (error.message.includes('OPENAI_API_KEY')) {
         errorMessage = 'OpenAI API key is not configured';
@@ -482,9 +454,9 @@ export async function POST(request: NextRequest) {
         errorDetails = 'The AI agent is recovering from errors. Please try again in a moment.';
       }
     }
-    
-    return NextResponse.json({ 
-      error: errorMessage, 
+
+    return NextResponse.json({
+      error: errorMessage,
       details: errorDetails,
       query: requestBody?.query || 'unknown',
       primaryResponse: {
@@ -493,7 +465,7 @@ export async function POST(request: NextRequest) {
         confidence: 0,
       },
       unifiedResponse: `I apologize, but I encountered an error while processing your query: ${errorMessage}. ${errorDetails}`,
-      allData: { 
+      allData: {
         error: true,
         errorType: errorMessage,
         timestamp: new Date().toISOString()
@@ -508,27 +480,27 @@ export async function POST(request: NextRequest) {
  */
 function determineAgentType(query: string): 'drawing' | 'wire' | 'system' | 'device' | 'diagnostic' {
   const lowerQuery = query.toLowerCase();
-  
+
   // Drawing-related keywords
   if (lowerQuery.includes('drawing') || lowerQuery.includes('schematic') || lowerQuery.includes('pdf') || /\d{3}-\d{5}/.test(lowerQuery)) {
     return 'drawing';
   }
-  
+
   // Wire-related keywords
   if (lowerQuery.includes('wire') || lowerQuery.includes('signal') || lowerQuery.includes('connection') || lowerQuery.includes('cable')) {
     return 'wire';
   }
-  
+
   // System-related keywords
   if (lowerQuery.includes('system') || lowerQuery.includes('trl') || lowerQuery.includes('brake') || lowerQuery.includes('cab') || lowerQuery.includes('trac')) {
     return 'system';
   }
-  
+
   // Device-related keywords
   if (lowerQuery.includes('device') || lowerQuery.includes('equipment') || lowerQuery.includes('connector') || lowerQuery.includes('tag')) {
     return 'device';
   }
-  
+
   // Default to diagnostic for complex queries
   return 'diagnostic';
 }
@@ -537,7 +509,7 @@ function determineAgentType(query: string): 'drawing' | 'wire' | 'system' | 'dev
 async function generateSystemTree() {
   // Lazy load prisma client
   const prisma = await getPrismaClient();
-  
+
   const systems = await prisma.system.findMany({
     orderBy: { sortOrder: 'asc' },
     include: {
