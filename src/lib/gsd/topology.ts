@@ -55,15 +55,19 @@ export interface SystemTopology {
 
 // Color mapping for systems
 const SYSTEM_COLORS: Record<string, string> = {
-  DMC: '#3b82f6',    // Blue
-  TC: '#10b981',     // Green
-  MC: '#a855f7',     // Purple
-  CAB: '#f97316',    // Orange
-  LTEB: '#06b6d4',   // Cyan
-  HVAC: '#ec4899',   // Pink
-  POWER: '#ef4444',  // Red
-  SIGNAL: '#8b5cf6', // Violet
-  DEFAULT: '#6b7280',// Gray
+  GENERAL: '#6b7280',    // Gray
+  TRACTION: '#f97316',   // Orange
+  BRAKE: '#ef4444',      // Red
+  AUX: '#10b981',        // Green
+  DOOR: '#f59e0b',       // Amber
+  AIRCON: '#06b6d4',     // Cyan
+  TIMS: '#a855f7',       // Purple
+  COMM: '#34d399',       // Emerald
+  CAB: '#6366f1',        // Indigo
+  LTEB: '#06b6d4',       // Cyan
+  LIGHT: '#eab308',      // Yellow
+  LTJB: '#8b5cf6',       // Violet
+  DEFAULT: '#6b7280',    // Gray
 };
 
 const EDGE_COLORS: Record<string, string> = {
@@ -272,12 +276,33 @@ async function getWireEdges(systemCode?: string): Promise<SystemEdge[]> {
 async function calculateStatistics(systemCode?: string): Promise<TopologyStatistics> {
   try {
     // Use approximate counts for performance instead of exact queries
+    const where = systemCode ? { system: { code: systemCode } } : {};
     const [totalDevices, totalWires, systemCount, connectorCount] = await Promise.all([
-      prisma.device.count(),
+      prisma.device.count({ where: systemCode ? { system: { code: systemCode } } : {} }),
       prisma.wire.count(),
       prisma.system.count(),
-      prisma.connector.count(),
+      prisma.connector.count({ where: systemCode ? { drawing: { system: { code: systemCode } } } : {} }),
     ]);
+
+    // Get devices by system breakdown
+    const devicesBySystemRaw = await prisma.device.groupBy({
+      by: ['systemId'],
+      where: systemCode ? { system: { code: systemCode } } : {},
+      _count: true,
+    });
+
+    const devicesBySystem: Record<string, number> = {};
+    for (const group of devicesBySystemRaw) {
+      if (group.systemId) {
+        const system = await prisma.system.findUnique({
+          where: { id: group.systemId },
+          select: { code: true }
+        });
+        if (system) {
+          devicesBySystem[system.code] = group._count;
+        }
+      }
+    }
 
     return {
       totalDevices,
@@ -285,12 +310,13 @@ async function calculateStatistics(systemCode?: string): Promise<TopologyStatist
       totalWires,
       systemCount,
       connectorCount,
-      devicesBySystem: {},
+      devicesBySystem,
       connectionsByType: {
         power: 0,
         signal: 0,
         communication: 0,
         ground: 0,
+        connection: 0,
       },
     };
   } catch (error) {
@@ -397,19 +423,40 @@ export async function getSystemTopology(systemCode?: string): Promise<SystemTopo
 
       // Create edge if both endpoints resolved to nodes
       if (nodeIds.length >= 2 && nodeIds[0] !== nodeIds[1]) {
+        // Determine edge type based on wire properties
+        let edgeType: 'power' | 'signal' | 'communication' | 'ground' | 'connection' = 'connection';
+        let edgeColor = EDGE_COLORS.connection;
+
+        if (wire.voltageClass) {
+          const voltage = wire.voltageClass.toLowerCase();
+          if (voltage.includes('power') || voltage.includes('24v') || voltage.includes('110v') || voltage.includes('415v')) {
+            edgeType = 'power';
+            edgeColor = EDGE_COLORS.power;
+          } else if (voltage.includes('signal') || voltage.includes('5v') || voltage.includes('12v')) {
+            edgeType = 'signal';
+            edgeColor = EDGE_COLORS.signal;
+          } else if (voltage.includes('comm') || voltage.includes('rs485') || voltage.includes('ethernet')) {
+            edgeType = 'communication';
+            edgeColor = EDGE_COLORS.communication;
+          } else if (voltage.includes('gnd') || voltage.includes('ground')) {
+            edgeType = 'ground';
+            edgeColor = EDGE_COLORS.ground;
+          }
+        }
+
         edges.push({
           id: `edge_${wire.id}`,
           source: nodeIds[0],
           target: nodeIds[1],
           label: wire.wireNo,
-          type: (wire.voltageClass?.toLowerCase().includes('power') ? 'power' : 'signal') as any,
+          type: edgeType,
           wireNo: wire.wireNo,
           metadata: {
             wireId: wire.id,
             signalName: wire.signalName,
             voltageClass: wire.voltageClass,
           },
-          color: wire.voltageClass?.toLowerCase().includes('power') ? EDGE_COLORS.power : EDGE_COLORS.signal,
+          color: edgeColor,
           animated: true,
         });
       }
