@@ -38,14 +38,14 @@ model Formation {
 }
 
 model Car {
-  id          String    @id @default(cuid())
+  id          String      @id @default(cuid())
   formationId String
   carPosition Int
   carCode     String
   carType     String
   carLabel    String?
-  createdAt   DateTime  @default(now())
-  formation   Formation @relation(fields: [formationId], references: [id])
+  createdAt   DateTime    @default(now())
+  formation   Formation   @relation(fields: [formationId], references: [id])
   carSystems  CarSystem[]
 
   @@unique([formationId, carPosition])
@@ -75,29 +75,29 @@ model System {
   iconName          String?
   isActive          Boolean         @default(true)
   uiMenuDisplayName String?
+  carSystems        CarSystem[]
   devices           Device[]
   drawings          Drawing[]
+  subsystems        Subsystem[]
   metadata          SystemMetadata? @relation("SystemMetadata")
   vccDescription    VCCDescription? @relation("SystemDescription")
-  subsystems        Subsystem[]
-  carSystems        CarSystem[]
 
   @@index([dataStatus])
   @@index([isActive])
 }
 
 model Subsystem {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   systemId    String
   code        String
   name        String
   description String?
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  system      System   @relation(fields: [systemId], references: [id])
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   devices     Device[]
   equipment   Equipment[]
+  system      System      @relation(fields: [systemId], references: [id])
 
   @@unique([systemId, code])
   @@index([systemId])
@@ -146,11 +146,11 @@ model Drawing {
   pages                DrawingPage[]
   pageMappings         DrawingPageMapping[]       @relation("DrawingPageMappings")
   references           DrawingReference[]
+  revisions            DrawingRevision[]
+  parentRevisions      DrawingRevision[]          @relation("DrawingRevisionParent")
   sheets               DrawingSheet[]
   verificationStatus   DrawingVerificationStatus? @relation("VerificationStatus")
   wires                DrawingWire[]
-  revisions            DrawingRevision[]
-  parentRevisions      DrawingRevision[]         @relation("DrawingRevisionParent")
   noteEntities         Note[]
   signals              Signal[]
   trainLines           TrainLine[]
@@ -282,25 +282,27 @@ model ConnectorType {
 }
 
 model Connector {
-  id                String          @id @default(cuid())
-  drawingId         String
-  connectorCode     String
-  carType           String?
-  instanceLabel     String?
-  locationTag       String?
-  sideTag           String?
-  description       String?
-  extra             Json            @default("{}")
-  createdAt         DateTime        @default(now())
-  connectorTypeCode String?
-  pinCount          Int?
-  scope             ConnectorScope?
-  sheetId           String?
-  connectorType     ConnectorType?  @relation(fields: [connectorTypeCode], references: [code])
-  drawing           Drawing         @relation(fields: [drawingId], references: [id])
-  sheet             DrawingSheet?   @relation(fields: [sheetId], references: [id])
-  pins              ConnectorPin[]
-  wireEndpoints     WireEndpoint[]
+  id                                                       String           @id @default(cuid())
+  drawingId                                                String
+  connectorCode                                            String
+  carType                                                  String?
+  instanceLabel                                            String?
+  locationTag                                              String?
+  sideTag                                                  String?
+  description                                              String?
+  extra                                                    Json             @default("{}")
+  createdAt                                                DateTime         @default(now())
+  connectorTypeCode                                        String?
+  pinCount                                                 Int?
+  scope                                                    ConnectorScope?
+  sheetId                                                  String?
+  connectorType                                            ConnectorType?   @relation(fields: [connectorTypeCode], references: [code])
+  drawing                                                  Drawing          @relation(fields: [drawingId], references: [id])
+  sheet                                                    DrawingSheet?    @relation(fields: [sheetId], references: [id])
+  pins                                                     ConnectorPin[]
+  WireConnection_WireConnection_fromConnectorIdToConnector WireConnection[] @relation("WireConnection_fromConnectorIdToConnector")
+  WireConnection_WireConnection_toConnectorIdToConnector   WireConnection[] @relation("WireConnection_toConnectorIdToConnector")
+  wireEndpoints                                            WireEndpoint[]
 
   @@unique([drawingId, connectorCode])
   @@index([drawingId])
@@ -345,8 +347,8 @@ model Device {
   isVerified      Boolean               @default(false)
   verifiedAt      DateTime?
   drawing         Drawing               @relation(fields: [drawingId], references: [id])
-  system          System?               @relation(fields: [systemId], references: [id])
   subsystem       Subsystem?            @relation(fields: [subsystemId], references: [id])
+  system          System?               @relation(fields: [systemId], references: [id])
   specifications  DeviceSpecification[] @relation("DeviceSpecs")
   wireEndpoints   WireEndpoint[]
 
@@ -467,8 +469,8 @@ model CrossConnectionRule {
 }
 
 model Wire {
-  id                 String         @id @default(cuid())
-  wireNo             String         @unique
+  id                 String           @id @default(cuid())
+  wireNo             String           @unique
   signalName         String?
   conductorClassCode String?
   description        String?
@@ -484,15 +486,16 @@ model Wire {
   destConnector      String?
   destPin            String?
   remarks            String?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  wireAlias          String?        @unique
-  // Wire integrity tracking for Phase 2
-  wireStatus         WireStatus     @default(UNVERIFIED)
-  verificationSource String?        // Where this wire was verified from (e.g., "pin-drawing", "manual")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  wireAlias          String?          @unique
+  wireStatus         WireStatus       @default(UNVERIFIED)
+  verificationSource String?
   verifiedAt         DateTime?
   drawings           DrawingWire[]
+  WireConnection     WireConnection[]
   endpoints          WireEndpoint[]
+  WireSegment        WireSegment[]
 
   @@index([wireNo])
   @@index([signalName])
@@ -501,13 +504,6 @@ model Wire {
   @@index([createdAt])
   @@index([voltageClass])
   @@index([wireStatus])
-}
-
-enum WireStatus {
-  VERIFIED     // Confirmed real engineering data from drawings
-  SYNTHETIC    // Auto-generated, not from actual drawings  
-  UNVERIFIED   // Not yet checked
-  DEPRECATED   // Marked for removal/legacy
 }
 
 model DrawingWire {
@@ -759,13 +755,12 @@ model DrawingVerificationStatus {
   @@index([status])
 }
 
-// Task 3: Drawing Revision Intelligence - Track parent/child drawings and revision chains
 model DrawingRevision {
   id              String    @id @default(cuid())
   drawingId       String
-  parentDrawingId String?   // Parent drawing (e.g., 942-38409 is parent of 942-38409A)
-  revisionLabel   String    // A, B, C, D, etc.
-  revisionNo      Int       @default(0) // Numeric revision: 0=A, 1=B, 2=C
+  parentDrawingId String?
+  revisionLabel   String
+  revisionNo      Int       @default(0)
   isCurrent       Boolean   @default(false)
   effectiveFrom   DateTime?
   effectiveTo     DateTime?
@@ -850,6 +845,234 @@ model QueryPerformance {
   @@index([createdAt])
 }
 
+model Fleet {
+  id          String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name        String
+  code        String    @unique
+  description String?
+  operator    String?
+  createdAt   DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  trains      Train[]
+}
+
+model Train {
+  id          String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name        String
+  trainNumber String    @unique
+  fleetId     String
+  metadata    Json?
+  status      String?   @default("active")
+  createdAt   DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  fleet       Fleet     @relation(fields: [fleetId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model Equipment {
+  id           String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name         String
+  code         String
+  subsystemId  String
+  manufacturer String?
+  model        String?
+  partNumber   String?
+  description  String?
+  metadata     Json?
+  createdAt    DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  subsystem    Subsystem @relation(fields: [subsystemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([subsystemId, code])
+}
+
+model Cable {
+  id           String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  cableNumber  String    @unique
+  cableType    String?
+  coreCount    Int?
+  manufacturer String?
+  partNumber   String?
+  routing      String?
+  length       Float?
+  description  String?
+  metadata     Json?
+  status       String?   @default("active")
+  createdAt    DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+}
+
+model Harness {
+  id          String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name        String
+  harnessCode String    @unique
+  location    String?
+  routing     String?
+  description String?
+  metadata    Json?
+  createdAt   DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+}
+
+model ElectronicComponent {
+  id                 String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name               String    @unique
+  category           String
+  symbol             String?
+  description        String?
+  operatingPrinciple String?
+  applications       String?
+  testingProcedure   String?
+  failureModes       String?
+  measurements       String?
+  replacement        String?
+  specifications     Json?
+  images             Json?
+  metadata           Json?
+  createdAt          DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt          DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+}
+
+model Diagnostic {
+  id              String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  faultCode       String    @unique
+  systemId        String?
+  title           String
+  description     String?
+  severity        String?   @default("medium")
+  category        String?
+  symptoms        String?
+  possibleCauses  String?
+  diagnosticSteps String?
+  metadata        Json?
+  status          String?   @default("active")
+  createdAt       DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  faults          Fault[]
+}
+
+model Fault {
+  id             String     @id @default(dbgenerated("(gen_random_uuid())::text"))
+  diagnosticId   String
+  occurrenceDate DateTime?  @db.Timestamp(6)
+  resolvedDate   DateTime?  @db.Timestamp(6)
+  reportedBy     String?
+  assignedTo     String?
+  status         String?    @default("open")
+  notes          String?
+  metadata       Json?
+  createdAt      DateTime?  @default(now()) @db.Timestamp(6)
+  updatedAt      DateTime?  @default(now()) @updatedAt @db.Timestamp(6)
+  diagnostic     Diagnostic @relation(fields: [diagnosticId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model MaintenanceProcedure {
+  id              String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  title           String
+  category        String
+  frequency       String?
+  steps           Json
+  tools           Json?
+  parts           Json?
+  safetyNotes     String?
+  duration        Int?
+  relatedSystems  Json?
+  relatedDrawings Json?
+  metadata        Json?
+  createdAt       DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+}
+
+model ValidationResult {
+  id             String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  entityType     String
+  entityId       String
+  validationType String
+  status         String
+  severity       String?   @default("info")
+  message        String
+  details        Json?
+  resolvedAt     DateTime? @db.Timestamp(6)
+  resolvedBy     String?
+  createdAt      DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt      DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+}
+
+model AIKnowledgeSource {
+  id         String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  sourceType String
+  sourceId   String?
+  content    String
+  embedding  String?
+  metadata   Json?
+  indexed    Boolean?  @default(false)
+  createdAt  DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt  DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+}
+
+model ComponentType {
+  id          String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  code        String    @unique
+  name        String
+  category    String?
+  description String?
+  createdAt   DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model ConnectorPin_Archive {
+  id                 String    @id
+  connectorId        String
+  pinNo              String
+  pinLabel           String?
+  wireNo             String?
+  signalName         String?
+  conductorClassCode String?
+  voltageText        String?
+  terminalFrom       String?
+  terminalTo         String?
+  sourceSheetRef     String?
+  note               String?
+  extra              Json      @default("{}")
+  archivedAt         DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([connectorId, pinNo], map: "ConnectorPin_Archive_connectorId_pinNo_idx")
+  @@index([wireNo])
+}
+
+model WireConnection {
+  id                                                  String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  wireId                                              String
+  fromConnectorId                                     String
+  fromPinNo                                           String
+  toConnectorId                                       String
+  toPinNo                                             String
+  routeNote                                           String?
+  createdAt                                           DateTime? @default(now()) @db.Timestamp(6)
+  Connector_WireConnection_fromConnectorIdToConnector Connector @relation("WireConnection_fromConnectorIdToConnector", fields: [fromConnectorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Connector_WireConnection_toConnectorIdToConnector   Connector @relation("WireConnection_toConnectorIdToConnector", fields: [toConnectorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Wire                                                Wire      @relation(fields: [wireId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model WireSegment {
+  id                String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  wireId            String
+  segmentNo         Int?
+  fromConnectorCode String?
+  fromPinNo         String?
+  toConnectorCode   String?
+  toPinNo           String?
+  length            String?
+  route             String?
+  createdAt         DateTime? @default(now()) @db.Timestamp(6)
+  Wire              Wire      @relation(fields: [wireId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+enum WireStatus {
+  VERIFIED
+  SYNTHETIC
+  UNVERIFIED
+  DEPRECATED
+}
+
 enum DrawingStatus {
   ACTIVE
   ARCHIVED
@@ -881,196 +1104,4 @@ enum AuditAction {
   SYNC
   VALIDATE
   ANALYZE
-}
-
-// ============================================================================
-// V4.0 ADDITIONS: Fleet & Train Hierarchy
-// ============================================================================
-
-model Fleet {
-  id          String   @id @default(cuid())
-  name        String
-  code        String   @unique
-  description String?
-  operator    String?
-  trains      Train[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Train {
-  id           String      @id @default(cuid())
-  name         String
-  trainNumber  String      @unique
-  fleetId      String
-  fleet        Fleet       @relation(fields: [fleetId], references: [id], onDelete: Cascade)
-  metadata     Json?
-  status       String      @default("active")
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  @@index([fleetId])
-}
-
-model Equipment {
-  id           String    @id @default(cuid())
-  name         String
-  code         String
-  subsystemId  String
-  subsystem    Subsystem @relation(fields: [subsystemId], references: [id], onDelete: Cascade)
-  manufacturer String?
-  model        String?
-  partNumber   String?
-  description  String?
-  metadata     Json?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  @@unique([subsystemId, code])
-  @@index([subsystemId])
-}
-
-model Cable {
-  id           String   @id @default(cuid())
-  cableNumber  String   @unique
-  cableType    String?
-  coreCount    Int?
-  manufacturer String?
-  partNumber   String?
-  routing      String?
-  length       Float?
-  description  String?
-  metadata     Json?
-  status       String   @default("active")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([cableNumber])
-}
-
-model Harness {
-  id          String   @id @default(cuid())
-  name        String
-  harnessCode String   @unique
-  location    String?
-  routing     String?
-  description String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([harnessCode])
-}
-
-model ElectronicComponent {
-  id                String   @id @default(cuid())
-  name              String   @unique
-  category          String
-  symbol            String?
-  description       String?  @db.Text
-  operatingPrinciple String? @db.Text
-  applications      String?  @db.Text
-  testingProcedure  String?  @db.Text
-  failureModes      String?  @db.Text
-  measurements      String?  @db.Text
-  replacement       String?  @db.Text
-  specifications    Json?
-  images            Json?
-  metadata          Json?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@index([category])
-  @@index([name])
-}
-
-model Diagnostic {
-  id              String   @id @default(cuid())
-  faultCode       String   @unique
-  systemId        String?
-  title           String
-  description     String?  @db.Text
-  severity        String   @default("medium")
-  category        String?
-  symptoms        String?  @db.Text
-  possibleCauses  String?  @db.Text
-  diagnosticSteps String?  @db.Text
-  metadata        Json?
-  status          String   @default("active")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  faults          Fault[]
-
-  @@index([faultCode])
-  @@index([severity])
-}
-
-model Fault {
-  id             String     @id @default(cuid())
-  diagnosticId   String
-  diagnostic     Diagnostic @relation(fields: [diagnosticId], references: [id], onDelete: Cascade)
-  occurrenceDate DateTime?
-  resolvedDate   DateTime?
-  reportedBy     String?
-  assignedTo     String?
-  status         String     @default("open")
-  notes          String?    @db.Text
-  metadata       Json?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  @@index([diagnosticId])
-  @@index([status])
-}
-
-model MaintenanceProcedure {
-  id             String   @id @default(cuid())
-  title          String
-  category       String
-  frequency      String?
-  steps          Json
-  tools          Json?
-  parts          Json?
-  safetyNotes    String?  @db.Text
-  duration       Int?
-  relatedSystems Json?
-  relatedDrawings Json?
-  metadata       Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([category])
-}
-
-model ValidationResult {
-  id             String   @id @default(cuid())
-  entityType     String
-  entityId       String
-  validationType String
-  status         String
-  severity       String   @default("info")
-  message        String   @db.Text
-  details        Json?
-  resolvedAt     DateTime?
-  resolvedBy     String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([entityType, entityId])
-  @@index([status])
-}
-
-model AIKnowledgeSource {
-  id         String   @id @default(cuid())
-  sourceType String
-  sourceId   String?
-  content    String   @db.Text
-  embedding  String?  @db.Text
-  metadata   Json?
-  indexed    Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([sourceType])
-  @@index([indexed])
 }

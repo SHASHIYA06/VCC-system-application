@@ -3,15 +3,12 @@ const prisma = new PrismaClient();
 
 async function check() {
   const total = await prisma.drawing.count();
-  const mapped = await prisma.drawingPage.count({
+  const mapped = await prisma.drawing.count({
     where: {
-      extra: {
-        path: ['pdfPageNo'],
-        not: null
-      }
+      isSynced: true
     }
   });
-  console.log(`Total: ${total}, Mapped: ${mapped}, Coverage: ${((mapped/total)*100).toFixed(2)}%`);
+  console.log(`Total: ${total}, Mapped: ${mapped}, Coverage: ${total > 0 ? ((mapped / total) * 100).toFixed(2) : '0.00'}%`);
   process.exit(0);
 }
 
