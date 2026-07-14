@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Network, Layers, GitBranch, Activity, Zap, Database, 
+import {
+  Network, Layers, GitBranch, Activity, Zap, Database,
   TrendingUp, AlertTriangle, CheckCircle2, Clock, Loader2,
   Settings, Monitor, Cpu, HardDrive, BarChart3, RefreshCw,
   Plug, Cable, Wifi, Search
@@ -57,8 +57,8 @@ interface GSDTopology {
 
 const SYSTEM_COLORS: Record<string, string> = {
   TRAC: '#f97316', BRAKE: '#ef4444', DOOR: '#f59e0b', VAC: '#06b6d4',
-  APS: '#10b981', TMS: '#a855f7', LIGHT: '#eab308', COMMS: '#34d399',
-  CAB: '#6366f1', HV: '#f43f5e', GEN: '#6b7280', TRL: '#3b82f6',
+  APS: '#10b981', TMS: '#a855f7', COMMS: '#34d399', CAB: '#6366f1',
+  HV: '#f43f5e', GEN: '#6b7280', TRL: '#3b82f6',
 };
 
 export default function GSDPiVisualization() {
@@ -75,7 +75,7 @@ export default function GSDPiVisualization() {
     try {
       const response = await fetch('/api/gsd?action=topology');
       const json = await response.json();
-      
+
       if (json.success && json.data) {
         setGsdData(json.data);
         setIsDemo(json.metadata?.isDemo || false);
@@ -171,11 +171,10 @@ export default function GSDPiVisualization() {
               <button
                 key={mode}
                 onClick={() => setViewMode(mode as typeof viewMode)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold font-mono transition-all ${
-                  viewMode === mode 
-                    ? 'bg-gradient-accent text-white shadow-glow-sm' 
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold font-mono transition-all ${viewMode === mode
+                    ? 'bg-gradient-accent text-white shadow-glow-sm'
                     : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
+                  }`}
               >
                 <Icon className="h-4 w-4" />
                 {label}
@@ -249,8 +248,8 @@ export default function GSDPiVisualization() {
                             </p>
                           </div>
                           <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
+                            <div
+                              className="w-3 h-3 rounded-full"
                               style={{ backgroundColor: SYSTEM_COLORS[node.system] || '#6b7280' }}
                             />
                             <span className="text-xs text-white/50 font-mono">{node.system}</span>
@@ -275,8 +274,8 @@ export default function GSDPiVisualization() {
                   {gsdData?.systems.map((sys) => (
                     <Card3D key={sys.code} className="p-5">
                       <div className="flex items-center gap-4">
-                        <div 
-                          className="w-4 h-4 rounded-full shrink-0" 
+                        <div
+                          className="w-4 h-4 rounded-full shrink-0"
                           style={{ backgroundColor: sys.color }}
                         />
                         <div className="flex-1">

@@ -55,19 +55,18 @@ export interface SystemTopology {
 
 // Color mapping for systems
 const SYSTEM_COLORS: Record<string, string> = {
-  GENERAL: '#6b7280',    // Gray
-  TRACTION: '#f97316',   // Orange
-  BRAKE: '#ef4444',      // Red
-  AUX: '#10b981',        // Green
-  DOOR: '#f59e0b',       // Amber
-  AIRCON: '#06b6d4',     // Cyan
-  TIMS: '#a855f7',       // Purple
-  COMM: '#34d399',       // Emerald
-  CAB: '#6366f1',        // Indigo
-  LTEB: '#06b6d4',       // Cyan
-  LIGHT: '#eab308',      // Yellow
-  LTJB: '#8b5cf6',       // Violet
-  DEFAULT: '#6b7280',    // Gray
+  TRAC: '#f97316',    // Orange
+  BRAKE: '#ef4444',   // Red
+  DOOR: '#f59e0b',    // Amber
+  VAC: '#06b6d4',     // Cyan
+  APS: '#10b981',     // Green
+  TMS: '#a855f7',     // Purple
+  COMMS: '#34d399',   // Emerald
+  CAB: '#6366f1',     // Indigo
+  HV: '#f43f5e',      // Rose
+  TRL: '#3b82f6',     // Blue
+  GEN: '#6b7280',     // Gray
+  DEFAULT: '#6b7280', // Gray
 };
 
 const EDGE_COLORS: Record<string, string> = {
@@ -312,11 +311,36 @@ async function calculateStatistics(systemCode?: string): Promise<TopologyStatist
       connectorCount,
       devicesBySystem,
       connectionsByType: {
-        power: 0,
-        signal: 0,
-        communication: 0,
-        ground: 0,
-        connection: 0,
+        power: await prisma.wire.count({
+          where: {
+            ...where,
+            voltageClass: { contains: 'power', mode: 'insensitive' }
+          }
+        }),
+        signal: await prisma.wire.count({
+          where: {
+            ...where,
+            voltageClass: { contains: 'signal', mode: 'insensitive' }
+          }
+        }),
+        communication: await prisma.wire.count({
+          where: {
+            ...where,
+            conductorClassCode: { contains: 'comm', mode: 'insensitive' }
+          }
+        }),
+        ground: await prisma.wire.count({
+          where: {
+            ...where,
+            voltageClass: { contains: 'gnd', mode: 'insensitive' }
+          }
+        }),
+        connection: await prisma.wire.count({
+          where: {
+            ...where,
+            conductorClassCode: { not: null }
+          }
+        }),
       },
     };
   } catch (error) {
@@ -325,10 +349,16 @@ async function calculateStatistics(systemCode?: string): Promise<TopologyStatist
       totalDevices: 0,
       totalConnections: 0,
       totalWires: 0,
-      systemCount: 2,
+      systemCount: 0,
       connectorCount: 0,
       devicesBySystem: {},
-      connectionsByType: {},
+      connectionsByType: {
+        power: 0,
+        signal: 0,
+        communication: 0,
+        ground: 0,
+        connection: 0,
+      },
     };
   }
 }
