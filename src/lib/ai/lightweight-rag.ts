@@ -4,14 +4,24 @@
  */
 
 // Lightweight types for reduced bundle size
+export interface Citation {
+  type: 'drawing' | 'wire' | 'system' | 'connector' | 'device' | 'unknown';
+  reference: string; // e.g. drawingNo, wireNo, system code
+  page?: number;
+}
+
 export interface LightweightRAGResponse {
   query: string;
   response: string;
   confidence: number;
   executionTime: number;
+  // Backwards-compatible list of source identifiers
   sources: string[];
+  // Canonical structured citations for UI/audit
+  citations?: Citation[];
   model: string;
 }
+
 
 export interface MultiAgentRAGResponse {
   query: string;
@@ -63,6 +73,7 @@ export async function executeLightweightRAGQuery(
       confidence: 0,
       executionTime: Date.now() - startTime,
       sources: [],
+      citations: [],
       model: 'fallback'
     };
   }
@@ -127,15 +138,22 @@ async function executeSingleAgentQuery(
     
     let response: string;
     let sources: string[] = [];
-    
+    let citations: Citation[] = [];
+
     if (context.length > 0) {
       // Generate contextual response
       sources = [
-        ...wires.map(w => w.wireNo),
-        ...systems.map(s => s.code),
-        ...drawings.map(d => d.drawingNo),
+        ...wires.map((w: any) => w.wireNo),
+        ...systems.map((s: any) => s.code),
+        ...drawings.map((d: any) => d.drawingNo),
       ];
-      
+
+      citations = [
+        ...drawings.map((d: any) => ({ type: 'drawing' as const, reference: d.drawingNo })),
+        ...wires.map((w: any) => ({ type: 'wire' as const, reference: w.wireNo })),
+        ...systems.map((s: any) => ({ type: 'system' as const, reference: s.code })),
+      ];
+
       response = generateContextualResponse(query, {
         wires,
         systems,
@@ -145,15 +163,17 @@ async function executeSingleAgentQuery(
       // No database matches found
       response = `I couldn't find specific information about "${query}" in the VCC system database. Try searching for wire numbers, system codes, or drawing numbers.`;
     }
-    
+
     return {
       query,
       response,
       confidence: context.length > 0 ? 0.85 : 0.2,
       executionTime: Date.now() - startTime,
       sources,
+      citations,
       model: 'lightweight-local'
     };
+
     
   } catch (error) {
     console.error('Single agent query error:', error);
@@ -164,6 +184,7 @@ async function executeSingleAgentQuery(
       confidence: 0,
       executionTime: Date.now() - startTime,
       sources: [],
+      citations: [],
       model: 'error-fallback'
     };
   }

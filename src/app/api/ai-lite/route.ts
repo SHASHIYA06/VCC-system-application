@@ -56,28 +56,34 @@ export async function POST(request: NextRequest) {
     });
 
     // Return appropriate response format
+    // Canonical contract for UI/audit consistency
     if ('unifiedResponse' in result) {
       // Multi-agent response
       return NextResponse.json({
         query: result.query,
         response: result.unifiedResponse,
+        confidence: 0.8,
         executionTime: result.executionTime,
+        sources: [],
+        citations: [],
         mode: 'multi-agent',
         degradedMode: result.degradedMode,
         agentCount: result.agentCount,
-      });
-    } else {
-      // Single agent response
-      return NextResponse.json({
-        query: result.query,
-        response: result.response,
-        confidence: result.confidence,
-        executionTime: result.executionTime,
-        sources: result.sources,
-        mode: useLightweight ? 'lightweight' : 'single-agent',
-        model: result.model,
+        model: 'multi-agent'
       });
     }
+
+    // Single/lightweight response
+    return NextResponse.json({
+      query: result.query,
+      response: result.response,
+      confidence: result.confidence,
+      executionTime: result.executionTime,
+      sources: result.sources,
+      citations: (result as any).citations || [],
+      mode: useLightweight ? 'lightweight' : 'single-agent',
+      model: result.model,
+    });
 
   } catch (error) {
     console.error('AI Lite API Error:', error);
