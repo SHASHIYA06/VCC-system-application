@@ -102,9 +102,8 @@ INSERT INTO "Equipment" (
   id, name, code, "subsystemId", manufacturer, model, "partNumber", 
   description, metadata, "createdAt", "updatedAt"
 )
-SELECT 
+SELECT DISTINCT
   gen_random_uuid() as id,
-  DISTINCT 
   d."deviceName" as name,
   UPPER(REPLACE(REPLACE(d."deviceName", ' ', '_'), '/', '_')) as code,
   d."subsystemId" as "subsystemId",
@@ -190,9 +189,9 @@ INSERT INTO "Cable" (
   id, "cableNumber", "cableType", "coreCount", manufacturer, "partNumber",
   routing, length, description, metadata, status, "createdAt", "updatedAt"
 )
-SELECT 
+SELECT DISTINCT
   gen_random_uuid() as id,
-  DISTINCT w."cableSpec" as "cableNumber",
+  w."cableSpec" as "cableNumber",
   CASE 
     WHEN w."wireSize" LIKE '%x%' THEN 'MULTI_CORE'
     ELSE 'SINGLE_CORE'
