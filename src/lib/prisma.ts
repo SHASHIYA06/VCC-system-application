@@ -5,23 +5,60 @@ declare global {
   var __prisma: PrismaClient | undefined;
 }
 
+/**
+ * Build the datasource URL with pooling parameters tuned for Neon + pgbouncer.
+ *
+ * Neon's pooled endpoint (`*-pooler.*`) already multiplexes connections, so each
+ * serverless instance should hold a *small* pool and give up quickly rather than
+ * queueing — long queues are what produce Prisma's P2024 "Timed out fetching a
+ * connection from the pool" errors under bursty dashboard traffic.
+ */
+function buildDatasourceUrl(): string | undefined {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) return undefined;
+
+  try {
+    const url = new URL(raw);
+    const isPooled = url.hostname.includes('-pooler');
+
+    // Only set params that aren't already explicitly provided.
+    if (!url.searchParams.has('connection_limit')) {
+      url.searchParams.set('connection_limit', isPooled ? '10' : '5');
+    }
+    if (!url.searchParams.has('pool_timeout')) {
+      url.searchParams.set('pool_timeout', '20');
+    }
+    if (!url.searchParams.has('connect_timeout')) {
+      url.searchParams.set('connect_timeout', '15');
+    }
+    if (isPooled && !url.searchParams.has('pgbouncer')) {
+      url.searchParams.set('pgbouncer', 'true');
+    }
+    return url.toString();
+  } catch {
+    // Malformed URL — hand it to Prisma unchanged so it can surface a clear error.
+    return raw;
+  }
+}
+
 function createPrismaClient() {
   return new PrismaClient({
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: buildDatasourceUrl(),
       },
     },
-    log: process.env.NODE_ENV === 'development' ? ['error'] : ['error'],
+    log: ['error'],
   });
 }
 
-// Singleton pattern - reuse connection across hot reloads
+/**
+ * Singleton. Cached on `globalThis` in ALL environments (not just development):
+ * Next.js route handlers are re-evaluated per module graph, and creating a new
+ * PrismaClient per evaluation exhausts the Postgres connection limit.
+ */
 export const prisma = globalThis.__prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.__prisma = prisma;
-}
+globalThis.__prisma = prisma;
 
 // Enhanced Database Manager
 export class DatabaseManager {
@@ -321,34 +358,30 @@ export async function checkGSDPiIntegration(): Promise<{
   }
 }
 
-// Process cleanup with enhanced logging
-if (typeof process !== 'undefined') {
-  process.on('beforeExit', async () => {
-    console.log('🧹 Process cleanup: Disconnecting database...');
-    await shutdownDatabase();
-  });
-
-  process.on('SIGINT', async () => {
-    console.log('\n🛑 Received SIGINT, cleaning up database connections...');
-    await shutdownDatabase();
-    process.exit(0);
-  });
-
-  process.on('SIGTERM', async () => {
-    console.log('\n🛑 Received SIGTERM, cleaning up database connections...');
-    await shutdownDatabase();
-    process.exit(0);
-  });
-
-  process.on('uncaughtException', async (error) => {
-    console.error('💥 Uncaught exception, cleaning up database:', error);
-    await shutdownDatabase();
-    process.exit(1);
-  });
-
-  process.on('unhandledRejection', async (reason, promise) => {
-    console.error('💥 Unhandled rejection at:', promise, 'reason:', reason);
-    await shutdownDatabase();
-    process.exit(1);
+/**
+ * ⚠️  DO NOT register process-level shutdown handlers here.
+ *
+ * This module is imported by every Next.js API route. Registering
+ * `SIGTERM` / `SIGINT` / `unhandledRejection` / `beforeExit` handlers that call
+ * `prisma.$disconnect()` (or `process.exit()`) is catastrophic in a long-running
+ * Next.js server:
+ *
+ *   • Next.js sends SIGTERM during HMR reloads and graceful restarts. Closing the
+ *     pool there leaves the still-running server with dead sockets, producing
+ *     `Error in PostgreSQL connection: Error { kind: Closed }` on every
+ *     subsequent query. The UI then silently falls back to empty/stale data.
+ *
+ *   • An `unhandledRejection` handler that exits turns ANY stray promise
+ *     rejection anywhere in the app into a full server crash.
+ *
+ * Prisma already tears down its pool when the process genuinely exits, and
+ * serverless platforms (Vercel) reuse the pool across invocations. Explicit
+ * disconnects are only appropriate in one-shot CLI scripts — those should call
+ * `disconnectPrisma()` themselves.
+ */
+if (typeof process !== 'undefined' && process.env.PRISMA_LOG_REJECTIONS === 'true') {
+  // Observability only — never disconnect, never exit.
+  process.on('unhandledRejection', (reason) => {
+    console.error('[prisma] unhandledRejection (non-fatal):', reason);
   });
 }

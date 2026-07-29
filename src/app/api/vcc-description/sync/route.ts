@@ -190,9 +190,10 @@ export async function POST(request: NextRequest) {
       results,
       executionTime
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
+  // NOTE: never call prisma.$disconnect() in a request handler — the client is a
+  // shared singleton and disconnecting kills the pool for all other in-flight
+  // and subsequent requests.
 }
 
 export async function GET(request: NextRequest) {
