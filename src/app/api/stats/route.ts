@@ -20,6 +20,7 @@ export async function GET() {
       systemStats,
       documentStats,
       connectorByCarType,
+      wiresByCarType,
     ] = await Promise.all([
       prisma.system.count(),
       prisma.wire.count(),
@@ -36,8 +37,23 @@ export async function GET() {
         orderBy: { sortOrder: 'asc' },
       }),
       prisma.sourceFile.groupBy({ by: ['status'], _count: true }),
-      // Use connector carType to estimate wire distribution per car type
       prisma.connector.groupBy({ by: ['carType'], _count: { _all: true } }),
+      /**
+       * Real distinct-wire count per car, resolved through
+       * WireEndpoint -> Device.carType.
+       *
+       * `byCarType` used to be a `connector.groupBy` whose own comment admitted it
+       * was a "proxy for wire distribution" — and the dashboard rendered that
+       * connector count under a "wires" label. Counting distinct wires that
+       * actually terminate on a device in each car is the measurement the label
+       * claims, so the label is no longer a lie.
+       */
+      prisma.$queryRaw<Array<{ carType: string | null; wires: bigint }>>`
+        SELECT d."carType", COUNT(DISTINCT we."wireId") AS wires
+        FROM "WireEndpoint" we
+        JOIN "Device" d ON d.id = we."deviceId"
+        WHERE d."carType" IS NOT NULL
+        GROUP BY d."carType"`,
     ]);
 
     const drawingStats = await prisma.drawing.groupBy({
@@ -72,8 +88,18 @@ export async function GET() {
     // Calculate actual wire connections from wire endpoints
     const wireEndpointCount = await prisma.wireEndpoint.count();
 
-    // Build byCarType connector count map (proxy for wire distribution per car type)
-    const byCarType = connectorByCarType.reduce((acc: Record<string, number>, item) => {
+    // Distinct wires terminating on a device in each car. This is a real count,
+    // not the connector-count proxy that used to be reported here.
+    const byCarType = wiresByCarType.reduce((acc: Record<string, number>, item) => {
+      if (item.carType) {
+        const ct = item.carType.toUpperCase().trim();
+        acc[ct] = (acc[ct] || 0) + Number(item.wires);
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Connector counts per car kept as their own key so nothing conflates the two.
+    const connectorsByCarType = connectorByCarType.reduce((acc: Record<string, number>, item) => {
       if (item.carType) {
         const ct = item.carType.toUpperCase().trim();
         acc[ct] = (acc[ct] || 0) + (item._count._all ?? 0);
@@ -97,6 +123,7 @@ export async function GET() {
         dataSource: 'database',
       },
       byCarType,
+      connectorsByCarType,
       bySystem: Object.fromEntries(
         systemStats.map(s => [s.code, { 
           drawings: s._count.drawings, 

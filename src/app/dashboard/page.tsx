@@ -256,12 +256,18 @@ export default function DashboardPage() {
     try {
       const response = await fetch('/api/stats');
       const data = await response.json();
-      if (response.ok && data.overview) {
-        setStats(data);
-        setDataSource(data.overview.dataSource || 'database');
-      }
-    } catch {
-      setError('Failed to load database stats');
+      // The `if (response.ok && ...)` here had no `else`, so an HTTP 500 never
+      // reached `setError` at all — `stats` stayed null and every StatCard
+      // rendered a bare 0 with no indication anything had failed.
+      if (!response.ok) throw new Error(`Stats request failed with status ${response.status}`);
+      if (!data?.overview) throw new Error('Stats response is missing its overview block');
+      setStats(data);
+      setDataSource(data.overview.dataSource || 'database');
+      setError(null);
+    } catch (err) {
+      console.error('Failed to load database stats:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load database stats');
+      setStats(null);
     } finally {
       setLoading(false);
     }
@@ -463,6 +469,29 @@ export default function DashboardPage() {
       <div className="glow-orb glow-orb-purple" />
       
       <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03] pointer-events-none mix-blend-screen"></div>
+
+      {/* Stats failure is now visible. `error` was set but never rendered
+          anywhere, so a failed /api/stats looked like a database full of zeros. */}
+      {error && (
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-red-300 bg-red-50 p-4">
+          <div className="flex items-start gap-2 text-red-700">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-semibold">Could not load database statistics</p>
+              <p className="mt-0.5 text-xs text-red-600">
+                Counts below are unavailable, not zero. {error}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setLoading(true); fetchStats(); }}
+            className="cursor-pointer rounded-md border border-red-400 px-3 py-1.5 text-sm font-medium text-red-700 transition-colors duration-200 hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Title Header */}
       <motion.div 
@@ -829,7 +858,11 @@ export default function DashboardPage() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {CAR_TYPES.map(car => {
-                      const count = stats?.byCarType?.[car.type] || (car.type === 'DMC' ? 7800 : car.type === 'TC' ? 5600 : 5616);
+                      // No invented fallback. This used to read
+                      // `|| (car.type === 'DMC' ? 7800 : car.type === 'TC' ? 5600 : 5616)`,
+                      // rendering three made-up figures as hard wire counts,
+                      // visually identical to real data.
+                      const count = stats?.byCarType?.[car.type];
                       const CarIcon = car.icon;
                       return (
                         <Link key={car.type} href={`/cars/${car.type}`} className="block">
@@ -842,7 +875,9 @@ export default function DashboardPage() {
                                 <CarIcon className="h-5 w-5 text-blue-600" />
                               </div>
                               <div className="text-right">
-                                <span className="text-2xl font-bold text-slate-900 font-mono">{count}</span>
+                                <span className="text-2xl font-bold text-slate-900 font-mono tabular-nums">
+                                  {typeof count === 'number' ? count.toLocaleString() : '—'}
+                                </span>
                                 <span className="text-[10px] text-slate-600 uppercase tracking-wider block">wires</span>
                               </div>
                             </div>

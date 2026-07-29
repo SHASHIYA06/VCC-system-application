@@ -145,10 +145,21 @@ export async function GET(request: NextRequest) {
     // guarded fallback so a slow facet query can never break the listing.
     const isSearching = !!search.trim();
 
-    // When searching, over-fetch then re-rank by relevance so exact matches
-    // (3001a) surface above incidental matches (01222a). The DB cannot order
-    // by our custom relevance, so we fetch a wider window and sort in memory.
-    const fetchTake = isSearching ? Math.min(limit * 5, 1000) : limit;
+    /**
+     * When searching, over-fetch then re-rank by relevance so exact matches
+     * (3001a) surface above incidental matches (01222a). The DB cannot order by
+     * our custom relevance, so we fetch a window and sort in memory.
+     *
+     * That window is the hard ceiling on how deep a search can page. It used to
+     * be `min(limit * 5, 1000)` with `skip: 0`, so a caller asking for
+     * `limit=1000` got a 1000-row window and then `slice(1000, 2000)` — an empty
+     * array — while `hasMore` still reported true. "Load More" therefore appended
+     * nothing yet stayed visible forever. `hasMore` is now computed against what
+     * is actually reachable, and `searchInfo.windowCapped` tells the client when
+     * the ranked window, rather than the result set, is the limit.
+     */
+    const RELEVANCE_WINDOW = 1000;
+    const fetchTake = isSearching ? RELEVANCE_WINDOW : limit;
 
     const [rawWires, total] = await Promise.all([
       prisma.wire.findMany({
@@ -177,10 +188,24 @@ export async function GET(request: NextRequest) {
           .map(x => x.w)
       : rawWires;
 
-    // Voltage facets are best-effort only; never let them fail the request.
-    const voltageStats = await prisma.wire
-      .groupBy({ by: ['voltageClass'], _count: true })
-      .catch(() => [] as { voltageClass: string | null; _count: number }[]);
+    // Facets are best-effort only; never let them fail the request.
+    const [voltageStats, conductorStats, statusStats] = await Promise.all([
+      prisma.wire
+        .groupBy({ by: ['voltageClass'], _count: true })
+        .catch(() => [] as { voltageClass: string | null; _count: number }[]),
+      // Conductor class is the real column behind what the UI labels "Type".
+      // Without this facet the client had to hardcode three guessed options.
+      prisma.wire
+        .groupBy({ by: ['conductorClassCode'], _count: true })
+        .catch(() => [] as { conductorClassCode: string | null; _count: number }[]),
+      prisma.wire
+        .groupBy({ by: ['wireStatus'], _count: true })
+        .catch(() => [] as { wireStatus: string | null; _count: number }[]),
+    ]);
+
+    // Depth reachable by the caller. For a search this is bounded by the ranked
+    // window, not by `total`.
+    const reachable = isSearching ? Math.min(total, RELEVANCE_WINDOW) : total;
 
     return NextResponse.json({
       wires,
@@ -188,15 +213,29 @@ export async function GET(request: NextRequest) {
         total,
         limit,
         offset,
-        hasMore: offset + limit < total,
+        reachable,
+        hasMore: offset + limit < reachable,
       },
       filters: {
-        voltageClasses: voltageStats.map(v => ({ value: v.voltageClass, count: v._count })),
+        voltageClasses: voltageStats
+          .filter(v => v.voltageClass)
+          .map(v => ({ value: v.voltageClass, count: v._count })),
+        conductorClasses: conductorStats
+          .filter(c => c.conductorClassCode)
+          .map(c => ({ value: c.conductorClassCode, count: c._count })),
+        statuses: statusStats
+          .filter(s => s.wireStatus)
+          .map(s => ({ value: String(s.wireStatus), count: s._count })),
       },
       searchInfo: search ? {
         query: search,
         matchCount: total,
-        tip: total === 0 ? 'Try shorter prefix (e.g., "3001" instead of "3001a"), or check the wire alias.' : undefined,
+        windowCapped: isSearching && total > RELEVANCE_WINDOW,
+        tip: total === 0
+          ? 'Try shorter prefix (e.g., "3001" instead of "3001a"), or check the wire alias.'
+          : total > RELEVANCE_WINDOW
+            ? `Showing the ${RELEVANCE_WINDOW} most relevant of ${total} matches. Narrow the search to see the rest.`
+            : undefined,
       } : undefined,
     });
   } catch (error) {

@@ -12,74 +12,108 @@ export default function GSDPage() {
   const [loading, setLoading] = useState(false);
   const [selectedNode, setSelectedNode] = useState<SystemNode | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<SystemEdge | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<SystemNode[] | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Fetch systems for dropdown
   useEffect(() => {
     const fetchSystems = async () => {
       try {
         setLoading(true);
+        setError(null);
         const response = await fetch('/api/gsd?action=topology');
+        if (!response.ok) throw new Error(`Topology request failed with status ${response.status}`);
         const data = await response.json();
-        if (data.success && data.data && data.data.systems && data.data.systems.length > 0) {
+
+        if (data.success && data.data?.systems?.length > 0) {
           setTopology(data.data);
           setLoading(false);
-        } else {
-          // If no systems, try to fetch from /api/systems as fallback
-          const systemsResponse = await fetch('/api/systems');
-          const systemsData = await systemsResponse.json();
-          if (systemsData.length > 0) {
-            // Create a minimal topology structure
-            setTopology({
-              nodes: [],
-              edges: [],
-              systems: systemsData.map((s: any) => ({
-                code: s.code,
-                name: s.name,
-                devices: 0,
-                connections: 0,
-                color: '#3b82f6'
-              })),
-              statistics: {
-                totalDevices: 0,
-                totalConnections: 0,
-                totalWires: 0,
-                systemCount: systemsData.length,
-                connectorCount: 0,
-                devicesBySystem: {},
-                connectionsByType: {}
-              }
-            });
-          }
-          setLoading(false);
+          return;
         }
-      } catch (error) {
-        console.error('Error fetching systems:', error);
+
+        // Degraded mode: still show the system list so the page isn't blank.
+        // This branch used to test `systemsData.length` against /api/systems'
+        // response, but that endpoint returns `{ systems, count }` — an object —
+        // so `undefined > 0` was always false and the fallback never ran. Worse,
+        // the line after it called `.map` on that object and would have thrown.
+        const systemsResponse = await fetch('/api/systems');
+        if (!systemsResponse.ok) {
+          throw new Error(data?.error || 'Topology unavailable and system list could not be loaded');
+        }
+        const systemsData = await systemsResponse.json();
+        const systemList: any[] = Array.isArray(systemsData)
+          ? systemsData
+          : systemsData.systems ?? [];
+
+        if (systemList.length === 0) {
+          throw new Error(data?.error || 'No topology or systems returned');
+        }
+
+        setError(
+          'Topology graph unavailable — showing the system list only. No wiring graph could be built.',
+        );
+        setTopology({
+          nodes: [],
+          edges: [],
+          systems: systemList.map((s: any) => ({
+            code: s.code,
+            name: s.name,
+            devices: s.deviceCount ?? 0,
+            connections: s.drawingCount ?? 0,
+            color: '#3b82f6',
+          })),
+          statistics: {
+            totalDevices: 0,
+            totalConnections: 0,
+            totalWires: 0,
+            systemCount: systemList.length,
+            connectorCount: 0,
+            devicesBySystem: {},
+            connectionsByType: {},
+          },
+        });
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching topology:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load GSD topology');
+        setTopology(null);
         setLoading(false);
       }
     };
 
     fetchSystems();
-  }, []);
+  }, [reloadKey]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     try {
-      setLoading(true);
+      setSearching(true);
+      setError(null);
       const params = new URLSearchParams();
+      // `action=search` is required. Without it the route defaults to
+      // 'topology', discarded the `search` param entirely and returned the full
+      // graph — and the result was then only console.logged, so searching did
+      // nothing observable at all.
+      params.append('action', 'search');
       params.append('search', searchQuery);
       if (selectedSystem) params.append('system', selectedSystem);
 
       const response = await fetch(`/api/gsd?${params.toString()}`);
+      if (!response.ok) throw new Error(`Search failed with status ${response.status}`);
       const data = await response.json();
-      if (data.success) {
-        console.log('Search results:', data.data);
-      }
-    } catch (error) {
-      console.error('Error searching:', error);
+      if (!data.success) throw new Error(data.error || 'Search failed');
+
+      setSearchResults(data.data?.nodes ?? []);
+    } catch (err) {
+      console.error('Error searching:', err);
+      setError(err instanceof Error ? err.message : 'Search failed');
+      setSearchResults(null);
     } finally {
-      setLoading(false);
+      setSearching(false);
     }
   };
 
@@ -106,6 +140,22 @@ export default function GSDPage() {
           </h1>
           <p className="text-slate-400">Interactive system topology visualization</p>
         </div>
+
+        {/* Error state. The page previously had no error variable and no error
+            UI at all: a 500 left `topology` null and the panels quietly showed
+            four zeros with an empty system dropdown. */}
+        {error && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
+            <span className="text-sm text-amber-300">{error}</span>
+            <button
+              type="button"
+              onClick={() => setReloadKey(k => k + 1)}
+              className="cursor-pointer rounded-md border border-amber-400/60 px-3 py-1.5 text-sm font-medium text-amber-200 transition-colors duration-200 hover:bg-amber-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Controls */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
@@ -139,11 +189,21 @@ export default function GSDPage() {
               />
               <button
                 type="submit"
-                disabled={loading}
-                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:from-cyan-600 hover:to-blue-600 transition disabled:opacity-50"
+                disabled={searching || !searchQuery.trim()}
+                aria-label="Search topology"
+                className="cursor-pointer rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-white transition-colors duration-200 hover:from-cyan-600 hover:to-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-5 h-5" aria-hidden="true" />
               </button>
+              {searchResults !== null && (
+                <button
+                  type="button"
+                  onClick={() => { setSearchResults(null); setSearchQuery(''); }}
+                  className="cursor-pointer rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-300 transition-colors duration-200 hover:border-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </form>
 
@@ -181,6 +241,43 @@ export default function GSDPage() {
 
           {/* Info Panel */}
           <div className="lg:col-span-1 space-y-4">
+            {/* Search results. These were fetched and then only console.logged,
+                so searching produced no visible outcome. */}
+            {searchResults !== null && (
+              <div className="rounded-lg border border-cyan-500/20 bg-gradient-to-br from-slate-800 to-slate-900 p-4">
+                <h3 className="mb-3 text-lg font-semibold text-cyan-400">
+                  Search Results{' '}
+                  <span className="text-sm font-normal text-slate-400 tabular-nums">
+                    ({searchResults.length})
+                  </span>
+                </h3>
+                {searchResults.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    Nothing in the topology matches “{searchQuery}”.
+                  </p>
+                ) : (
+                  <ul className="max-h-72 space-y-1 overflow-y-auto">
+                    {searchResults.map(node => (
+                      <li key={node.id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedNode(node)}
+                          className="w-full cursor-pointer rounded-md px-2 py-1.5 text-left transition-colors duration-200 hover:bg-slate-700/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                        >
+                          <span className="block truncate font-mono text-sm text-slate-200">
+                            {node.label}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {node.type} · {node.system}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
             {/* Statistics */}
             <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-cyan-500/20 rounded-lg p-4">
               <h3 className="text-lg font-semibold text-cyan-400 mb-4">Statistics</h3>
@@ -198,10 +295,28 @@ export default function GSDPage() {
                   <span className="text-cyan-400 font-semibold">{topology?.statistics.totalWires || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Connectors</span>
+                  <span className="text-cyan-400 font-semibold tabular-nums">
+                    {topology?.statistics.connectorCount?.toLocaleString() ?? '—'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
                   <span className="text-slate-400">Systems</span>
-                  <span className="text-cyan-400 font-semibold">{topology?.statistics.systemCount || 0}</span>
+                  <span className="text-cyan-400 font-semibold tabular-nums">{topology?.statistics.systemCount ?? '—'}</span>
                 </div>
               </div>
+              {/* These are whole-database totals. The rendered graph is a bounded
+                  sample, so the two numbers are deliberately distinguished
+                  instead of implying the canvas shows everything. */}
+              {topology && (
+                <p className="mt-4 border-t border-slate-700/60 pt-3 text-xs leading-relaxed text-slate-500">
+                  Totals cover the full database. The diagram shows a sample of{' '}
+                  <span className="tabular-nums text-slate-400">{topology.nodes.length}</span>{' '}
+                  nodes and{' '}
+                  <span className="tabular-nums text-slate-400">{topology.edges.length}</span>{' '}
+                  connections, kept small enough to stay readable.
+                </p>
+              )}
             </div>
 
             {/* Selected Node */}

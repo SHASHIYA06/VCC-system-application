@@ -53,6 +53,16 @@ interface ConnectorData {
   _count?: { pins: number; wireEndpoints: number };
 }
 
+/** Server page size. Previously the page asked for 1000 rows with no offset and
+ *  had no page controls, so it advertised `pagination.total` while making every
+ *  row past the first 1000 unreachable. */
+const PAGE_SIZE = 100;
+
+interface ConnectorFacets {
+  cars?: (string | null)[];
+  systems?: { code: string; name: string }[];
+}
+
 export default function ConnectorsPage() {
   const [search, setSearch] = useState('');
   const [carFilter, setCarFilter] = useState('all');
@@ -62,6 +72,9 @@ export default function ConnectorsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
+  const [facets, setFacets] = useState<ConnectorFacets>({});
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     async function fetchConnectors() {
@@ -70,12 +83,15 @@ export default function ConnectorsPage() {
         const params = new URLSearchParams();
         if (systemFilter !== 'all') params.set('system_code', systemFilter);
         if (carFilter !== 'all') params.set('car_type', carFilter);
-        if (search) params.set('connector_code', search);
-        params.set('limit', '1000');
+        // `connector_code` is an exact match server-side, so it is not a search
+        // box. Substring matching stays client-side over the current page.
+        params.set('limit', String(PAGE_SIZE));
+        params.set('offset', String(page * PAGE_SIZE));
 
         const response = await fetch(`/api/connectors?${params.toString()}`);
-        if (!response.ok) throw new Error('Failed to fetch');
+        if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
         const data = await response.json();
+        if (data.filters) setFacets(data.filters);
         
         const mapped: ConnectorData[] = (data.connectors || []).map((c: any) => ({
           id: c.id,
@@ -104,33 +120,32 @@ export default function ConnectorsPage() {
           _count: c._count,
         }));
         
-        setTotalCount(data.pagination?.total || data.total || data.count || 0);
-        
-        if (mapped.length > 0) {
-          setConnectors(mapped);
-          setError(null);
-        } else {
-          setConnectors([]);
-          setError('No connectors found in database.');
-        }
+        setTotalCount(data.pagination?.total || 0);
+        setConnectors(mapped);
+        // An empty page is a valid result for a narrow filter, not a failure.
+        // Setting `error` here previously made the two indistinguishable.
+        setError(null);
       } catch (err) {
         console.error('Connector fetch error:', err);
         setConnectors([]);
-        setError('Database unavailable - check connection.');
+        setTotalCount(0);
+        setError(err instanceof Error ? err.message : 'Failed to load connectors');
       } finally {
         setLoading(false);
       }
     }
     fetchConnectors();
-  }, [carFilter, systemFilter]);
+  }, [carFilter, systemFilter, page, reloadKey]);
 
   const filtered = connectors.filter(cn => {
-    const matchSearch = search === '' ||
-      cn.connectorCode.toLowerCase().includes(search.toLowerCase()) ||
-      (cn.description || '').toLowerCase().includes(search.toLowerCase()) ||
-      (cn.drawingNo || '').toLowerCase().includes(search.toLowerCase());
-    return matchSearch;
+    const q = search.trim().toLowerCase();
+    return q === '' ||
+      cn.connectorCode.toLowerCase().includes(q) ||
+      (cn.description || '').toLowerCase().includes(q) ||
+      (cn.drawingNo || '').toLowerCase().includes(q);
   });
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   if (loading) {
     return (
@@ -147,22 +162,40 @@ export default function ConnectorsPage() {
         <p className="mt-2 text-slate-400">
           All connectors, inter-car jumpers, and pin assignments
         </p>
-        <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
-          <span className="text-cyan-400 font-bold">{totalCount > 0 ? totalCount : connectors.length} connectors in database</span>
-          <span>4 jumper types (X1-X4)</span>
-          <span>DMC, TC, MC</span>
+        <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-500">
+          <span className="font-bold text-cyan-400 tabular-nums">
+            {totalCount.toLocaleString()} connectors match
+          </span>
+          <span className="tabular-nums">
+            Showing {totalCount === 0 ? 0 : page * PAGE_SIZE + 1}–
+            {Math.min(totalCount, page * PAGE_SIZE + connectors.length)}
+          </span>
+          {facets.cars?.length ? (
+            <span className="tabular-nums">{facets.cars.filter(Boolean).length} car types</span>
+          ) : null}
         </div>
         {error && (
-          <div className="mt-2 text-amber-400 text-sm flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            {error}
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+            <span className="flex items-center gap-2 text-red-400">
+              <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {error}
+            </span>
+            <button
+              type="button"
+              onClick={() => setReloadKey(k => k + 1)}
+              className="cursor-pointer rounded-md border border-red-400/60 px-2.5 py-1 text-xs font-medium text-red-200 transition-colors duration-200 hover:bg-red-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+            >
+              Retry
+            </button>
           </div>
         )}
       </div>
 
-      {/* Jumper Quick Reference */}
+      {/* Jumper Quick Reference. Fixed engineering reference from the VCC
+          drawings — labelled so it is not read as live database content. */}
       <div className="mb-6 glass-card p-4">
-        <h3 className="text-sm font-semibold text-slate-400 mb-3">Inter-car Jumper Quick Reference</h3>
+        <h3 className="text-sm font-semibold text-slate-400 mb-1">Inter-car Jumper Quick Reference</h3>
+        <p className="mb-3 text-xs text-slate-500">From VCC drawings, not database records</p>
         <div className="grid grid-cols-4 gap-3">
           <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
             <div className="text-sm font-mono text-blue-400 font-bold">X1 (74P)</div>
@@ -196,25 +229,35 @@ export default function ConnectorsPage() {
             value={search} onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50" />
         </div>
-        <select value={carFilter} onChange={(e) => setCarFilter(e.target.value)}
-          className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">
+        {/* Options come from the API's own facets. They were hardcoded to 4 cars
+            and 7 systems, so any real system outside that list was unfilterable. */}
+        <label htmlFor="connector-car" className="sr-only">Filter by car</label>
+        <select id="connector-car" value={carFilter}
+          onChange={(e) => { setCarFilter(e.target.value); setPage(0); }}
+          className="cursor-pointer rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-2 text-sm text-slate-300 transition-colors duration-200 focus:border-cyan-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60">
           <option value="all">All Cars</option>
-          <option value="DMC">DMC</option>
-          <option value="TC">TC</option>
-          <option value="MC">MC</option>
-          <option value="ALL">ALL</option>
+          {(facets.cars?.filter(Boolean) as string[] | undefined)?.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
         </select>
-        <select value={systemFilter} onChange={(e) => setSystemFilter(e.target.value)}
-          className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">
+        <label htmlFor="connector-system" className="sr-only">Filter by system</label>
+        <select id="connector-system" value={systemFilter}
+          onChange={(e) => { setSystemFilter(e.target.value); setPage(0); }}
+          className="cursor-pointer rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-2 text-sm text-slate-300 transition-colors duration-200 focus:border-cyan-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60">
           <option value="all">All Systems</option>
-          <option value="TRAC">Traction</option>
-          <option value="TMS">TCMS</option>
-          <option value="DOOR">Door</option>
-          <option value="APS">APS</option>
-          <option value="TRL">Trainlines</option>
-          <option value="CAB">Cab</option>
-          <option value="BRAKE">Brake</option>
+          {facets.systems?.map(s => (
+            <option key={s.code} value={s.code}>{s.code} — {s.name}</option>
+          ))}
         </select>
+        {(carFilter !== 'all' || systemFilter !== 'all' || search) && (
+          <button
+            type="button"
+            onClick={() => { setCarFilter('all'); setSystemFilter('all'); setSearch(''); setPage(0); }}
+            className="cursor-pointer rounded-lg border border-slate-700/50 px-3 py-2 text-sm text-slate-300 transition-colors duration-200 hover:border-cyan-500/60 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {/* Connector List */}
@@ -323,11 +366,35 @@ export default function ConnectorsPage() {
         })}
       </div>
 
-      {filtered.length === 0 && (
+      {filtered.length === 0 && !error && (
         <div className="glass-card p-12 text-center">
-          <Cable className="h-12 w-12 text-slate-500 mx-auto mb-4" />
+          <Cable className="h-12 w-12 text-slate-500 mx-auto mb-4" aria-hidden="true" />
           <p className="text-slate-400">No connectors match your filters</p>
         </div>
+      )}
+
+      {totalPages > 1 && (
+        <nav className="mt-8 flex items-center justify-between gap-4" aria-label="Connector pagination">
+          <button
+            type="button"
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="cursor-pointer rounded-lg border border-slate-700/50 px-4 py-2 text-sm text-slate-300 transition-colors duration-200 hover:border-cyan-500/60 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-slate-400 tabular-nums">
+            Page {page + 1} of {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            className="cursor-pointer rounded-lg border border-slate-700/50 px-4 py-2 text-sm text-slate-300 transition-colors duration-200 hover:border-cyan-500/60 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next
+          </button>
+        </nav>
       )}
     </div>
   );

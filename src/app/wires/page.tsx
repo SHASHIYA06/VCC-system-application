@@ -16,10 +16,17 @@ const SYSTEM_COLORS: Record<string, { color: string; bg: string; label: string }
   HV: { color: 'text-red-600', bg: 'bg-red-600/20', label: 'HV' },
 };
 
+/** Palette for whatever conductor-class codes the data actually contains. */
 const TYPE_COLORS: Record<string, string> = {
   Control: 'bg-slate-500/20 text-slate-400',
   Safety: 'bg-red-500/20 text-red-400',
   Fault: 'bg-amber-500/20 text-amber-400',
+};
+
+const STATUS_STYLES: Record<string, string> = {
+  VERIFIED: 'bg-emerald-500/20 text-emerald-400',
+  UNVERIFIED: 'bg-slate-600/40 text-slate-300',
+  DEPRECATED: 'bg-red-500/20 text-red-400',
 };
 
 const COLOR_CODES: Record<string, string> = {
@@ -37,7 +44,15 @@ interface WireData {
   signalName: string | null;
   description: string | null;
   wireColor: string | null;
-  wireType: string | null;
+  /**
+   * The conductor class is what this UI labels "Type". The page previously read a
+   * `wireType` field that `/api/wires` never emits, so every row rendered the
+   * default "Control" and the Type dropdown could only ever match "Control" —
+   * choosing Safety or Fault emptied the table.
+   */
+  conductorClassCode: string | null;
+  /** VERIFIED / UNVERIFIED / DEPRECATED — the trust signal for this dataset. */
+  wireStatus?: string | null;
   voltageClass: string | null;
   sourceEq?: string | null;
   sourceEquipment?: string | null;
@@ -67,7 +82,10 @@ export default function WiresPage() {
   const [offset, setOffset] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [usingFallback, setUsingFallback] = useState(false);
-  const limit = 1000;
+  const [conductorClasses, setConductorClasses] = useState<{ value: string; count: number }[]>([]);
+  const [searchTip, setSearchTip] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const limit = 200;
 
   useEffect(() => {
     async function fetchWires() {
@@ -103,6 +121,14 @@ export default function WiresPage() {
         }
         
         setHasMore(data.pagination?.hasMore || false);
+        if (data.filters?.conductorClasses) {
+          setConductorClasses(
+            data.filters.conductorClasses.filter((c: { value: string | null }) => c.value),
+          );
+        }
+        // Surfaces the API's "narrow your search" hint, which was previously
+        // computed server-side and then discarded by the client.
+        setSearchTip(data.searchInfo?.tip ?? null);
         setError(null);
         setUsingFallback(false);
         
@@ -126,7 +152,7 @@ export default function WiresPage() {
       }
     }
     fetchWires();
-  }, [offset, search]); // Refetch when offset or search changes
+  }, [offset, search, reloadKey]); // Refetch when offset, search, or a retry changes
 
   // Get unique systems from wires for filter dropdown
   const uniqueSystems = Array.from(new Set(wires.flatMap(w => w.endpoints?.map(e => e.device?.carType) || []).filter(Boolean) as string[])).sort();
@@ -146,7 +172,7 @@ export default function WiresPage() {
       (w.description || '').toLowerCase().includes(search.toLowerCase());
     const matchSystem = systemFilter === 'all' || 
       w.endpoints?.some(ep => ep.device?.carType === systemFilter);
-    const matchType = typeFilter === 'all' || (w.wireType || 'Control') === typeFilter;
+    const matchType = typeFilter === 'all' || w.conductorClassCode === typeFilter;
     const matchCross = !crossOnly || CROSS_CONNECTED.includes(w.wireNo);
     return matchSearch && matchSystem && matchType && matchCross;
   });
@@ -181,21 +207,32 @@ export default function WiresPage() {
         <p className="mt-2 text-slate-400">
           Complete wire registry with specifications for point-to-point tracing
         </p>
-        <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
-          <span>
-            {wires.length} wires loaded 
-            {totalCount > wires.length && ` (${totalCount} total in database)`}
-            {usingFallback && ' ⚠️ OFFLINE'}
+        <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-500">
+          <span className="tabular-nums">
+            {wires.length} wires loaded
+            {totalCount > wires.length && ` of ${totalCount.toLocaleString()} matching`}
+            {usingFallback && ' — offline'}
           </span>
           {CROSS_CONNECTED.length > 0 && (
             <span className="flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3 text-amber-400" /> {CROSS_CONNECTED.length} cross-connected
+              <AlertTriangle className="h-3 w-3 text-amber-400" aria-hidden="true" />
+              {CROSS_CONNECTED.length} known cross-connected (reference list)
             </span>
           )}
         </div>
+        {searchTip && (
+          <div className="mt-2 text-sm text-amber-400/90">{searchTip}</div>
+        )}
         {error && (
-          <div className={`mt-2 text-sm ${usingFallback ? 'text-amber-400' : 'text-red-400'}`}>
-            {error}
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+            <span className={usingFallback ? 'text-amber-400' : 'text-red-400'}>{error}</span>
+            <button
+              type="button"
+              onClick={() => { setLoading(true); setOffset(0); setReloadKey(k => k + 1); }}
+              className="cursor-pointer rounded-md border border-red-400/60 px-2.5 py-1 text-xs font-medium text-red-200 transition-colors duration-200 hover:bg-red-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+            >
+              Retry
+            </button>
           </div>
         )}
       </div>
@@ -261,12 +298,14 @@ export default function WiresPage() {
           <option value="all">All Systems</option>
           {uniqueSystems.map(sys => <option key={sys} value={sys}>{sys}</option>)}
         </select>
+        {/* Options come from the API's conductor-class facet, so they always
+            correspond to values that exist in the data. */}
         <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
-          className="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">
+          className="cursor-pointer px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300 transition-colors duration-200 focus:border-cyan-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60">
           <option value="all">All Types</option>
-          <option value="Control">Control</option>
-          <option value="Safety">Safety</option>
-          <option value="Fault">Fault</option>
+          {conductorClasses.map(c => (
+            <option key={c.value} value={c.value}>{c.value} ({c.count})</option>
+          ))}
         </select>
         <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
           <input type="checkbox" checked={crossOnly} onChange={(e) => setCrossOnly(e.target.checked)}
@@ -286,6 +325,7 @@ export default function WiresPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Description</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Color</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Path</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Action</th>
               </tr>
@@ -295,8 +335,10 @@ export default function WiresPage() {
                 const isCross = CROSS_CONNECTED.includes(wire.wireNo);
                 const { source, dest } = getSourceDest(wire);
                 const colorClass = COLOR_CODES[wire.wireColor || 'Blue'] || COLOR_CODES['Blue'];
-                const type = wire.wireType || 'Control';
-                const typeColor = TYPE_COLORS[type] || TYPE_COLORS['Control'];
+                const type = wire.conductorClassCode;
+                const typeColor = (type && TYPE_COLORS[type]) || 'bg-slate-500/20 text-slate-400';
+                const status = wire.wireStatus ?? null;
+                const statusClass = (status && STATUS_STYLES[status]) || 'bg-slate-600/40 text-slate-300';
 
                 return (
                   <tr key={wire.wireNo + '-' + index} className="hover:bg-slate-800/30 transition-colors">
@@ -320,9 +362,22 @@ export default function WiresPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${typeColor}`}>
-                        {type}
-                      </span>
+                      {type ? (
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${typeColor}`}>
+                          {type}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-600">Not classified</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {status ? (
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${statusClass}`}>
+                          {status}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-600">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 text-xs text-slate-500">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Loader2, Database, FileText, GitBranch } from 'lucide-react';
 
 interface CoverageMetrics {
@@ -18,33 +18,54 @@ interface CoverageMetrics {
   totalConnectors: number;
   verifiedDevices: number;
   totalDevices: number;
+  generatedAt?: string;
 }
 
 export default function ValidationPage() {
   const [metrics, setMetrics] = useState<CoverageMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>('');
+
+  /**
+   * This page previously had no `res.ok` check and no error state at all: on a
+   * failure `metrics` simply stayed `null` and every read fell through to `|| 0`.
+   * The result was a page asserting a 0.0% validation score with a red X and
+   * "Data Quality Needs Improvement", plus a green "0.0% synthetic" badge —
+   * indistinguishable from a genuine audit result, and re-rendered every 60s. A
+   * failed request must never be reported as a measurement.
+   */
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const response = await fetch('/api/twin/metrics');
+      if (!response.ok) throw new Error(`Metrics request failed with status ${response.status}`);
+      const data = await response.json();
+      if (!data?.success || !data?.data) {
+        throw new Error(data?.error || 'Metrics response did not contain data');
+      }
+      setMetrics(data.data);
+      // Prefer the server's own stamp so a cached response doesn't claim to be
+      // as fresh as the client clock.
+      setLastUpdated(
+        data.data.generatedAt
+          ? new Date(data.data.generatedAt).toLocaleTimeString()
+          : new Date().toLocaleTimeString(),
+      );
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching metrics:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load validation metrics');
+      setMetrics(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchMetrics();
     const interval = setInterval(fetchMetrics, 60000); // Refresh every minute
     return () => clearInterval(interval);
-  }, []);
-
-  const fetchMetrics = async () => {
-    try {
-      const response = await fetch('/api/twin/metrics');
-      const data = await response.json();
-      if (data.success && data.data) {
-        setMetrics(data.data);
-        setLastUpdated(new Date().toLocaleTimeString());
-      }
-    } catch (error) {
-      console.error('Error fetching metrics:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchMetrics]);
 
   const getStatusColor = (value: number, threshold: number = 80) => {
     if (value >= threshold) return 'text-green-400';
@@ -64,6 +85,46 @@ export default function ValidationPage() {
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-cyan-400 mx-auto mb-4" />
           <p className="text-slate-400">Loading Engineering Accuracy Metrics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Bail out before rendering any figure. Showing "0.0%" here would be a
+  // fabricated audit result, not a measurement.
+  if (error || !metrics) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-6">
+        <div className="mx-auto max-w-3xl">
+          <h1 className="mb-2 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-4xl font-bold text-transparent">
+            Engineering Accuracy Dashboard
+          </h1>
+          <p className="mb-8 text-slate-400">
+            Digital Twin Certification — Real-time Data Quality Monitoring
+          </p>
+
+          <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-8 text-center">
+            <XCircle className="mx-auto mb-4 h-12 w-12 text-red-400" aria-hidden="true" />
+            <h2 className="mb-2 text-xl font-semibold text-red-300">
+              Validation metrics unavailable
+            </h2>
+            <p className="mx-auto max-w-xl text-sm text-slate-400">
+              The accuracy figures could not be computed, so none are shown. This is a
+              data-retrieval failure, not a 0% audit result.
+            </p>
+            {error && (
+              <p className="mt-4 rounded-md bg-slate-900/60 px-4 py-2 font-mono text-xs text-red-300/90">
+                {error}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => { setLoading(true); fetchMetrics(); }}
+              className="mt-6 cursor-pointer rounded-lg border border-red-400/60 px-4 py-2 text-sm font-medium text-red-200 transition-colors duration-200 hover:bg-red-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+            >
+              Retry now
+            </button>
+          </div>
         </div>
       </div>
     );

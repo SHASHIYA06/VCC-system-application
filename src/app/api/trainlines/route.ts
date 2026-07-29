@@ -53,6 +53,9 @@ export async function GET(request: NextRequest) {
       orderBy: { code: 'asc' },
     });
 
+    // Single `data` array. The route previously serialised the same rows twice,
+    // as `data` and again as `trainlines`, doubling the payload for a key no
+    // caller read.
     return NextResponse.json({
       data: trainlines.map(tl => ({
         id: tl.id,
@@ -65,16 +68,6 @@ export async function GET(request: NextRequest) {
         lineGroup: tl.lineGroup,
         voltageText: tl.conductorClass?.voltageDomain || null,
         note: tl.note,
-      })),
-      trainlines: trainlines.map(tl => ({
-        id: tl.id,
-        wireNo: tl.wireNo,
-        itemName: tl.itemName,
-        conductorClass: tl.conductorClass?.description,
-        carType: tl.carType,
-        systemCode: tl.drawing?.system?.code,
-        drawingNo: tl.drawing?.drawingNo,
-        lineGroup: tl.lineGroup,
       })),
       pagination: {
         total,

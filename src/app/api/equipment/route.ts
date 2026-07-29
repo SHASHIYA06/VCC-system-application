@@ -31,7 +31,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (systemCode) {
-      where.systemId = systemCode;
+      // `systemId` holds a cuid, not a code — assigning the code to it matched
+      // nothing, so filtering by system silently returned an empty list.
+      where.system = { code: systemCode };
     }
 
     const [equipment, total] = await Promise.all([
@@ -39,10 +41,11 @@ export async function GET(request: NextRequest) {
         where,
         take: limit,
         skip: offset,
-        orderBy: { deviceName: 'asc' },
+        orderBy: [{ deviceName: 'asc' }, { tagNo: 'asc' }],
         include: {
-          system: true,
-          _count: { select: { wireEndpoints: true } },
+          system: { select: { code: true, name: true } },
+          drawing: { select: { drawingNo: true } },
+          _count: { select: { wireEndpoints: true, specifications: true } },
         },
       }),
       prisma.device.count({ where }),
@@ -69,8 +72,17 @@ export async function GET(request: NextRequest) {
         tagNo: e.tagNo,
         deviceType: e.deviceType,
         carType: e.carType,
-        systemCode: e.system?.code,
+        // `locationTag` and `note` were already on the Device row but were never
+        // selected, so the page's Location and Description slots had nothing to
+        // render and always came out blank.
+        locationTag: e.locationTag,
+        note: e.note,
+        systemCode: e.system?.code ?? null,
+        systemName: e.system?.name ?? null,
+        drawingNo: e.drawing?.drawingNo ?? null,
+        isVerified: e.isVerified,
         wireCount: e._count.wireEndpoints,
+        specCount: e._count.specifications,
       })),
       pagination: {
         total,
