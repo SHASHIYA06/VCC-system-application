@@ -76,54 +76,66 @@ export async function GET(request: NextRequest) {
       where.id = { in: drawingIds };
     }
 
-    const [docs, total, systemCount] = await Promise.all([
+    const [docs, total, systemCount, systemFacets] = await Promise.all([
       prisma.drawing.findMany({
         where,
         include: { 
           system: true,
           _count: { select: { connectors: true, trainLines: true, devices: true, pages: true } }
         },
-        orderBy: { drawingNo: 'asc' },
+        orderBy: [{ drawingNo: 'asc' }, { revision: 'asc' }],
         skip,
         take: limit,
       }),
       prisma.drawing.count({ where }),
       prisma.system.count(),
+      // Facets are deliberately computed WITHOUT `where` applied. The client uses
+      // them to populate the system filter, and deriving that list from the
+      // filtered page instead collapsed the dropdown to the one system already
+      // selected — leaving no way to switch systems without clearing the filter.
+      prisma.system.findMany({
+        select: {
+          code: true,
+          name: true,
+          _count: { select: { drawings: true } },
+        },
+        orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
+      }),
     ]);
 
-    const groupedBySystem = docs.reduce((acc, d) => {
+    /**
+     * A `PLACEHOLDER` title was auto-generated during import and never appeared in
+     * any source document, so it must not be presented as the engineering title.
+     * The row itself is real (these drawings do have pages and connectors), which
+     * is why they stay visible — they are just labelled honestly.
+     */
+    const shape = (d: (typeof docs)[number]) => ({
+      id: d.id,
+      drawingNo: d.drawingNo,
+      title: d.title,
+      titleSource: d.titleSource,
+      titleVerified: d.titleSource !== 'PLACEHOLDER',
+      isReference: d.isReference,
+      revision: d.revision,
+      totalSheets: d.totalSheets,
+      system: d.system ? { code: d.system.code, name: d.system.name } : null,
+      remarks: d.remarks,
+      connectorCount: d._count.connectors,
+      trainlineCount: d._count.trainLines,
+      deviceCount: d._count.devices,
+      pageCount: d._count.pages,
+    });
+
+    const drawings = docs.map(shape);
+
+    const groupedBySystem = drawings.reduce((acc, d) => {
       const sysCode = d.system?.code || 'GEN';
-      if (!acc[sysCode]) acc[sysCode] = [];
-      acc[sysCode].push({
-        id: d.id,
-        drawingNo: d.drawingNo,
-        title: d.title,
-        revision: d.revision,
-        totalSheets: d.totalSheets,
-        system: d.system ? { code: d.system.code, name: d.system.name } : null,
-        remarks: d.remarks,
-        connectorCount: d._count.connectors,
-        trainlineCount: d._count.trainLines,
-        deviceCount: d._count.devices,
-        pageCount: d._count.pages,
-        _count: d._count,
-      });
+      (acc[sysCode] ??= []).push(d);
       return acc;
-    }, {} as Record<string, unknown[]>);
+    }, {} as Record<string, typeof drawings>);
 
     return NextResponse.json({
-      drawings: docs.map(d => ({
-        id: d.id,
-        drawingNo: d.drawingNo,
-        title: d.title,
-        revision: d.revision,
-        totalSheets: d.totalSheets,
-        system: d.system ? { code: d.system.code, name: d.system.name } : null,
-        remarks: d.remarks,
-        connectorCount: d._count.connectors,
-        trainlineCount: d._count.trainLines,
-        deviceCount: d._count.devices,
-      })),
+      drawings,
       groupedBySystem,
       pagination: { 
         total, 
@@ -139,6 +151,17 @@ export async function GET(request: NextRequest) {
         totalSystems: systemCount,
         currentSystem: systemCode || null,
         wireFilter: wireNo || null,
+        // Unfiltered list so the client's system filter always offers every
+        // option, and can show which systems actually hold drawings.
+        systems: systemFacets.map((s) => ({
+          code: s.code,
+          name: s.name,
+          drawingCount: s._count.drawings,
+        })),
+        titleProvenance: {
+          verified: drawings.filter((d) => d.titleVerified).length,
+          placeholder: drawings.filter((d) => !d.titleVerified).length,
+        },
       }
     });
   } catch (error) {

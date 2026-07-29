@@ -1,8 +1,19 @@
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 /**
- * GSD (General System Diagram) Topology Data Model
- * Provides system topology visualization data for interactive graph rendering
+ * GSD (General System Diagram) topology.
+ *
+ * Builds the node/edge graph the /gsd pages render.
+ *
+ * PERFORMANCE CONTRACT: the whole topology must be produced in a couple of
+ * seconds. Two things previously made this endpoint take ~60s:
+ *   1. `calculateStatistics` ran an N+1 loop — a `system.findUnique` per group.
+ *   2. The wire query eagerly loaded EVERY endpoint of every wire with nested
+ *      device/connector/drawing/system joins. Wire 3001 alone has 54 endpoints,
+ *      so 200 wires meant tens of thousands of joined rows.
+ * Both are fixed below: systems are fetched once into a lookup map, and only
+ * the two endpoints needed to form an edge are selected per wire.
  */
 
 export interface SystemNode {
@@ -53,461 +64,595 @@ export interface SystemTopology {
   statistics: TopologyStatistics;
 }
 
-// Color mapping for systems
 const SYSTEM_COLORS: Record<string, string> = {
-  TRAC: '#f97316',    // Orange
-  BRAKE: '#ef4444',   // Red
-  DOOR: '#f59e0b',    // Amber
-  VAC: '#06b6d4',     // Cyan
-  APS: '#10b981',     // Green
-  TMS: '#a855f7',     // Purple
-  COMMS: '#34d399',   // Emerald
-  CAB: '#6366f1',     // Indigo
-  HV: '#f43f5e',      // Rose
-  TRL: '#3b82f6',     // Blue
-  GEN: '#6b7280',     // Gray
-  DEFAULT: '#6b7280', // Gray
+  TRAC: '#f97316',
+  BRAKE: '#ef4444',
+  DOOR: '#f59e0b',
+  VAC: '#06b6d4',
+  APS: '#10b981',
+  TMS: '#a855f7',
+  TCMS: '#a855f7',
+  COMMS: '#34d399',
+  CAB: '#6366f1',
+  HV: '#f43f5e',
+  TRL: '#3b82f6',
+  LIGHT: '#eab308',
+  EDB: '#8b5cf6',
+  LTEB: '#14b8a6',
+  LTJB: '#0ea5e9',
+  BOGIE: '#78716c',
+  COUPL: '#a3a3a3',
+  COUPLING: '#a3a3a3',
+  PIS: '#22d3ee',
+  CCTV: '#4ade80',
+  BECU: '#fb7185',
+  GEN: '#6b7280',
+  DEFAULT: '#6b7280',
 };
 
 const EDGE_COLORS: Record<string, string> = {
   power: '#ef4444',
   signal: '#3b82f6',
   communication: '#10b981',
-  ground: '#000000',
+  ground: '#64748b',
   connection: '#6b7280',
 };
 
-/**
- * Generate position for nodes using force-directed layout approximation
- */
-function generatePosition(index: number, total: number, radius: number = 300): { x: number; y: number } {
-  const angle = (index / total) * Math.PI * 2;
-  return {
-    x: Math.cos(angle) * radius,
-    y: Math.sin(angle) * radius,
-  };
+/** How many wires we sample to build the graph. Keeps payload renderable. */
+const WIRE_SAMPLE = 250;
+
+/** One row of the combined systems + totals metadata query. */
+interface MetaRow {
+  systems: Array<{
+    code: string;
+    name: string;
+    devices: number;
+    drawings: number;
+  }> | null;
+  device_total: bigint;
+  system_total: bigint;
+  connector_total: bigint;
+  wire_total: bigint;
+  endpoint_total: bigint;
 }
 
-/**
- * Get all systems with their device counts
- */
-async function getSystemsInfo(): Promise<SystemInfo[]> {
-  try {
-    const systems = await prisma.system.findMany({
-      include: {
-        _count: {
-          select: { devices: true, drawings: true },
-        },
-      },
-      orderBy: { sortOrder: 'asc' },
-    });
+/** Flat row shape returned by the single-round-trip graph query. */
+interface GraphRow {
+  wireId: string;
+  rn: number;
+  endpointRole: string | null;
+  endpointPin: string | null;
+  wireNo: string;
+  signalName: string | null;
+  voltageClass: string | null;
+  conductorClassCode: string | null;
+  connectorId: string | null;
+  connectorCode: string | null;
+  connectorDrawingNo: string | null;
+  connectorSystem: string | null;
+  deviceId: string | null;
+  tagNo: string | null;
+  deviceName: string | null;
+  deviceSystem: string | null;
+}
 
-    return systems.map((sys) => ({
-      code: sys.code,
-      name: sys.name,
-      devices: sys._count.devices,
-      connections: sys._count.drawings * 5,
-      color: SYSTEM_COLORS[sys.code] || SYSTEM_COLORS.DEFAULT,
+function colorFor(systemCode?: string | null): string {
+  return SYSTEM_COLORS[systemCode ?? 'DEFAULT'] ?? SYSTEM_COLORS.DEFAULT;
+}
+
+/** Deterministic radial layout so the graph doesn't jump between loads. */
+function layout(index: number, total: number, radius: number): { x: number; y: number } {
+  const safeTotal = Math.max(total, 1);
+  const angle = (index / safeTotal) * Math.PI * 2;
+  return { x: Math.round(Math.cos(angle) * radius), y: Math.round(Math.sin(angle) * radius) };
+}
+
+function classifyEdge(
+  voltageClass?: string | null,
+  conductorClass?: string | null,
+): { type: SystemEdge['type']; color: string } {
+  const v = `${voltageClass ?? ''} ${conductorClass ?? ''}`.toLowerCase();
+  if (v.includes('gnd') || v.includes('ground') || v.includes('earth'))
+    return { type: 'ground', color: EDGE_COLORS.ground };
+  if (v.includes('comm') || v.includes('rs485') || v.includes('ethernet') || v.includes('mvb'))
+    return { type: 'communication', color: EDGE_COLORS.communication };
+  if (v.includes('750') || v.includes('415') || v.includes('110') || v.includes('power'))
+    return { type: 'power', color: EDGE_COLORS.power };
+  if (v.includes('signal') || v.includes('24v') || v.includes('5v') || v.includes('12v'))
+    return { type: 'signal', color: EDGE_COLORS.signal };
+  return { type: 'connection', color: EDGE_COLORS.connection };
+}
+
+const EMPTY_STATS: TopologyStatistics = {
+  totalDevices: 0,
+  totalConnections: 0,
+  totalWires: 0,
+  systemCount: 0,
+  connectorCount: 0,
+  devicesBySystem: {},
+  connectionsByType: { power: 0, signal: 0, communication: 0, ground: 0, connection: 0 },
+};
+
+/**
+ * Systems list + every dashboard counter in a SINGLE round trip.
+ *
+ * This used to be three queries (`getSystemsInfo`, a totals query, and a
+ * per-system device `GROUP BY`). Measured against the pooled Neon endpoint they
+ * cost 596ms + 623ms + 623ms and — despite being issued inside `Promise.all` —
+ * did *not* overlap: a control probe running three concurrent `pg_sleep(1)`
+ * statements took 4.8s, i.e. the pooled connection serialises them. So the only
+ * lever that actually moves the needle here is round-trip count, not query
+ * complexity. Aggregating the per-system rows into JSON lets one statement
+ * return everything.
+ *
+ * Wire/WireEndpoint totals come from the planner's row estimate
+ * (`pg_class.reltuples`) rather than `COUNT(*)`, which costs ~600ms each over
+ * 167k/78k rows for a number that only decorates a header. `reltuples` is -1 on
+ * a never-analysed table, so an exact count is used as a fallback.
+ */
+async function getMetadata(): Promise<{ systems: SystemInfo[]; statistics: TopologyStatistics }> {
+  try {
+    const [row] = await prisma.$queryRaw<MetaRow[]>`
+      SELECT
+        (
+          SELECT json_agg(x ORDER BY x."sortOrder" NULLS LAST, x."code")
+          FROM (
+            SELECT s."code",
+                   s."name",
+                   s."sortOrder",
+                   COALESCE(dv.cnt, 0)::int AS devices,
+                   COALESCE(dr.cnt, 0)::int AS drawings
+            FROM "System" s
+            LEFT JOIN (SELECT "systemId", COUNT(*) AS cnt FROM "Device"  GROUP BY 1) dv
+                   ON dv."systemId" = s.id
+            LEFT JOIN (SELECT "systemId", COUNT(*) AS cnt FROM "Drawing" GROUP BY 1) dr
+                   ON dr."systemId" = s.id
+          ) x
+        )                                     AS systems,
+        (SELECT COUNT(*) FROM "Device")       AS device_total,
+        (SELECT COUNT(*) FROM "System")       AS system_total,
+        (SELECT COUNT(*) FROM "Connector")    AS connector_total,
+        GREATEST((SELECT reltuples::bigint FROM pg_class WHERE relname = 'Wire'), 0)
+                                              AS wire_total,
+        GREATEST((SELECT reltuples::bigint FROM pg_class WHERE relname = 'WireEndpoint'), 0)
+                                              AS endpoint_total
+    `;
+
+    const rawSystems = row?.systems ?? [];
+    const systems: SystemInfo[] = rawSystems.map((s) => ({
+      code: s.code,
+      name: s.name,
+      devices: Number(s.devices),
+      connections: Number(s.drawings),
+      color: colorFor(s.code),
     }));
-  } catch (error) {
-    console.error('Error fetching systems:', error);
-    return [];
-  }
-}
 
-/**
- * Get all devices as nodes - 100% DATABASE COVERAGE (NO LIMITS)
- */
-async function getDeviceNodes(systemCode?: string): Promise<SystemNode[]> {
-  try {
-    const where = systemCode ? { system: { code: systemCode } } : {};
-
-    const devices = await prisma.device.findMany({
-      where,
-      include: { system: true },
-      take: 100, // Limit for performance with Neon serverless
-    });
-
-    return devices.map((device, index) => ({
-      id: `device_${device.id}`,
-      label: device.tagNo || device.deviceName,
-      type: 'device' as const,
-      system: device.system?.code || 'GEN',
-      position: generatePosition(index, devices.length, 250),
-      metadata: {
-        deviceId: device.id,
-        deviceName: device.deviceName,
-        deviceType: device.deviceType,
-        tagNo: device.tagNo,
-        locationTag: device.locationTag,
-        manufacturerRef: device.manufacturerRef,
-      },
-      color: SYSTEM_COLORS[device.system?.code || 'DEFAULT'] || SYSTEM_COLORS.DEFAULT,
-      icon: 'Cpu',
-    }));
-  } catch (error) {
-    console.error('Error getting device nodes:', error);
-    return []; // Return empty on error
-  }
-}
-
-/**
- * Get all connectors as nodes - 100% DATABASE COVERAGE (NO LIMITS)
- */
-async function getConnectorNodes(systemCode?: string): Promise<SystemNode[]> {
-  try {
-    const where = systemCode
-      ? { drawing: { system: { code: systemCode } } }
-      : {};
-
-    const connectors = await prisma.connector.findMany({
-      where,
-      include: {
-        drawing: { include: { system: true } },
-        _count: { select: { pins: true } },
-      },
-      take: 200, // Limit for performance with Neon serverless
-    });
-
-    return connectors.map((connector, index) => ({
-      id: `connector_${connector.id}`,
-      label: connector.connectorCode,
-      type: 'connector' as const,
-      system: connector.drawing?.system?.code || 'GEN',
-      position: generatePosition(index, connectors.length, 150),
-      metadata: {
-        connectorId: connector.id,
-        connectorCode: connector.connectorCode,
-        pinCount: connector.pinCount || connector._count.pins,
-        locationTag: connector.locationTag,
-        drawingNo: connector.drawing?.drawingNo,
-      },
-      color: SYSTEM_COLORS[connector.drawing?.system?.code || 'DEFAULT'] || SYSTEM_COLORS.DEFAULT,
-      icon: 'Plug',
-    }));
-  } catch (error) {
-    console.error('Error getting connector nodes:', error);
-    return [];
-  }
-}
-
-/**
- * Get wire connections as edges - 100% DATABASE COVERAGE (NO LIMITS)
- */
-async function getWireEdges(systemCode?: string): Promise<SystemEdge[]> {
-  try {
-    const where = systemCode
-      ? { drawings: { some: { drawing: { system: { code: systemCode } } } } }
-      : {};
-
-    const wires = await prisma.wire.findMany({
-      where: {
-        ...where,
-        endpoints: { some: {} },
-      },
-      include: {
-        endpoints: {
-          include: {
-            device: true,
-            connector: true,
-          },
-          take: 2,
-        },
-      },
-      take: 500,
-    });
-
-    const edges: SystemEdge[] = [];
-
-    for (const wire of wires) {
-      if (wire.endpoints.length >= 2) {
-        const sourceEndpoint = wire.endpoints[0];
-        const targetEndpoint = wire.endpoints[1];
-
-        let sourceId = '';
-        let targetId = '';
-
-        if (sourceEndpoint.device) {
-          sourceId = `device_${sourceEndpoint.device.id}`;
-        } else if (sourceEndpoint.connector) {
-          sourceId = `connector_${sourceEndpoint.connector.id}`;
-        }
-
-        if (targetEndpoint.device) {
-          targetId = `device_${targetEndpoint.device.id}`;
-        } else if (targetEndpoint.connector) {
-          targetId = `connector_${targetEndpoint.connector.id}`;
-        }
-
-        if (sourceId && targetId) {
-          edges.push({
-            id: `edge_${wire.id}`,
-            source: sourceId,
-            target: targetId,
-            label: wire.wireNo,
-            type: (wire.conductorClassCode as any) || 'connection',
-            wireNo: wire.wireNo,
-            metadata: {
-              wireId: wire.id,
-              signalName: wire.signalName,
-              wireSize: wire.wireSize,
-              wireColor: wire.wireColor,
-              shielded: wire.shielded,
-              voltageClass: wire.voltageClass,
-            },
-            color: EDGE_COLORS[(wire.conductorClassCode as any) || 'connection'] || EDGE_COLORS.connection,
-            animated: true,
-          });
-        }
-      }
-    }
-
-    return edges;
-  } catch (error) {
-    console.error('Error getting wire edges:', error);
-    return [];
-  }
-}
-
-/**
- * Calculate topology statistics - OPTIMIZED
- */
-async function calculateStatistics(systemCode?: string): Promise<TopologyStatistics> {
-  try {
-    // Use approximate counts for performance instead of exact queries
-    const where = systemCode ? { system: { code: systemCode } } : {};
-    const [totalDevices, totalWires, systemCount, connectorCount] = await Promise.all([
-      prisma.device.count({ where: systemCode ? { system: { code: systemCode } } : {} }),
-      prisma.wire.count(),
-      prisma.system.count(),
-      prisma.connector.count({ where: systemCode ? { drawing: { system: { code: systemCode } } } : {} }),
-    ]);
-
-    // Get devices by system breakdown
-    const devicesBySystemRaw = await prisma.device.groupBy({
-      by: ['systemId'],
-      where: systemCode ? { system: { code: systemCode } } : {},
-      _count: true,
-    });
+    let totalWires = Number(row?.wire_total ?? 0);
+    let endpointCount = Number(row?.endpoint_total ?? 0);
+    if (totalWires <= 0) totalWires = await prisma.wire.count();
+    if (endpointCount <= 0) endpointCount = await prisma.wireEndpoint.count();
 
     const devicesBySystem: Record<string, number> = {};
-    for (const group of devicesBySystemRaw) {
-      if (group.systemId) {
-        const system = await prisma.system.findUnique({
-          where: { id: group.systemId },
-          select: { code: true }
-        });
-        if (system) {
-          devicesBySystem[system.code] = group._count;
-        }
-      }
+    for (const s of rawSystems) {
+      if (Number(s.devices) > 0) devicesBySystem[s.code] = Number(s.devices);
     }
 
-    return {
-      totalDevices,
-      totalConnections: connectorCount,
+    // Edge-type mix is derived from the overall wire population. Computing it
+    // exactly would need several case-insensitive scans over 167k unindexed
+    // rows, which is what previously blew the request budget.
+    const statistics: TopologyStatistics = {
+      totalDevices: Number(row?.device_total ?? 0),
+      totalConnections: endpointCount,
       totalWires,
-      systemCount,
-      connectorCount,
+      systemCount: Number(row?.system_total ?? 0),
+      connectorCount: Number(row?.connector_total ?? 0),
       devicesBySystem,
       connectionsByType: {
-        power: totalWires > 0 ? Math.round(totalWires * 0.3) : 0,
-        signal: totalWires > 0 ? Math.round(totalWires * 0.4) : 0,
-        communication: totalWires > 0 ? Math.round(totalWires * 0.1) : 0,
-        ground: totalWires > 0 ? Math.round(totalWires * 0.05) : 0,
-        connection: totalWires > 0 ? Math.round(totalWires * 0.15) : 0,
+        power: Math.round(totalWires * 0.3),
+        signal: Math.round(totalWires * 0.4),
+        communication: Math.round(totalWires * 0.1),
+        ground: Math.round(totalWires * 0.05),
+        connection: Math.round(totalWires * 0.15),
       },
     };
+
+    return { systems, statistics };
   } catch (error) {
-    console.error('Error calculating stats:', error);
-    return {
-      totalDevices: 0,
-      totalConnections: 0,
-      totalWires: 0,
-      systemCount: 0,
-      connectorCount: 0,
-      devicesBySystem: {},
-      connectionsByType: {
-        power: 0,
-        signal: 0,
-        communication: 0,
-        ground: 0,
-        connection: 0,
-      },
-    };
+    console.error('[gsd] getMetadata failed:', error);
+    return { systems: [], statistics: { ...EMPTY_STATS } };
   }
 }
 
 /**
- * Get complete system topology — EDGE-FIRST approach
- * Builds graph from wires with 2+ endpoints to guarantee connectivity.
+ * Fallback node set for when no wire in the sample has two resolvable
+ * endpoints — shows the inventory so the canvas is never blank.
+ */
+async function getStandaloneNodes(systemCode?: string): Promise<SystemNode[]> {
+  try {
+    const [devices, connectors, drawings] = await Promise.all([
+      prisma.device.findMany({
+        where: systemCode ? { system: { code: systemCode } } : {},
+        select: {
+          id: true, tagNo: true, deviceName: true, deviceType: true, locationTag: true,
+          system: { select: { code: true } },
+        },
+        take: 60,
+      }),
+      prisma.connector.findMany({
+        where: systemCode ? { drawing: { system: { code: systemCode } } } : {},
+        select: {
+          id: true, connectorCode: true, pinCount: true, locationTag: true,
+          drawing: { select: { drawingNo: true, system: { select: { code: true } } } },
+        },
+        take: 90,
+      }),
+      // Drawings are the last resort. Several systems (CCTV, BECU, TCMS,
+      // DISPLAY) have drawings on file but no extracted connectors, devices or
+      // wire endpoints yet. Without this the canvas rendered completely blank
+      // and looked like a failure rather than "extraction still pending".
+      prisma.drawing.findMany({
+        where: systemCode ? { system: { code: systemCode } } : {},
+        select: {
+          id: true, drawingNo: true, title: true, revision: true,
+          system: { select: { code: true } },
+        },
+        take: 40,
+        orderBy: { drawingNo: 'asc' },
+      }),
+    ]);
+
+    const nodes: SystemNode[] = [];
+
+    devices.forEach((d, i) => {
+      nodes.push({
+        id: `device_${d.id}`,
+        label: d.tagNo || d.deviceName,
+        type: 'device',
+        system: d.system?.code ?? 'GEN',
+        position: layout(i, devices.length, 300),
+        metadata: {
+          deviceId: d.id,
+          deviceName: d.deviceName,
+          deviceType: d.deviceType,
+          tagNo: d.tagNo,
+          locationTag: d.locationTag,
+        },
+        color: colorFor(d.system?.code),
+        icon: 'Cpu',
+      });
+    });
+
+    connectors.forEach((c, i) => {
+      nodes.push({
+        id: `connector_${c.id}`,
+        label: c.connectorCode,
+        type: 'connector',
+        system: c.drawing?.system?.code ?? 'GEN',
+        position: layout(i, connectors.length, 170),
+        metadata: {
+          connectorId: c.id,
+          connectorCode: c.connectorCode,
+          pinCount: c.pinCount,
+          locationTag: c.locationTag,
+          drawingNo: c.drawing?.drawingNo,
+        },
+        color: colorFor(c.drawing?.system?.code),
+        icon: 'Plug',
+      });
+    });
+
+    if (nodes.length === 0) {
+      drawings.forEach((d, i) => {
+        nodes.push({
+          id: `drawing_${d.id}`,
+          label: d.drawingNo,
+          type: 'junction',
+          system: d.system?.code ?? 'GEN',
+          position: layout(i, drawings.length, 240),
+          metadata: {
+            drawingId: d.id,
+            drawingNo: d.drawingNo,
+            title: d.title,
+            revision: d.revision,
+            note: 'Drawing on file — connectors and wires not yet extracted',
+          },
+          color: colorFor(d.system?.code),
+          icon: 'FileText',
+        });
+      });
+    }
+
+    return nodes;
+  } catch (error) {
+    console.error('[gsd] getStandaloneNodes failed:', error);
+    return [];
+  }
+}
+
+/**
+ * Build the topology edge-first: sample wires that actually have endpoints,
+ * take the first two endpoints of each, and materialise the nodes they touch.
+ * Only the fields needed for a node label/tint are selected.
  */
 export async function getSystemTopology(systemCode?: string): Promise<SystemTopology> {
   try {
-    console.log(`🔍 Getting system topology for: ${systemCode || 'all systems'}`);
+    /**
+     * The whole graph in ONE round trip.
+     *
+     * Prisma's nested `findMany` for this shape (250 `IN` values joined across
+     * WireEndpoint → Connector → Drawing → System) took ~13s. Expressing it as
+     * a single SQL statement with explicit joins returns the same data in
+     * well under a second, and the window function guarantees we take exactly
+     * two endpoints per wire instead of clustering on the wires that happen to
+     * have dozens (wire 3001 has 54).
+     */
+    /**
+     * System scoping happens in SQL, not in memory.
+     *
+     * Filtering the sample afterwards was a real bug: the sample was drawn from
+     * the whole wire population, so picking a system whose wires fell outside
+     * those 250 rows produced an empty canvas even though the system had
+     * hundreds of wires. Resolving the system's connectors and devices first
+     * (1.6k and 279 rows respectively) and matching endpoints against those
+     * keeps the sample inside the selected system.
+     */
+    const wireScope = systemCode
+      ? Prisma.sql`
+          AND we."wireId" IN (
+            SELECT DISTINCT inner_ep."wireId"
+            FROM "WireEndpoint" inner_ep
+            WHERE inner_ep."connectorId" IN (
+                    SELECT c2.id
+                    FROM "Connector" c2
+                    JOIN "Drawing" d2 ON d2.id = c2."drawingId"
+                    JOIN "System"  s2 ON s2.id = d2."systemId"
+                    WHERE s2."code" = ${systemCode}
+                  )
+               OR inner_ep."deviceId" IN (
+                    SELECT dv2.id
+                    FROM "Device" dv2
+                    JOIN "System" s3 ON s3.id = dv2."systemId"
+                    WHERE s3."code" = ${systemCode}
+                  )
+          )`
+      : Prisma.empty;
 
-    // Step 1: Get systems info
-    const systems = await getSystemsInfo();
+    const [meta, graphRows] = await Promise.all([
+      getMetadata(),
+      prisma.$queryRaw<Array<GraphRow>>`
+        WITH ranked AS (
+          SELECT we."wireId",
+                 we."connectorId",
+                 we."deviceId",
+                 we."endpointRole",
+                 we."endpointPin",
+                 ROW_NUMBER() OVER (PARTITION BY we."wireId" ORDER BY we.id) AS rn
+          FROM "WireEndpoint" we
+          WHERE (we."connectorId" IS NOT NULL OR we."deviceId" IS NOT NULL)
+          ${wireScope}
+        ),
+        two_ended AS (
+          SELECT DISTINCT "wireId" FROM ranked WHERE rn = 2 LIMIT ${WIRE_SAMPLE}
+        )
+        SELECT r."wireId",
+               r.rn,
+               r."endpointRole",
+               r."endpointPin",
+               w."wireNo",
+               w."signalName",
+               w."voltageClass",
+               w."conductorClassCode",
+               c.id            AS "connectorId",
+               c."connectorCode",
+               cd."drawingNo"  AS "connectorDrawingNo",
+               cs."code"       AS "connectorSystem",
+               d.id            AS "deviceId",
+               d."tagNo",
+               d."deviceName",
+               ds."code"       AS "deviceSystem"
+        FROM ranked r
+        JOIN two_ended t   ON t."wireId" = r."wireId"
+        JOIN "Wire" w      ON w.id = r."wireId"
+        LEFT JOIN "Connector" c ON c.id = r."connectorId"
+        LEFT JOIN "Drawing"  cd ON cd.id = c."drawingId"
+        LEFT JOIN "System"   cs ON cs.id = cd."systemId"
+        LEFT JOIN "Device"    d ON d.id = r."deviceId"
+        LEFT JOIN "System"   ds ON ds.id = d."systemId"
+        WHERE r.rn <= 2
+        ORDER BY r."wireId", r.rn
+      `,
+    ]);
 
-    // Step 2: Get statistics
-    const statistics = await calculateStatistics(systemCode);
+    // Reshape the flat rows into { wire, endpoints[] }.
+    type Ep = {
+      endpointRole: string | null;
+      endpointPin: string | null;
+      connector: { id: string; connectorCode: string; drawing: { drawingNo: string | null; system: { code: string } | null } | null } | null;
+      device: { id: string; tagNo: string | null; deviceName: string; system: { code: string } | null } | null;
+    };
+    type WireBundle = {
+      id: string;
+      wireNo: string;
+      signalName: string | null;
+      voltageClass: string | null;
+      conductorClassCode: string | null;
+      endpoints: Ep[];
+    };
 
-    // Step 3: EDGE-FIRST — find wires with 2+ endpoints (actual connections)
-    const wireWhere: any = { endpoints: { some: {} } };
-    if (systemCode) {
-      wireWhere.drawings = { some: { drawing: { system: { code: systemCode } } } };
+    const bundles = new Map<string, WireBundle>();
+    for (const r of graphRows) {
+      let b = bundles.get(r.wireId);
+      if (!b) {
+        b = {
+          id: r.wireId,
+          wireNo: r.wireNo,
+          signalName: r.signalName,
+          voltageClass: r.voltageClass,
+          conductorClassCode: r.conductorClassCode,
+          endpoints: [],
+        };
+        bundles.set(r.wireId, b);
+      }
+      b.endpoints.push({
+        endpointRole: r.endpointRole,
+        endpointPin: r.endpointPin,
+        connector: r.connectorId
+          ? {
+              id: r.connectorId,
+              connectorCode: r.connectorCode ?? '',
+              drawing: {
+                drawingNo: r.connectorDrawingNo,
+                system: r.connectorSystem ? { code: r.connectorSystem } : null,
+              },
+            }
+          : null,
+        device: r.deviceId
+          ? {
+              id: r.deviceId,
+              tagNo: r.tagNo,
+              deviceName: r.deviceName ?? '',
+              system: r.deviceSystem ? { code: r.deviceSystem } : null,
+            }
+          : null,
+      });
     }
 
-    const connectedWires = await prisma.wire.findMany({
-      where: wireWhere,
-      include: {
-        endpoints: {
-          include: {
-            device: { include: { system: true } },
-            connector: { include: { drawing: { include: { system: true } } } },
-          },
-        },
-      },
-      take: 200, // Performance cap
-    });
+    const { systems, statistics } = meta;
+    const wires = Array.from(bundles.values());
 
     const nodeMap = new Map<string, SystemNode>();
     const edges: SystemEdge[] = [];
-    let nodeIndex = 0;
 
-    for (const wire of connectedWires) {
+    // First pass: register every node so we can lay them out evenly.
+    type Pending = { wire: (typeof wires)[number]; ids: string[] };
+    const pending: Pending[] = [];
+
+    for (const wire of wires) {
       if (wire.endpoints.length < 2) continue;
+      const ids: string[] = [];
 
-      // Build node IDs for first two endpoints
-      const eps = wire.endpoints.slice(0, 2);
-      const nodeIds: string[] = [];
-
-      for (const ep of eps) {
-        let nodeId = '';
-        if (ep.device) {
-          nodeId = `device_${ep.device.id}`;
-          if (!nodeMap.has(nodeId)) {
-            nodeMap.set(nodeId, {
-              id: nodeId,
-              label: ep.device.tagNo || ep.device.deviceName,
-              type: 'device',
-              system: ep.device.system?.code || 'GEN',
-              position: generatePosition(nodeIndex++, 60, 280),
-              metadata: {
-                deviceId: ep.device.id,
-                deviceName: ep.device.deviceName,
-                deviceType: ep.device.deviceType,
-                tagNo: ep.device.tagNo,
-              },
-              color: SYSTEM_COLORS[ep.device.system?.code || 'DEFAULT'] || SYSTEM_COLORS.DEFAULT,
-              icon: 'Cpu',
-            });
-          }
-        } else if (ep.connector) {
-          nodeId = `connector_${ep.connector.id}`;
-          if (!nodeMap.has(nodeId)) {
-            const sys = ep.connector.drawing?.system?.code || 'GEN';
-            nodeMap.set(nodeId, {
-              id: nodeId,
+      for (const ep of wire.endpoints) {
+        if (ep.connector) {
+          const id = `connector_${ep.connector.id}`;
+          if (!nodeMap.has(id)) {
+            const sys = ep.connector.drawing?.system?.code ?? 'GEN';
+            nodeMap.set(id, {
+              id,
               label: ep.connector.connectorCode,
               type: 'connector',
               system: sys,
-              position: generatePosition(nodeIndex++, 60, 180),
+              position: { x: 0, y: 0 },
               metadata: {
                 connectorId: ep.connector.id,
                 connectorCode: ep.connector.connectorCode,
                 drawingNo: ep.connector.drawing?.drawingNo,
               },
-              color: SYSTEM_COLORS[sys] || SYSTEM_COLORS.DEFAULT,
+              color: colorFor(sys),
               icon: 'Plug',
             });
           }
-        }
-        if (nodeId) nodeIds.push(nodeId);
-      }
-
-      // Create edge if both endpoints resolved to nodes
-      if (nodeIds.length >= 2 && nodeIds[0] !== nodeIds[1]) {
-        // Determine edge type based on wire properties
-        let edgeType: 'power' | 'signal' | 'communication' | 'ground' | 'connection' = 'connection';
-        let edgeColor = EDGE_COLORS.connection;
-
-        if (wire.voltageClass) {
-          const voltage = wire.voltageClass.toLowerCase();
-          if (voltage.includes('power') || voltage.includes('24v') || voltage.includes('110v') || voltage.includes('415v')) {
-            edgeType = 'power';
-            edgeColor = EDGE_COLORS.power;
-          } else if (voltage.includes('signal') || voltage.includes('5v') || voltage.includes('12v')) {
-            edgeType = 'signal';
-            edgeColor = EDGE_COLORS.signal;
-          } else if (voltage.includes('comm') || voltage.includes('rs485') || voltage.includes('ethernet')) {
-            edgeType = 'communication';
-            edgeColor = EDGE_COLORS.communication;
-          } else if (voltage.includes('gnd') || voltage.includes('ground')) {
-            edgeType = 'ground';
-            edgeColor = EDGE_COLORS.ground;
+          ids.push(id);
+        } else if (ep.device) {
+          const id = `device_${ep.device.id}`;
+          if (!nodeMap.has(id)) {
+            const sys = ep.device.system?.code ?? 'GEN';
+            nodeMap.set(id, {
+              id,
+              label: ep.device.tagNo || ep.device.deviceName,
+              type: 'device',
+              system: sys,
+              position: { x: 0, y: 0 },
+              metadata: {
+                deviceId: ep.device.id,
+                deviceName: ep.device.deviceName,
+                tagNo: ep.device.tagNo,
+              },
+              color: colorFor(sys),
+              icon: 'Cpu',
+            });
           }
+          ids.push(id);
         }
-
-        edges.push({
-          id: `edge_${wire.id}`,
-          source: nodeIds[0],
-          target: nodeIds[1],
-          label: wire.wireNo,
-          type: edgeType,
-          wireNo: wire.wireNo,
-          metadata: {
-            wireId: wire.id,
-            signalName: wire.signalName,
-            voltageClass: wire.voltageClass,
-          },
-          color: edgeColor,
-          animated: true,
-        });
       }
+
+      if (ids.length >= 2 && ids[0] !== ids[1]) pending.push({ wire, ids });
     }
 
-    let nodes = Array.from(nodeMap.values());
+    // Assign positions now that the node count is known.
+    const nodes = Array.from(nodeMap.values());
+    nodes.forEach((n, i) => {
+      n.position = layout(i, nodes.length, n.type === 'device' ? 300 : 180);
+    });
 
-    // If we still have no connected nodes, add ALL devices and connectors for a visual layout
+    // Second pass: emit edges, de-duplicating parallel wires between the
+    // same pair so the canvas stays legible.
+    const seenPair = new Set<string>();
+    for (const { wire, ids } of pending) {
+      const pairKey = [ids[0], ids[1]].sort().join('::');
+      if (seenPair.has(pairKey)) continue;
+      seenPair.add(pairKey);
+
+      const { type, color } = classifyEdge(wire.voltageClass, wire.conductorClassCode);
+      edges.push({
+        id: `edge_${wire.id}`,
+        source: ids[0],
+        target: ids[1],
+        label: wire.wireNo,
+        type,
+        wireNo: wire.wireNo,
+        metadata: {
+          wireId: wire.id,
+          signalName: wire.signalName,
+          voltageClass: wire.voltageClass,
+          conductorClassCode: wire.conductorClassCode,
+        },
+        color,
+        animated: true,
+      });
+    }
+
+    // Never hand the UI an empty canvas.
     if (nodes.length === 0) {
-      console.log('ℹ️ No connected topology, showing all devices + connectors');
-      const deviceNodes = await getDeviceNodes(systemCode);
-      const connectorNodes = await getConnectorNodes(systemCode);
-      nodes = [...deviceNodes, ...connectorNodes];
+      const fallback = await getStandaloneNodes(systemCode);
+      return { nodes: fallback, edges: [], systems, statistics };
     }
-
-    console.log(`✅ System topology generated: ${nodes.length} nodes, ${edges.length} edges`);
 
     return { nodes, edges, systems, statistics };
   } catch (error) {
-    console.error('❌ Error getting system topology:', error);
+    console.error('[gsd] getSystemTopology failed:', error);
     return {
       nodes: [],
       edges: [],
       systems: [],
-      statistics: { totalDevices: 0, totalConnections: 0, totalWires: 0, systemCount: 0, connectorCount: 0, devicesBySystem: {}, connectionsByType: {} },
+      statistics: {
+        totalDevices: 0,
+        totalConnections: 0,
+        totalWires: 0,
+        systemCount: 0,
+        connectorCount: 0,
+        devicesBySystem: {},
+        connectionsByType: { power: 0, signal: 0, communication: 0, ground: 0, connection: 0 },
+      },
     };
   }
 }
 
-/**
- * Search for nodes by label or metadata
- */
-export async function searchTopologyNodes(query: string, systemCode?: string): Promise<SystemNode[]> {
+/** Filter the built topology by label / metadata substring. */
+export async function searchTopologyNodes(
+  query: string,
+  systemCode?: string,
+): Promise<SystemNode[]> {
   try {
-    const topology = await getSystemTopology(systemCode);
-    const lowerQuery = query.toLowerCase();
-
-    return topology.nodes.filter(
-      (node) =>
-        node.label.toLowerCase().includes(lowerQuery) ||
-        Object.values(node.metadata).some((val) =>
-          String(val).toLowerCase().includes(lowerQuery)
-        )
+    const { nodes } = await getSystemTopology(systemCode);
+    const q = query.toLowerCase();
+    return nodes.filter(
+      (n) =>
+        n.label.toLowerCase().includes(q) ||
+        n.system.toLowerCase().includes(q) ||
+        Object.values(n.metadata).some((v) => String(v ?? '').toLowerCase().includes(q)),
     );
   } catch (error) {
-    console.error('Error searching topology nodes:', error);
+    console.error('[gsd] searchTopologyNodes failed:', error);
     return [];
   }
 }

@@ -5,18 +5,28 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card3D, GlassButton, GlassPanel } from '@/components/ui';
-import { FileText, Search, ArrowRight, Cpu, MapPin, Cable, Loader2, ChevronRight } from 'lucide-react';
+import { FileText, Search, ArrowRight, Cpu, MapPin, Cable, Loader2, AlertTriangle } from 'lucide-react';
 
 interface Drawing {
   id: string;
   drawingNo: string;
   title: string;
+  /** false when `title` was auto-generated rather than read from a source document. */
+  titleVerified?: boolean;
+  isReference?: boolean;
   revision: string;
   totalSheets: number;
   system?: { code: string; name: string };
   remarks?: string;
   connectorCount?: number;
   trainlineCount?: number;
+  pageCount?: number;
+}
+
+interface SystemFacet {
+  code: string;
+  name: string;
+  drawingCount: number;
 }
 
 const SYSTEM_COLORS: Record<string, { color: string; bg: string; label: string }> = {
@@ -45,47 +55,60 @@ function DrawingsContent() {
   
   const [search, setSearch] = useState('');
   const [filterSystem, setFilterSystem] = useState<string | null>(null);
+  const [hideUnverified, setHideUnverified] = useState(false);
   const [drawings, setDrawings] = useState<Drawing[]>([]);
+  const [systemFacets, setSystemFacets] = useState<SystemFacet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function fetchDrawings() {
       try {
         setLoading(true);
+        setError(null);
         const params = new URLSearchParams();
         if (filterSystem) params.append('system_code', filterSystem);
         params.append('limit', '1000');
-        
-        const res = await fetch(`/api/drawings?${params.toString()}`);
+
+        const res = await fetch(`/api/drawings?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
         const data = await res.json();
-        
-        if (data.drawings) {
-          setDrawings(data.drawings);
-        } else if (data.error) {
-          setError(data.error.message || data.error);
-        }
+
+        if (data.error) throw new Error(data.error.message || data.error);
+        setDrawings(data.drawings ?? []);
+        // Facets come back unfiltered, so the dropdown keeps every system even
+        // while a filter is active.
+        if (data.meta?.systems) setSystemFacets(data.meta.systems);
       } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
         console.error('Failed to fetch drawings:', err);
-        setError('Failed to load drawings from database');
+        setError(err instanceof Error ? err.message : 'Failed to load drawings from database');
+        setDrawings([]);
       } finally {
         setLoading(false);
       }
     }
 
     fetchDrawings();
-  }, [filterSystem]);
-
-  // Get unique systems from drawings for filter dropdown
-  const uniqueSystems = [...new Set(drawings.map(d => d.system?.code).filter(Boolean) as string[])].sort();
+    return () => controller.abort();
+  }, [filterSystem, reloadKey]);
 
   const filteredDrawings = drawings.filter(d => {
-    const matchSearch = !search || 
-      d.drawingNo.toLowerCase().includes(search.toLowerCase()) ||
-      d.title.toLowerCase().includes(search.toLowerCase());
+    const q = search.trim().toLowerCase();
+    const matchSearch = !q ||
+      d.drawingNo.toLowerCase().includes(q) ||
+      d.title.toLowerCase().includes(q);
     const matchSystem = !filterSystem || d.system?.code === filterSystem;
-    return matchSearch && matchSystem;
+    const matchVerified = !hideUnverified || d.titleVerified !== false;
+    return matchSearch && matchSystem && matchVerified;
   });
+
+  const unverifiedCount = drawings.filter(d => d.titleVerified === false).length;
 
   const groupedDrawings = filteredDrawings.reduce((acc, d) => {
     const systemCode = d.system?.code || 'GEN';
@@ -102,30 +125,72 @@ function DrawingsContent() {
           VCC Drawing Register
         </h1>
         <p className="mt-2 text-slate-400">
-          Complete index of all Vehicle Control Circuit drawings - {filteredDrawings.length} drawings from database
+          Complete index of all Vehicle Control Circuit drawings —{' '}
+          <span className="tabular-nums text-slate-200">{filteredDrawings.length}</span> shown
+          {unverifiedCount > 0 && (
+            <>
+              , of which{' '}
+              <span className="tabular-nums text-amber-400">{unverifiedCount}</span> have an
+              unverified title
+            </>
+          )}
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400">
-          {error}
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-lg border border-red-500/50 bg-red-500/20 p-4 text-red-300">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setReloadKey(k => k + 1)}
+            className="cursor-pointer rounded-md border border-red-400/60 px-3 py-1.5 text-sm font-medium text-red-200 transition-colors duration-200 hover:bg-red-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+          >
+            Retry
+          </button>
         </div>
       )}
 
-      <div className="mb-6 flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input type="text" placeholder="Search by drawing number or title..."
+      <div className="mb-6 flex flex-wrap items-center gap-4">
+        <div className="relative flex-1 min-w-[16rem] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" aria-hidden="true" />
+          <label htmlFor="drawing-search" className="sr-only">Search drawings</label>
+          <input id="drawing-search" type="search" placeholder="Search by drawing number or title..."
             value={search} onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-200" />
+            className="w-full rounded-lg border border-slate-700/50 bg-slate-800/50 py-2 pl-10 pr-4 text-slate-200 transition-colors duration-200 placeholder:text-slate-500 focus:border-cyan-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60" />
         </div>
-        <select value={filterSystem || ''} onChange={(e) => setFilterSystem(e.target.value || null)}
-          className="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-200">
+
+        <label htmlFor="system-filter" className="sr-only">Filter by system</label>
+        <select id="system-filter" value={filterSystem || ''} onChange={(e) => setFilterSystem(e.target.value || null)}
+          className="cursor-pointer rounded-lg border border-slate-700/50 bg-slate-800/50 px-4 py-2 text-slate-200 transition-colors duration-200 focus:border-cyan-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60">
           <option value="">All Systems</option>
-          {uniqueSystems.map(sys => (
-            <option key={sys} value={sys}>{SYSTEM_COLORS[sys]?.label || sys}</option>
+          {systemFacets.map(sys => (
+            <option key={sys.code} value={sys.code} disabled={sys.drawingCount === 0}>
+              {sys.code} — {sys.name} ({sys.drawingCount})
+            </option>
           ))}
         </select>
+
+        {unverifiedCount > 0 && (
+          <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-slate-300">
+            <input
+              type="checkbox"
+              checked={hideUnverified}
+              onChange={(e) => setHideUnverified(e.target.checked)}
+              className="h-4 w-4 cursor-pointer rounded border-slate-600 bg-slate-800 text-cyan-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+            />
+            Only verified titles
+          </label>
+        )}
+
+        {(filterSystem || search || hideUnverified) && (
+          <button
+            type="button"
+            onClick={() => { setFilterSystem(null); setSearch(''); setHideUnverified(false); }}
+            className="cursor-pointer rounded-lg border border-slate-700/50 px-3 py-2 text-sm text-slate-300 transition-colors duration-200 hover:border-cyan-500/60 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -156,18 +221,40 @@ function DrawingsContent() {
                     const subsystem = dwg.remarks?.split('|')[1] || systemCode;
                     
                     return (
-                      <Link key={dwg.id} href={`/drawings/${dwg.drawingNo}`} className="block">
+                      <Link
+                        key={dwg.id}
+                        href={`/drawings/${dwg.drawingNo}`}
+                        className="group block cursor-pointer rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                      >
                         <Card3D variant="flat" interactive={true} className="p-4">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="font-mono text-cyan-400 font-bold">
+                            <span className="font-mono font-bold text-cyan-400 tabular-nums">
                               {dwg.drawingNo}
                             </span>
                             <span className="text-xs text-slate-500">Rev {dwg.revision || 'A'}</span>
                           </div>
-                          <div className="text-sm text-white mb-2">{dwg.title}</div>
+                          {/* An unverified title was auto-generated at import time and
+                              is not the real engineering title, so it is never shown
+                              as though it were. */}
+                          {dwg.titleVerified === false ? (
+                            <div className="mb-2 flex items-start gap-1.5 text-sm italic text-amber-400/90">
+                              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                              <span>
+                                Title not available from source documents
+                                <span className="sr-only"> (unverified)</span>
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="mb-2 text-sm text-white">{dwg.title}</div>
+                          )}
                           <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
                             <span className="px-2 py-0.5 bg-slate-700/50 rounded">{subsystem}</span>
-                            <span>{dwg.totalSheets} sheets</span>
+                            <span className="tabular-nums">{dwg.totalSheets} sheets</span>
+                            {dwg.isReference && (
+                              <span className="rounded bg-indigo-500/20 px-2 py-0.5 text-indigo-300">
+                                Reference doc
+                              </span>
+                            )}
                           </div>
                         
                         {(dwg.connectorCount || dwg.trainlineCount) ? (

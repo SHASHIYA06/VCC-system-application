@@ -175,6 +175,14 @@ export async function GET(request: NextRequest) {
         id: drawing.id,
         drawingNo: drawing.drawingNo,
         title: drawing.title,
+        // `titleSource === 'PLACEHOLDER'` means the title was auto-generated at
+        // import time and is not the real engineering title. Exposed so the
+        // detail view can say so instead of asserting a fabricated name — that
+        // mismatch is what made looked-up drawings read as "totally different"
+        // from the actual drawing.
+        titleSource: drawing.titleSource,
+        titleVerified: drawing.titleSource !== 'PLACEHOLDER',
+        isReference: drawing.isReference,
         revision: drawing.revision,
         systemCode: drawing.system?.code || '',
         systemName: drawing.system?.name || '',

@@ -124,6 +124,10 @@ model Drawing {
   drawingNo            String
   revision             String                     @default("0")
   title                String
+  /// Where `title` came from. PLACEHOLDER means it was auto-generated rather than
+  /// read out of a source document, so the UI must not present it as an
+  /// authoritative engineering title.
+  titleSource          TitleSource                @default(DERIVED)
   totalSheets          Int                        @default(1)
   sourceFileId         String?
   isReference          Boolean                    @default(false)
@@ -1078,6 +1082,16 @@ enum DrawingStatus {
   ARCHIVED
   DRAFT
   DEPRECATED
+}
+
+/// Provenance of a drawing's title.
+enum TitleSource {
+  /// Read verbatim out of a source document (e.g. the VCC DESCRIPTION index).
+  SOURCE_DOCUMENT
+  /// Inferred from surrounding data but plausible and reviewed.
+  DERIVED
+  /// Auto-generated filler. NOT an authoritative title.
+  PLACEHOLDER
 }
 
 enum ConnectorScope {
